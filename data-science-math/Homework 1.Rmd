@@ -1,0 +1,33 @@
+---
+title: "CUNY SPSS Data Science Math Homework 1"
+author: "Mike Silva"
+date: "July 9, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 1
+
+Profit is the difference between revenue and cost.  Revenue is the quantity sold (q) multiplied by the price(p) and the costs is given at $10 times the quantity sold, thus
+$$P(q,p) = R(q,p) - C(q) = qp - 10q$$
+The quantity sold is given as a function of the price
+$$q(p) = 80-2p$$
+So rewriting the equation for profit as a function of the price
+$$P(p) = R(p) - C(p) = (80-2p)p - 10(80-2p) = (80p-2p^2) - (800-20p) = -2p^2 + 100 - 800 $$
+The retailer's profit function is
+$$P(p) = -2p^2 + 100 - 800 $$
+
+## Question 2
+Given $f(x)=8x^3+7x^2-5$:
+
+### Step 1
+$$f(3) = 8(3)^3+7(3)^2-5 = (8*27)+(7*9)-5 = 216+63-5 = 274$$
+
+### Step 2
+$$f(-1) = 8(-2)^3+7(-2)^2-5 = (8*-8)+(7*4)-5 = -64+28-5 = -41$$
+
+### Step 3
+$$f(x+c) = 8(x+c)^3+7(x+c)^2-5$$
