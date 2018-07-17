@@ -6,28 +6,163 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+library(Deriv)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Question 1
+**Question 1**
 
 Profit is the difference between revenue and cost.  Revenue is the quantity sold (q) multiplied by the price(p) and the costs is given at $10 times the quantity sold, thus
 $$P(q,p) = R(q,p) - C(q) = qp - 10q$$
 The quantity sold is given as a function of the price
 $$q(p) = 80-2p$$
 So rewriting the equation for profit as a function of the price
-$$P(p) = R(p) - C(p) = (80-2p)p - 10(80-2p) = (80p-2p^2) - (800-20p) = -2p^2 + 100 - 800 $$
-The retailer's profit function is
-$$P(p) = -2p^2 + 100 - 800 $$
+$$P(p) = R(p) - C(p)$$
+$$ (80-2p)p - 10(80-2p)$$
+$$ (80p-2p^2) - (800-20p)$$
+$$-2p^2 + 100p - 800 $$
 
-## Question 2
+**Question 2**
+
 Given $f(x)=8x^3+7x^2-5$:
 
-### Step 1
-$$f(3) = 8(3)^3+7(3)^2-5 = (8*27)+(7*9)-5 = 216+63-5 = 274$$
+**Step 1**
+$$f(3) = 8(3)^3+7(3)^2-5 = (8\cdot27)+(7\cdot9)-5 = 216+63-5 = 274$$
 
-### Step 2
-$$f(-1) = 8(-2)^3+7(-2)^2-5 = (8*-8)+(7*4)-5 = -64+28-5 = -41$$
+**Step 2**
+$$f(-1) = 8(-2)^3+7(-2)^2-5 = (8\cdot-8)+(7\cdot4)-5 = -64+28-5 = -41$$
 
-### Step 3
+**Step 3**
 $$f(x+c) = 8(x+c)^3+7(x+c)^2-5$$
+Verifying my math with R:
+```{r}
+f2 <- function(x){8*x**3+7*x**2-5}
+f2(3)
+f2(-2)
+```
+
+**Question 3 **
+
+**Step 1**
+$$\lim_{x\to1^-} f(x) = 2$$
+
+**Step 2**
+$$\lim_{x\to1^+} f(x) = -5$$
+
+**Step 3**
+$$\lim_{x\to1} f(x) = \mbox{ Does not exist} $$
+
+**Question 4**
+Find the derivative of $f(x)=-2x^3$
+
+$$f'(x)=-6x^2$$
+Verifying my math in R:
+```{r}
+f4 <- function(x){-2*x**3}
+Deriv(f4)
+```
+
+**Question 5**
+$$f(x) = \frac{-8}{x^2}$$
+$$f'(x) = \frac{16}{x^3}$$
+Verify with R:
+```{r}
+f5 <-function(x){-8/(x**2)}
+Deriv(f5)
+```
+
+
+**Question 6**
+$$g(x) 5\sqrt[3]{x}$$
+
+$$g'(x) \frac{5}{3x^\frac{2}{3}}=\frac{5}{3}\cdot\frac{1}{x^\frac{2}{3}}$$
+```{r}
+f6 <- function(x){5*x**(1/3)}
+Deriv(f6)
+
+5/3
+
+2/3
+```
+
+**Question 7**
+
+$$y=-2x^\frac{9}{8}$$
+
+$$y'=\frac{-9x^\frac{1}{8}}{4}=\frac{-9}{4}\cdot x^\frac{1}{8}$$
+```{r}
+f7 <- function(x){-2*x**(9/8)}
+Deriv(f7)
+
+-9/4
+1/8
+```
+
+**Question 8**
+$$\frac{35-40}{4-0}=\frac{-5}{4} = -1\frac{1}{4}$$
+
+**Question 9**
+$$C(x)=630+2.4x$$
+$$\mbox{Avg Cost} = \frac{\mbox{Cost}}{\mbox{Unit}}=\frac{C(x)}{x}=\frac{630+2.4x}{x}$$
+
+**Question 10**
+$$f(x)=(-2x^{-2} +1)(-5x + 9)$$
+
+Applying the quotient rule where $f(x)=-2x^{-2}+1$ and $g(x)=(-5x+9)$
+
+$$f'(x) = \frac{4}{x^3}(-5x+9) + -5(2x^{-2} + 1) = \frac{36}{x^3} - \frac{20}{x^2} + \frac{10}{x^2} - 5=\frac{36}{x^3}-\frac{10}{x^2}-5$$
+Checking my math with R:
+```{r}
+f10 <- function(x){(-2*x**-2+1)*(-5*x+9)}
+Deriv(f10)
+# Evaluating at 10
+f10_prime <- function(x){(36/x**3)-(10/x**2)-5}
+f10_prime(10)
+f10_prime <- Deriv(f10)
+f10_prime(10)
+```
+
+**Question 11**
+$$f(x)=\frac{5x^\frac{1}{2}+7}{x^3 + 1}$$
+
+Applying the quotient rule where $f(x)=5\sqrt{x}$ and $g(x)=x^3+1$
+
+$$f'(x) = \frac{\Big(\frac{5}{2\sqrt{x}}\Big)(x^3+1)-(3x^2(5x^\frac{1}{2}+7))}{(x^3+1)^2}$$
+Simplified to 
+$$f'(x) = -\frac{42x^\frac{5}{2} + 25x^3 - 5}{2\sqrt{x}\cdot (x^6+2x^3 + 1)}$$
+Again checking with R:
+```{r}
+f11 <- function(x){(7+5*x**(1/2))/(1+x**3)}
+Deriv(f11)
+# Evaluate at 5
+fprime11 <- function(x){(-42*x**(5/2)+25*x**3-5)/((2*x**(1/2))*(x**6+2*x**3+1))}
+fprime11(5)
+fprime11 <- Deriv(f11)
+fprime11(5)
+```
+
+**Question 12**
+$$f(x)=(3x^{-3}-8x+6)^\frac{4}{3}$$
+
+$$f'(x) = \frac{4}{3}(-\frac{9}{x^4}-8) \Big(\frac{3}{x^3}-8x+6\Big)^\frac{1}{3}$$
+
+Checking my math in R:
+```{r}
+f12 <- function(x){(3*x**-3-(8*x)+6)**(4/3)}
+Deriv(f12)
+# Evaluate at 1
+f12_prime <- function(x){(4/3)*((-9/x**4)-8)*(((3/x**3)-8*x+6)**(1/3))}
+f12_prime(1)
+f12_prime <- Deriv(f12)
+f12_prime(1)
+```
+
+*Question 13*
+$$f(t) =\frac{550t^2}{\sqrt{t^2+15}}$$
+
+$$f'(t)=$$
+```{r}
+f13 <- function(t){(550*t**2)/(t+15)**(1/2)}
+Deriv(f13)
+```
+
