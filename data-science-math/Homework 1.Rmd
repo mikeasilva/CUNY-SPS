@@ -81,6 +81,7 @@ Deriv(f4)
 
 $$f(x) = \frac{-8}{x^2}$$
 $$f'(x) = \frac{16}{x^3}$$
+
 Verify with R:
 ```{r}
 f5 <-function(x){-8/(x**2)}
@@ -93,6 +94,8 @@ Deriv(f5)
 $$g(x) 5\sqrt[3]{x}$$
 
 $$g'(x) \frac{5}{3x^\frac{2}{3}}=\frac{5}{3}\cdot\frac{1}{x^\frac{2}{3}}$$
+
+Verify with R:
 ```{r}
 f6 <- function(x){5*x**(1/3)}
 Deriv(f6)
@@ -109,6 +112,8 @@ Deriv(f6)
 $$y=-2x^\frac{9}{8}$$
 
 $$y'=\frac{-9x^\frac{1}{8}}{4}=\frac{-9}{4}\cdot x^\frac{1}{8}$$
+
+Verify with R:
 ```{r}
 f7 <- function(x){-2*x**(9/8)}
 Deriv(f7)
@@ -139,7 +144,8 @@ $$f(x)=(-2x^{-2} +1)(-5x + 9)$$
 Applying the quotient rule where $f(x)=-2x^{-2}+1$ and $g(x)=(-5x+9)$
 
 $$f'(x) = \frac{4}{x^3}(-5x+9) + -5(2x^{-2} + 1) = \frac{36}{x^3} - \frac{20}{x^2} + \frac{10}{x^2} - 5=\frac{36}{x^3}-\frac{10}{x^2}-5$$
-Checking my math with R:
+
+Verify with R:
 ```{r}
 f10 <- function(x){(-2*x**-2+1)*(-5*x+9)}
 Deriv(f10)
@@ -163,6 +169,7 @@ $$f'(x) = \frac{\frac{5x^3+5}{2\sqrt{x}}-3x^2 (5\sqrt{x}+7)}{(x^3+1)^2}$$
 
 Simplified to 
 $$f'(x) = -\frac{42x^\frac{5}{2} + 25x^3 - 5}{2\sqrt{x}\cdot (x^3 + 1)^2}$$
+
 Again checking with R:
 ```{r}
 f11 <- function(x){(5*x**(1/2)+7)/(x**3+1)}
@@ -205,6 +212,8 @@ $$550\cdot f'(x) = \frac{(2t)(\sqrt{t^2+15})-(t^2)\Big(\frac{t}{\sqrt{t^2+15}}\B
 
 Multiplying by 550 and simplifying
 $$f'(x) = \frac{1100t\sqrt{t^2+15} -\frac{550t^3}{\sqrt{t^2+15}}}{t^2+15}=\frac{550t(t^2+30)}{(t^2+15)^\frac{3}{2}}$$
+
+Verifying with R:
 ```{r}
 f13 <- function(t){(550*t**2)/((t**2+15)**(1/2))}
 Deriv(f13)
@@ -212,7 +221,6 @@ f13_prime <- function(t){(550*t*(t**2+30))/((t**2+15)**(3/2))}
 f13_prime(3)
 f13_prime <- Deriv(f13)
 f13_prime(3)
-
 ```
 
 The answer is 547
@@ -221,5 +229,184 @@ The answer is 547
 
 ### Question 14
 
-Given $N(t) = 1000(6+0.1t)^\frac{1}{2}$
+$$N(t) = 1000(6+0.1t)^\frac{1}{2}=1000\sqrt{0.1t+6}$$
+
+#### Step 1
 $$N(3) = 1000(6+0.1(3))^\frac{1}{2}=39690$$
+
+#### Step 2
+Let $u=0.1t+6$ so $\sqrt{u}$ becomes $\frac{1}{2\sqrt{u}}$ because of the power rule
+
+and due to the chain rule $u'=0.1$.  Substitute
+
+$$1000\cdot N'(t) = \frac{0.1\cdot0.5}{\sqrt{0.1t+6}}=\frac{0.05}{\sqrt{0.1t+6}}$$
+$$ N'(t)=\frac{1000\cdot 0.05}{\sqrt{0.1t+6}}=\frac{50}{\sqrt{0.1t+6}}$$
+$$N'(5)=\frac{50}{\sqrt{0.1(5)+6}}=\frac{50}{\sqrt{6.5}}=19.6116135138\approx20	$$
+20 is roughly how many additional people attend in the 5th week of the season
+
+Checking my math with R:
+```{r}
+f14 <- function(t){1000*(6+0.1*t)**(1/2)}
+Deriv(f14)
+f14_prime <- function(t){50/(6.5**(1/2))}
+f14_prime(5)
+f14_prime <- Deriv(f14)
+f14_prime(5)
+```
+
+******
+
+### Question 15
+
+$$3x^3+4y^3=77$$
+
+#### Step 1
+
+$$\frac{d}{dx}(3x^3+4y^3)=\frac{d}{dx}(77)$$
+
+$$\frac{d}{dx}(3x^3)+\frac{d}{dx}(4y^3)=0$$
+$$9x^2+12y^2\frac{dy}{dx}=0$$
+
+$$12y^2\frac{dy}{dx}=-9x^2$$
+
+$$\frac{dy}{dx}=\frac{-9x^2}{12y^2} = -\frac{3x^2}{4y^2}$$
+
+#### Step 2
+
+The slope of the tangent line at (3,-1) is
+
+$$-\frac{3(3)^2}{4(-1)^2}=-\frac{3(9)}{4(1)}=-\frac{7}{4}$$
+
+******
+
+### Question 16
+
+$$f(x)=\frac{x+3}{x-8}$$
+
+Differentiate using the quotient rule where $f(x)=x+3$ and $g(x)=x-8$
+
+$$f'(x)=\frac{(1)(x-8)-(1)(x+3)}{(x-8)^2}=\frac{(x-8)-(x+3)}{(x-8)^2}=\frac{x-8-x-3}{(x-8)^2}=-\frac{11}{(x-8)^2}$$
+
+Checking my work with R:
+```{r}
+f16 <- function(x){(x+3)/(x-8)}
+Deriv(f16)
+f16_prime <- function(x){-11/((x-8)^2)}
+f16_prime(20)
+f16_prime <- Deriv(f16)
+f16_prime(20)
+```
+
+$$f''(x)= \frac{22}{(x-8)^3}$$
+
+The critical point is when x=8.  f(x) is decreasing when x < 8 and increasing when x > 8.
+
+******
+
+### Question 17
+
+$$F(t) = 14 + \frac{367t^2}{t^2+100}$$
+
+#### Step 1
+
+$$367 \cdot F'(t) = \frac{t^2}{(t^2+100)^2}=\frac{(2t(t^2+100))(-2t^2\cdot t)}{(t^2+100)^2}=\frac{2t(t^2+100)(-2t^3)}{(t^2+100)^2}$$
+
+Multiply it by 367
+
+$$f'(x)=367 \cdot \frac{2t(t^2+100)(-2t^3)}{(t^2+100)^2}=\frac{734t(t^2+100)-734t^3}{(t^2+100)^2}=\frac{73400t}{(t^2+100)^2}$$
+
+In the interest of turning my assignment on time some of the steps have been excluded
+
+$$f''(x)=-\frac{73400(3t^2-100)}{(t^2+100)^3}$$
+
+$F'(t) > 0$ from $(0,\infty)$ and $F'(t) < 0$ from $(-\infty, 0)$ which doesn't make sense in this case.
+
+#### Step 2
+
+$$\lim_{t\to\infty} F(t) = 381^\circ F$$
+
+******
+
+### Question 18
+
+$$f(x)=\frac{x^3}{3340000}-\frac{7x^2}{9475}+\frac{42417727x}{1265860000}+\frac{1}{33}$$
+
+Again in the interest of time I will skip the steps of the calculation:
+
+$$f'(x) = \frac{3x^2}{3340000}-\frac{14x}{9475}+\frac{42417727}{1265860000}$$
+
+$$0 = \frac{3x^2}{3340000}-\frac{14x}{9475}+\frac{42417727}{1265860000}$$
+
+```{r}
+f18 <- function(x){}
+f18_prime <- function(x){(3*x**2/3340000)-(14*x/9475)+(42417727/1265860000)}
+x <- seq(0, 30, by=.01)
+y <- f18_prime(x)
+i <- stats::uniroot(f18_prime,c(-30,30))
+plot(y~x,type="l", col="blue")
+abline(h=0, col="black")
+abline(v=0, col="black")
+abline(v=i$root, col="red")
+points(i$root, 0, col="red", pch=21)
+```
+
+```{r}
+i$root
+```
+
+******
+
+### Question 19
+
+$$f(x) = 7x^2+28x-35$$
+
+$$f'(x) = 14x+28$$
+
+$$0 = 14x+28 $$
+
+$$-28 = 14x$$
+
+$$x=-\frac{28}{14}=-2$$
+
+$$f(-2) = (7(-2)^2)+(28(-2))-35 = 28-56-35=-63$$
+
+$$\mbox minimum = (-2,-63)$$
+
+Checking with R:
+```{r}
+f19 <- function(x){7*x**2+28*x-35}
+f19_prime <- Deriv(f19)
+i <- stats::uniroot(f19_prime,c(-30,30))
+i$root
+f19(i$root)
+```
+
+```{r}
+x <- seq(-30, 30, by=.01)
+y <- f19(x)
+i <- stats::uniroot(f19_prime,c(-30,30))
+plot(y~x,type="l", col="blue")
+abline(h=0, col="black")
+abline(v=0, col="black")
+points(i$root, 0, col="red", pch=21)
+```
+
+******
+
+### Question 20
+
+$$f(x)=-6x^3+27x^2+180x$$
+
+$$f'(x)=-18x^2+54x+180$$
+
+$$0=-18x^2+54x+180$$
+
+$$0=-18(x^2-3x-10)$$
+
+$$x^2-3x-10=0$$
+
+$$(x+2)(x-5)=0$$
+
+$$x=-2 and 5$$
+
+******
