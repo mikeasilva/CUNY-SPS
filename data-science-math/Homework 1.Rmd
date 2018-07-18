@@ -407,6 +407,27 @@ $$x^2-3x-10=0$$
 
 $$(x+2)(x-5)=0$$
 
-$$x=-2 and 5$$
+The function is minimized/maximized when $x = -2$ or $x = 5$.  Plugging in and solving for y:
+
+$$f(-2)=-6(-2)^3+27(-2)^2+180(-2)=48+108-360=-204$$
+$$f(-2)=-6(5)^3+27(5)^2+180(5)=-750+650+900=800$$
+
+$$f''(x)=-36x+54$$
+$$f''(-2)=-36(-2)+54=72+54=126>0$$
+$$f''(5)=-36(5)+54=180+54=234>0$$
+
+So the critical points are $(-2, -204)$ and $(5, 800)$.  $(-2, -204)$ is a local min and $(5, 800)$
+
+```{r}
+f20 <- function(x){(-6*x**3)+(27*x**2)+(180*x)}
+f20_prime <- Deriv(f20)
+x <- seq(-30, 30, by=.01)
+y <- f20(x)
+#i <- stats::uniroot(f20_prime,c(-30,30))
+plot(y~x,type="l", col="blue")
+abline(h=0, col="black")
+abline(v=0, col="black")
+#points(i$root, 0, col="red", pch=21)
+```
 
 ******
