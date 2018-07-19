@@ -431,3 +431,156 @@ abline(v=0, col="black")
 ```
 
 ******
+
+### Question 21
+Inventory cost is defined as the cost of holding stock and the cost of ordering.  The inventory cost as a function of the iron lot size is:
+
+$$C(i)=\frac{120}{i}(6+4.5(i))+(1.60\frac{i}{2})$$
+This function assumes the irons are selling at a constant rate (no seasonality) throughout the year.  Simplifing the function:
+
+$$C(i)=\frac{620}{i}+ \frac{540i}{i}+(0.8i) = \frac{620}{i}+0.8i+540$$
+
+Since we want to minimize this cost we take the first derivative and set it equal to zero.
+
+$$C'(i)=-\frac{720}{i^2} +0.8$$
+
+$$0=-\frac{720}{i^2} +0.8$$
+$$\frac{720}{i^2}=0.8$$
+$$720=0.8i^2$$
+$$i^2=\frac{720}{0.8}=900$$
+$$i=\sqrt{900}=30$$
+So the **lot size is 30 irons**.  Since we are expecting to sell 120 irons per year this would require **4 orders**.
+
+******
+
+### Question 22
+
+$$Volume = 18432ft^2 = x\cdot x \cdot y \Rightarrow y=\frac{18432}{x^2}$$
+The cost is the sum of the sides, top and bottom.  The sides and top material cost $3.00 per square foot and the bottom is $5.00.  
+
+$$C(x,y) = 3(4xy) + 3x^2 + 5x^2 = 12xy+8x^2$$
+Substituting in y:
+$$ C(x)=\frac{12x\cdot 18432}{x^2}+8x^2=\frac{221184}{x}+8x^2$$
+Minimize the cost function:
+$$ C'(x)=-\frac{221184}{x^2}+16x$$
+$$ 0=-\frac{221184}{x^2}+16x\Rightarrow 0=-221184+16x^3 \Rightarrow 0=-13824 + x^3 $$
+$$ x^3 = 13824 \Rightarrow x=\sqrt[3]{13824} = 24$$
+Plugging 24 into the volume equation and solving for y:
+$$18432 = x^2y\Rightarrow 18432=(24)^2 y\Rightarrow 18432=576 y \Rightarrow y=\frac{18432}{576} \Rightarrow y = 32$$
+Now checking everything with R:
+```{r}
+f22 <- function(x){
+  (3*(4*x*(18432/(x**2)))) + (3*x**2) + (5*x**2)
+}
+f22_prime <- Deriv(f22)
+library(rootSolve)
+x22 <- uniroot.all(f22_prime, c(0,100))
+x22
+y22 <- function(x){18432/(x**2)}
+y22(x22)
+```
+
+******
+
+### Question 23
+
+
+******
+
+### Question 24
+
+
+******
+
+### Question 25
+
+******
+
+### Question 26
+
+******
+
+### Question 27
+
+******
+
+### Question 28
+
+******
+
+### Question 29
+
+******
+### Question 30
+
+$$ \int_{-7}^2 x\sqrt{x+7}dx$$
+
+For this problem $u=x$ and $dv=\sqrt{x+7}dx$.  Calculate $du$ and $v$:
+
+$du=1dx$ and $v = \int \sqrt{x+7}dx = \frac{2}{3}(x+7)^\frac{3}{2}$
+
+Plugging it into the integration by parts formula:
+
+$$ \int_a^b udv = uv]_a^b -\int_a^b vdu$$
+
+
+$$ \int_{-7}^2x\sqrt{x+7}dx]_{-7}^2 -\int_{-7}^2 \frac{2}{3}(x+7)^\frac{3}{2}\cdot 1dx$$
+Integrate the right hand side
+
+$$ \frac{2x}{3}(x+7)^\frac{3}{2}]_{-7}^2 -\frac{4}{15}(x+7)^\frac{5}{2}]_{-7}^2 $$
+
+Plugging in the -7 and 2 yeilds -28.8 as shown below:
+```{r}
+f30 <- function(a, b){
+  left <- function(x){
+    ((2*x)/3)*(x+7)**(3/2)
+  }
+  right <- function(y){
+    (4/15)*(y+7)**(5/2)
+  }
+  (left(b)-left(a))-(right(b)-right(a))
+}
+
+f30(-7,2)
+```
+******
+
+### Question 31
+
+#### Step 1
+In the interest of time I will solve this question by building a simple model
+```{r}
+bounce <- function(total_times, drop_height, debug=F){
+  rebound = .22 # Amount of the rebound as a share of drop height
+  times_ball_hit_the_ground = 1
+  total_distance = drop_height
+  if(debug){
+    message(paste(total_distance, 'meters after ball hits the ground',times_ball_hit_the_ground,'times'))
+  }
+  while(times_ball_hit_the_ground < total_times){
+    drop_height = rebound * drop_height 
+    total_distance = total_distance + (2 * drop_height) #going Up and down
+    times_ball_hit_the_ground = times_ball_hit_the_ground + 1
+    if(debug){message(paste(total_distance, 'meters after ball hits the ground',times_ball_hit_the_ground,'times'))}
+  }
+  if(!debug){
+  message(paste(total_distance, 'meters after ball hits the ground',times_ball_hit_the_ground,'times'))
+  }
+}
+  
+bounce(20, 46, T)
+```
+So the ball traveled 71.94872 meters when it hit the ground on the 20th time.  I would note that the additional distance is very small after the 7th
+
+#### Step 2
+To evaluate the total distance as the number of bounces heads to infinity I will cheat and plug in a really large number and see what it tends toward.
+```{r}
+bounce(1000000, 46)
+```
+
+So it is tending toward 72 meters.
+
+******
+
+### Question 34
+
