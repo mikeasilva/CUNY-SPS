@@ -7,6 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 library(Deriv)
+library(rootSolve)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -473,7 +474,7 @@ f22 <- function(x){
   (3*(4*x*(18432/(x**2)))) + (3*x**2) + (5*x**2)
 }
 f22_prime <- Deriv(f22)
-library(rootSolve)
+
 x22 <- uniroot.all(f22_prime, c(0,100))
 x22
 y22 <- function(x){18432/(x**2)}
@@ -484,33 +485,161 @@ y22(x22)
 
 ### Question 23
 
+$$Area=xy=1056 \Rightarrow y=\frac{1056}{x}$$
+
+The cost function is 
+
+$$C(x,y)=(14.40\cdot 2y)+(14.40 \cdot 2x) + (12.00 \cdot 2x)$$
+Substituting y in:
+$$C(x)=(14.40\cdot 2(\frac{1056}{x}))+(14.40 \cdot 2x) + (12.00 \cdot 2x)$$
+Simplified
+$$C(x)=\frac{30412.8}{x}+52.8x$$
+
+Minimize it
+
+$$C'(x)=-\frac{30412.8}{x^2}+52.8$$
+
+$$0=-\frac{30412.8}{x^2}+52.8 $$
+$$\frac{30412.8}{x^2}=52.8 $$
+$$ \frac{30412.8}{52.8}=x^2 $$
+$$x^2=576 $$
+$$ x=\sqrt{576} \Rightarrow x=\pm 24$$
+Negative 24 is meaningless in this context.  Now substituting x in the area equation:
+$$y=\frac{1056}{24} = 44$$
+
+```{r}
+f23 <- function(x){
+  (28.8*(1056/x))+(52.8*x)
+}
+f23_prime <- Deriv(f23)
+
+x23 <- uniroot.all(f23_prime, c(0,100))
+x23
+y23 <- function(x){1056/x}
+y23(x23)
+```
 
 ******
 
 ### Question 24
 
+$$Value(time)=base \cdot e^{rate \cdot time}$$
+Enter in the information from the question:
+
+$$37000=67000 \cdot e^{rate \cdot 7}$$
+
+Solving for rate:
+
+$$\frac{37000}{67000} = e^{rate \cdot 7}$$
+
+$$ln\Big(\frac{37000}{67000}\Big) = rate \cdot 7 \Rightarrow rate = \frac{ln\Big(\frac{37000}{67000}\Big)}{7} \approx -0.08482496$$
+
+Now substitue and solve for the value at year 9
+
+$$Value(9) = 67000 \cdot e^{-0.08482496 \cdot (9)} = 31226.53$$
+Checking my math with R:
+```{r}
+f24 <- function(t){
+  e <- exp(1)
+  67000*e**(t*((log(37000/67000)/7)))
+}
+f24(9)
+```
 
 ******
 
 ### Question 25
 
+Given $p = D(x) = 23.2-0.4x$ price and Revenue is $R = p \cdot D(x)$ the maximizing level of production is:
+
+$$ R = p \cdot D(x) \Rightarrow R(x) = D(x) \cdot D(x) \Rightarrow R(x) = D(x)^2$$
+
+Using the chain rule:
+$$R'(x) = 0.32x -18.56$$
+
+$$0 = 0.32x -18.56 \Rightarrow 0.32x = 18.56 \Rightarrow x = \frac{18.56}{0.32} = 58$$
+
+Checking the math in R:
+```{r}
+f25 <- function(x){
+  (23.2-0.4*x)*(23.2-0.4*x)
+}
+
+f25_prime <- Deriv(f25)
+x25 <- uniroot.all(f25_prime, c(0,100))
+x25
+```
+
 ******
 
 ### Question 26
+Start with the exponential growth formula:
+$$Cost(time)=base \cdot e^{rate \cdot time}$$
+
+And enter what we know and solve for rate:
+$$426.8=400 \cdot e^{rate \cdot 11} \Rightarrow \frac{426.80}{400}=e^{rate \cdot 11} \Rightarrow rate\cdot 11 = ln\Big(\frac{426.8}{400}\Big) \Rightarrow rate = \frac{ln\Big(\frac{426.8}{400}\Big)}{11} \approx 0.005895543$$
+
+Substitute rate back into the equation:
+$$Cost(year) = 400 \cdot e^{0.005895543 \cdot (year - 1995)}$$
+$$Cost(2017) = 400 \cdot e^{0.005895543 \cdot (2017 - 1995)} \approx 455.40$$
+Verifying with R:
+```{r}
+f26 <- function(year){
+  e <- exp(1)
+  400*e**((log(426.8/400)/11)*(year-1995))
+}
+f26(2017)
+```
 
 ******
 
 ### Question 27
+Given:
+$$P'(x) = 380-4x $$
+$$P(x) = 380x - 2x^2+C$$
+
+
+#### Step 1
+
+$$1700 = 380(38)-2(38)^2 + C$$
+Solving for C
+
+$$ 1700 = 14440 - 2888 + C \Rightarrow C = 17000 - 14440 + 2888 \Rightarrow C = -9852$$
+The profit function is:
+$$ P(x)= 380x - 2x^2-9852$$
+
+#### Step 4
+$$ P(56)= 380(56) - 2x^2-9852 = 5156$$
+```{r}
+f27 <- function(x){
+  (380*x) - (2*x**2) - 9852
+}
+f27(56)
+```
 
 ******
 
 ### Question 28
+Solve:
+$$ \int\frac{-5(ln(y))^3}{y}dy = -5 \int \frac{1}{y} ln(y)^3$$
+Substitute
+$u = ln(y)$ and $du = \frac{1}{y}$
+
+$$-5 \int du \cdot u^3 \Rightarrow -5 \cdot \frac{u^4}{4}+c \Rightarrow \frac{-5}{4}ln(y)^4 + c$$
 
 ******
 
 ### Question 29
 
+Given:
+$$P'(t)=75-9t^\frac{1}{2}$$
+
+$$P(t) = 75t-6t^\frac{3}{2}$$
+
+$$\int_0^9 P'(t) = P(9) - P(0) = (75(9)-6(9)^\frac{3}{2})-(0-0) = (675-162) -0 = 513$$
+
 ******
+
 ### Question 30
 
 $$ \int_{-7}^2 x\sqrt{x+7}dx$$
@@ -543,6 +672,7 @@ f30 <- function(a, b){
 
 f30(-7,2)
 ```
+
 ******
 
 ### Question 31
@@ -582,5 +712,16 @@ So it is tending toward 72 meters.
 
 ******
 
+### Question 32
+
+Checking my math with R:
+```{r}
+f32 <- function(x){x*((x+7)**(1/2))}
+integrate(Vectorize(f32),-7, 2)
+```
+
+******
+
 ### Question 34
 
+I currently don't know how to do find the Taylor polnomial of degree 5 near x=4 for $y=3e^{5x-3}$
