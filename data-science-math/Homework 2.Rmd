@@ -1,0 +1,361 @@
+---
+title: "CUNY SPSS Data Science Math Homework 2"
+author: "Mike Silva"
+date: "July 19, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(pander)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Question 1
+
+There are 540 identical plastic chips numbered 1 through 540 in a box. What is the probability of reaching into the box and randomly drawing the chip numbered 505? Express your answer as a fraction or a decimal number rounded to four decimal places.
+
+$$A=\frac{\{505\}}{\{1,2...539,540\}}=\frac{1}{540}\approx 0.0019$$
+
+```{r}
+1/540
+```
+
+****
+
+### Question 2
+
+Write out the sample space for the given experiment. Separate your answers using commas.  When deciding what you want to put into a salad for dinner at a restaurant, you will choose one of the following extra toppings: asparagus, cheese. Also, you will add one of following meats: eggs, turkey. Lastly, you will decide on one of the
+following dressings: French, vinaigrette. (Note: Use the following letters to indicate each choice: A for asparagus, C for cheese, E for eggs, T for turkey, F for French, and V for vinaigrette.)
+
+$$\{AEF, ATF, AEV, AEF, CEF, CTF, CEV, CEF\}$$
+
+****
+
+### Question 3
+
+A card is drawn from a standard deck of 52 playing cards. What is the probability that the card will be a heart and not a face card? Write your answer as a fraction or a decimal number rounded to four decimal places.
+
+$$P(h\cap nf)= \frac{52 \cdot \frac{1}{4}}{52-12}=\frac{13}{40}=0.325$$
+
+```{r}
+13/40
+```
+
+****
+
+### Question 4
+
+A standard pair of six-sided dice is rolled. What is the probability of rolling a sum less than 6? Write your answer as a fraction or a decimal number rounded to four decimal places.
+
+$$P(l) =\frac{\{1,2,3,4,5\}}{\{1,2,3,4,5,6\}}=5/6\approx0.8333$$
+```{r}
+5/6
+```
+
+****
+
+### Question 5
+
+A pizza delivery company classifies its customers by gender and location of residence. The research department has gathered data from a random sample of 2001 customers. The data is summarized in the table below.
+
+```{r q5, echo=FALSE}
+q4_data <- data.frame(h=c('Apartment','Dorm','With Parent(s)','Sorority/Fraternity Home', 'Other'), Male = c(233, 159, 102, 220, 250), Female=c(208, 138, 280, 265, 146))
+names(q4_data) <- c('','Male','Female')
+emphasize.strong.cols(1)
+```
+
+```{r q5_table, results='asis'}
+pandoc.table(q4_data)
+```
+
+What is the probability that a customer is male? Write your answer as a fraction or a decimal number rounded to four decimal places. 
+
+$$P(m) = \frac{233+159+102+120+250}{233+159+102+220+250+208+138+280+265+146} =\frac{964}{2001} \approx 0.4818 $$
+```{r}
+sum(q4_data$Male)/(sum(q4_data$Male)+sum(q4_data$Female))
+```
+
+****
+
+### Question 6
+
+Three cards are drawn with replacement from a standard deck. What is the probability that the first card will be a club, the second card will be a black card, and the third card will be a face card? Write your answer as a fraction or a decimal number rounded to four decimal places.
+
+$$P(fbc) = \frac{12}{52} \cdot \frac{26}{52} \cdot \frac{13}{52} \approx 0.0288 $$
+```{r}
+12/52 * 26/52 * 13/52
+```
+
+****
+
+### Question 7
+
+Two cards are drawn without replacement from a standard deck of 52 playing cards. What is the probability of choosing a spade for the second card drawn, if the first card, drawn without replacement, was a heart? Write your answer as a fraction or
+a decimal number rounded to four decimal places.
+
+$$P(s|h) = \frac{13}{51} \cdot \frac{13}{52} \approx 0.0637$$
+```{r}
+13/51 * 13/52
+```
+
+****
+
+### Question 8
+
+Two cards are drawn without replacement from a standard deck of 52 playing cards. What is the probability of choosing a heart and then, without replacement, a red card? Write your answer as a fraction or a decimal number rounded to four decimal places.
+
+$$P(r|h) = \frac{25}{51} \cdot \frac{13}{52} \approx -.1225$$
+```{r}
+25/51 * 13/52
+```
+
+****
+
+### Question 9
+
+There are 85 students in a basic math class. The instructor must choose two students at random.
+
+```{r q9, echo=FALSE}
+q9_data <- data.frame(c=c('Freshman','Sophomores','Juniors','Seniors'), Male = c(12, 19, 12, 7), Female=c(12, 15, 4, 4))
+names(q9_data) <- c('','Male','Female')
+emphasize.strong.cols(1)
+```
+
+```{r q9_table, results='asis'}
+pandoc.table(q9_data)
+```
+
+What is the probability that a junior female and then a freshmen male are chosen at random? Write your answer as a fraction or a decimal number rounded to four decimal places.
+
+$$P(fm|jf) = \frac{12}{84} \cdot \frac{4}{85} \approx 0.0068$$
+```{r}
+total_students <- sum(q9_data$Male) + sum(q9_data$Female)
+12/(total_students-1) * 4/total_students
+```
+
+*****
+
+### Question 10
+
+Out of 300 applicants for a job, 141 are male and 52 are male and have a graduate degree.
+
+#### Step 1. 
+
+What is the probability that a randomly chosen applicant has a graduate degree, given that they are male? Enter your answer as a fraction or a decimal rounded to four decimal places.
+
+$$P(g|m) = \frac{52}{141} \approx 0.3688$$
+```{r}
+52/141
+```
+
+#### Step 2. 
+
+If 102 of the applicants have graduate degrees, what is the probability that a randomly chosen applicant is male, given that the applicant has a graduate degree? Enter your answer as a fraction or a decimal rounded to four decimal places.
+
+$$P(m|g) = \frac{52}{102} \approx 0.5098$$
+```{r}
+52/102
+```
+
+*****
+
+### Question 11
+
+A value meal package at Ron's Subs consists of a drink, a sandwich, and a bag of chips. There are 6 types of drinks to choose from, 5 types of sandwiches, and 3 types of chips. How many different value meal packages are possible?
+
+
+****
+
+### Question 12
+
+A doctor visits her patients during morning rounds. In how many ways can the doctor visit 5 patients during the morning rounds?
+
+****
+
+### Question 13
+
+A coordinator will select 5 songs from a list of 8 songs to compose an event's musical entertainment lineup. How many different lineups are possible?
+
+****
+
+### Question 14
+A person rolls a standard six-sided die 9 times. In how many ways can he get 3 fours, 5 sixes and 1 two?
+
+*****
+
+### Question 15
+
+How many ways can Rudy choose 6 pizza toppings from a menu of 14 toppings if each topping can only be chosen once?
+
+*****
+
+### Question 16
+
+3 cards are drawn from a standard deck of 52 playing cards. How many different 3-card hands are possible if the drawing is done without replacement?
+
+*****
+
+### Question 17
+
+You are ordering a new home theater system that consists of a TV, surround sound system, and DVD player. You can choose from 12 different TVs, 9 types of surround sound systems, and 5 types of DVD players. How many different home theater systems can you build?
+
+*****
+
+### Question 18
+
+You need to have a password with 5 letters followed by 3 odd digits between 0 - 9 inclusively. If the characters and digits cannot be used more than once, how many choices do you have for your password?
+
+*****
+
+### Question 19
+
+Evaluate the following expression.
+
+$_9 P_4$
+
+*****
+
+### Question 20
+
+Evaluate the following expression.
+
+$_11 C_8$
+
+*****
+
+### Question 21
+
+Evaluate the following expression.
+
+$\frac{_{12} P_8}{_{12} C_4}$
+
+*****
+
+### Question 22
+
+The newly elected president needs to decide the remaining 7 spots available in the cabinet he/she is appointing. If there are 13 eligible candidates for these positions (where rank matters), how many different ways can the members of the cabinet be
+appointed?
+
+****
+
+### Question 23
+
+In how many ways can the letters in the word 'Population' be arranged?
+
+### Question 24
+
+Consider the following data:
+𝒙𝒙 5 6 7 8 9
+𝒑𝒑(𝒙𝒙) 0.1 0.2 0.3 0.2 0.2
+
+#### Step 1
+
+Find the expected value $E(x)$ Round your answer to one decimal place.
+
+#### Step 2
+
+Find the variance. Round your answer to one decimal place.
+
+#### Step 3
+
+Find the standard deviation. Round your answer to one decimal place.
+
+#### Step 4
+
+Find the value of $P(X\hat e9)$. Round your answer to one decimal place.
+
+
+#### Step 5
+
+Find the value of $P(X\c{C} 7)$. Round your answer to one decimal place.
+
+*****
+
+### Question 25
+
+Suppose a basketball player has made 188 out of 376 free throws. If the player makes the next 3 free throws, I will pay you 23 dollars. Otherwise you pay me 4 dollars.
+
+#### Step 1
+
+Find the expected value of the proposition. Round your answer to two decimal places.
+
+#### Step 2
+
+If you played this game 994 times how much would you expect to win or lose? (Losses must be entered as negative.)
+
+****
+
+### Question 26
+
+Flip a coin 11 times. If you get 8 tails or less, I will pay you 1 dollar. Otherwise you pay me 7 dollars.
+
+#### Step 1
+
+Find the expected value of the proposition. Round your answer to two decimal places.
+
+#### Step 2
+
+If you played this game 615 times how much would you expect to win or lose? (Losses must be entered as negative.)
+
+*****
+
+### Question 27
+
+If you draw two clubs on two consecutive draws from a standard deck of cards you win 583 dollars. Otherwise you pay me 35 dollars. (Cards drawn without replacement.)
+
+#### Step 1
+
+Find the expected value of the proposition. Round your answer to two decimal places.
+
+#### Step 2
+
+If you played this game 632 times how much would you expect to win or lose? (Losses must be entered as negative.)
+
+*****
+
+### Question 28
+
+A quality control inspector has drawn a sample of 10 light bulbs from a recent production lot. If the number of defective bulbs is 2 or less, the lot passes inspection. Suppose 30% of the bulbs in the lot are defective. What is the probability that the lot will pass inspection? (Round your answer to 3 decimal places)
+
+*****
+
+### Question 29
+
+A quality control inspector has drawn a sample of 5 light bulbs from a recent production lot. Suppose that 30% of the bulbs in the lot are defective. What is the expected value of the number of defective bulbs in the sample? Do not round your
+answer.
+
+
+*****
+
+### Question 30
+
+The auto parts department of an automotive dealership sends out a mean of 5.5 special orders daily. What is the probability that, for any day, the number of special orders sent out will be more than 5? (Round your answer to 4 decimal places)
+
+
+*****
+
+### Question 31
+
+At the Fidelity Credit Union, a mean of 5.7 customers arrive hourly at the drive-through window. What is the probability that, in any hour, more than 4 customers will arrive? (Round your answer to 4 decimal places)
+
+*****
+
+### Question 32
+
+The computer that controls a bank's automatic teller machine crashes a mean of 0.4 times per day. What is the probability that, in any 7-day week, the computer will crash no more than 1 time? (Round your answer to 4 decimal places)
+
+*****
+
+### Question 33
+
+A town recently dismissed 8 employees in order to meet their new budget reductions. The town had 6 employees over 50 years of age and 19 under 50. If the dismissed employees were selected at random, what is the probability that more than 1
+employee was over 50? Write your answer as a fraction or a decimal number rounded to three decimal places.
+
+*****
+
+### Question 34
+
+Unknown to a medical researcher, 10 out of 25 patients have a heart problem that will result in death if they receive the test drug. Eight patients are randomly selected to receive the drug and the rest receive a placebo. What is the probability that less
+than 7 patients will die? Write your answer as a fraction or a decimal number rounded to three decimal places
+
+*****
