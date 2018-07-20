@@ -7,6 +7,8 @@ output: html_document
 
 ```{r setup, include=FALSE}
 library(pander)
+library(tidyr)
+library(gtools)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -163,6 +165,16 @@ $$P(m|g) = \frac{52}{102} \approx 0.5098$$
 
 A value meal package at Ron's Subs consists of a drink, a sandwich, and a bag of chips. There are 6 types of drinks to choose from, 5 types of sandwiches, and 3 types of chips. How many different value meal packages are possible?
 
+```{r}
+drinks <- c(1,2,3,4,5,6)
+sandwiches <- c(1,2,3,4,5)
+chips <- c(1,2,3)
+
+q11_data <- tidyr::crossing(drinks, sandwiches) %>%
+  tidyr::crossing(., chips)
+nrow(q11_data)
+```
+
 
 ****
 
@@ -170,11 +182,27 @@ A value meal package at Ron's Subs consists of a drink, a sandwich, and a bag of
 
 A doctor visits her patients during morning rounds. In how many ways can the doctor visit 5 patients during the morning rounds?
 
+$$ P(n) = n! \Rightarrow P(5)=5! = 5 \times 4 \times 3 \times 2 \times 1 = 120 $$
+```{r}
+factorial(5)
+
+patients <- c(1,2,3,4,5)
+q12_data <- permutations(length(patients), length(patients), patients)
+nrow(q12_data)
+```
+
 ****
 
 ### Question 13
 
 A coordinator will select 5 songs from a list of 8 songs to compose an event's musical entertainment lineup. How many different lineups are possible?
+
+$$ C(n,r) = \frac{n!}{r!(n-r)!} \Rightarrow C(8,5) = \frac{8!}{5!(8-5)!} =  \frac{40320}{120\cdot 3!} = \frac{40320}{120\cdot 6} = \frac{40320}{720} = 56$$
+
+```{r}
+q13_data <- combinations(8,5)
+nrow(q13_data)
+```
 
 ****
 
