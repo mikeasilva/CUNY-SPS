@@ -193,8 +193,8 @@ drinks <- c(1,2,3,4,5,6)
 sandwiches <- c(1,2,3,4,5)
 chips <- c(1,2,3)
 
-q11_data <- tidyr::crossing(drinks, sandwiches) %>%
-  tidyr::crossing(., chips)
+q11_data <- crossing(drinks, sandwiches) %>%
+  crossing(., chips)
 nrow(q11_data)
 ```
 
@@ -359,7 +359,7 @@ factorial(length(letters))
 Consider the following data:
 
 ----------------------------------------
-  &nbsp;    NA    NA    NA    NA    NA  
+                                  
 ---------- ----- ----- ----- ----- -----
   **x**      5     6     7     8     9  
 
