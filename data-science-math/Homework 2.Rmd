@@ -7,6 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 library(pander)
+library(dplyr)
 library(tidyr)
 library(gtools)
 knitr::opts_chunk$set(echo = TRUE)
@@ -30,6 +31,17 @@ Write out the sample space for the given experiment. Separate your answers using
 following dressings: French, vinaigrette. (Note: Use the following letters to indicate each choice: A for asparagus, C for cheese, E for eggs, T for turkey, F for French, and V for vinaigrette.)
 
 $$\{AEF, ATF, AEV, AEF, CEF, CTF, CEV, CEF\}$$
+```{r}
+toppings <- c('A','C')
+meats <- c('E','T')
+dressings <- c('F','V')
+
+q2_data <- crossing(toppings, meats) %>%
+  crossing(., dressings) %>%
+  mutate(combinations = paste0(toppings, meats, dressings))
+
+as.vector(q2_data$combinations)
+```
 
 ****
 
@@ -106,7 +118,7 @@ $$P(s|h) = \frac{13}{51} \cdot \frac{13}{52} \approx 0.0637$$
 
 Two cards are drawn without replacement from a standard deck of 52 playing cards. What is the probability of choosing a heart and then, without replacement, a red card? Write your answer as a fraction or a decimal number rounded to four decimal places.
 
-$$P(r|h) = \frac{25}{51} \cdot \frac{13}{52} \approx -.1225$$
+$$P(r|h) = \frac{25}{51} \cdot \frac{13}{52} \approx 0.1225$$
 ```{r}
 25/51 * 13/52
 ```
@@ -165,6 +177,8 @@ $$P(m|g) = \frac{52}{102} \approx 0.5098$$
 
 A value meal package at Ron's Subs consists of a drink, a sandwich, and a bag of chips. There are 6 types of drinks to choose from, 5 types of sandwiches, and 3 types of chips. How many different value meal packages are possible?
 
+$$6 \times 5 \times 3 = 90$$
+
 ```{r}
 drinks <- c(1,2,3,4,5,6)
 sandwiches <- c(1,2,3,4,5)
@@ -209,11 +223,25 @@ nrow(q13_data)
 ### Question 14
 A person rolls a standard six-sided die 9 times. In how many ways can he get 3 fours, 5 sixes and 1 two?
 
+$$P(9) = 9! = 362880$$
+```{r}
+die_rolls <- c('4.1','4.2','4.3','6.1','6.2','6.3','6.4','6.5','1')
+q14_data <- permutations(length(die_rolls), length(die_rolls), die_rolls)
+nrow(q14_data)
+```
+
 *****
 
 ### Question 15
 
 How many ways can Rudy choose 6 pizza toppings from a menu of 14 toppings if each topping can only be chosen once?
+
+$$ C(14,6) = \frac{14!}{6!(14-6)!} =  \frac{87178291200}{720\cdot 8!} = \frac{87178291200}{720\cdot 40320} = \frac{87178291200}{29030400} = 3003$$
+
+```{r}
+q15_data <- combinations(14,6)
+nrow(q15_data)
+```
 
 *****
 
@@ -221,17 +249,49 @@ How many ways can Rudy choose 6 pizza toppings from a menu of 14 toppings if eac
 
 3 cards are drawn from a standard deck of 52 playing cards. How many different 3-card hands are possible if the drawing is done without replacement?
 
+$$ C(52,3) = \frac{52!}{3!(52-3)!} =  \frac{52!}{3!\cdot 49!} = 22100$$
+
+```{r}
+q16_data <- combinations(52,3)
+nrow(q16_data)
+```
+
 *****
 
 ### Question 17
 
 You are ordering a new home theater system that consists of a TV, surround sound system, and DVD player. You can choose from 12 different TVs, 9 types of surround sound systems, and 5 types of DVD players. How many different home theater systems can you build?
 
+$$ 12 \times 9 \times 5 = 540$$
+
+
+```{r}
+tvs <- c(1,2,3,4,5,6,7,8,9,10,11,12)
+surround_sound_systems <- c(1,2,3,4,5,6,7,8,9)
+dvd_players <- c(1,2,3,4,5)
+
+q17_data <- tidyr::crossing(tvs, surround_sound_systems) %>%
+  tidyr::crossing(., dvd_players)
+nrow(q17_data)
+```
+
+
 *****
 
 ### Question 18
 
 You need to have a password with 5 letters followed by 3 odd digits between 0 - 9 inclusively. If the characters and digits cannot be used more than once, how many choices do you have for your password?
+
+$$ C(26,5) = \frac{26!}{5!(26-5)!} =  \frac{26!}{5!\cdot 21!} = 65780$$
+
+$$ C(5,3) = \frac{5!}{3!(5-3)!} =  \frac{5!}{3!\cdot 2!} = 10$$
+$$65780 \times 10 = 657800$$
+```{r}
+letters <- combinations(26,5)
+numbers <- combinations(5,3)
+nrow(letters) * nrow(numbers)
+```
+
 
 *****
 
@@ -269,6 +329,14 @@ appointed?
 ### Question 23
 
 In how many ways can the letters in the word 'Population' be arranged?
+
+$$ P(10) = 10! = 3628800 $$
+```{r}
+letters <- c('P','o','p','u','l','a','t','i','o','n')
+factorial(length(letters))
+```
+
+****
 
 ### Question 24
 
