@@ -17,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 There are 540 identical plastic chips numbered 1 through 540 in a box. What is the probability of reaching into the box and randomly drawing the chip numbered 505? Express your answer as a fraction or a decimal number rounded to four decimal places.
 
-$$A=\frac{\{505\}}{\{1,2...539,540\}}=\frac{1}{540}\approx 0.0019$$
+$$P=\frac{\{505\}}{\{1,2...539,540\}}=\frac{1}{540}\approx 0.0019$$
 
 ```{r}
 1/540
@@ -49,7 +49,7 @@ as.vector(q2_data$combinations)
 
 A card is drawn from a standard deck of 52 playing cards. What is the probability that the card will be a heart and not a face card? Write your answer as a fraction or a decimal number rounded to four decimal places.
 
-$$P(h\cap nf)= \frac{52 \cdot \frac{1}{4}}{52-12}=\frac{13}{40}=0.325$$
+$$P(hnf)= \frac{52 \cdot \frac{1}{4}}{52-12}=\frac{13}{40}=0.325$$
 
 ```{r}
 13/40
@@ -72,20 +72,25 @@ $$P(l) =\frac{\{1,2,3,4,5\}}{\{1,2,3,4,5,6\}}=5/6\approx0.8333$$
 
 A pizza delivery company classifies its customers by gender and location of residence. The research department has gathered data from a random sample of 2001 customers. The data is summarized in the table below.
 
-```{r q5, echo=FALSE}
-q4_data <- data.frame(h=c('Apartment','Dorm','With Parent(s)','Sorority/Fraternity Home', 'Other'), Male = c(233, 159, 102, 220, 250), Female=c(208, 138, 280, 265, 146))
-names(q4_data) <- c('','Male','Female')
-emphasize.strong.cols(1)
-```
+----------------------------------------------
+            &nbsp;              Male   Female 
+------------------------------ ------ --------
+        **Apartment**           233     208   
 
-```{r q5_table, results='asis'}
-pandoc.table(q4_data)
-```
+           **Dorm**             159     138   
+
+      **With Parent(s)**        102     280   
+
+ **Sorority/Fraternity Home**   220     265   
+
+          **Other**             250     146   
+----------------------------------------------
 
 What is the probability that a customer is male? Write your answer as a fraction or a decimal number rounded to four decimal places. 
 
 $$P(m) = \frac{233+159+102+120+250}{233+159+102+220+250+208+138+280+265+146} =\frac{964}{2001} \approx 0.4818 $$
 ```{r}
+q4_data <- data.frame(h=c('Apartment','Dorm','With Parent(s)','Sorority/Fraternity Home', 'Other'), Male = c(233, 159, 102, 220, 250), Female=c(208, 138, 280, 265, 146))
 sum(q4_data$Male)/(sum(q4_data$Male)+sum(q4_data$Female))
 ```
 
@@ -129,20 +134,24 @@ $$P(r|h) = \frac{25}{51} \cdot \frac{13}{52} \approx 0.1225$$
 
 There are 85 students in a basic math class. The instructor must choose two students at random.
 
-```{r q9, echo=FALSE}
-q9_data <- data.frame(c=c('Freshman','Sophomores','Juniors','Seniors'), Male = c(12, 19, 12, 7), Female=c(12, 15, 4, 4))
-names(q9_data) <- c('','Male','Female')
-emphasize.strong.cols(1)
-```
+--------------------------------
+     &nbsp;       Male   Female 
+---------------- ------ --------
+  **Freshman**     12      12   
 
-```{r q9_table, results='asis'}
-pandoc.table(q9_data)
-```
+ **Sophomores**    19      15   
+
+  **Juniors**      12      4    
+
+  **Seniors**      7       4    
+--------------------------------
 
 What is the probability that a junior female and then a freshmen male are chosen at random? Write your answer as a fraction or a decimal number rounded to four decimal places.
 
 $$P(fm|jf) = \frac{12}{84} \cdot \frac{4}{85} \approx 0.0068$$
 ```{r}
+q9_data <- data.frame(c=c('Freshman','Sophomores','Juniors','Seniors'), Male = c(12, 19, 12, 7), Female=c(12, 15, 4, 4))
+names(q9_data) <- c('','Male','Female')
 total_students <- sum(q9_data$Male) + sum(q9_data$Female)
 12/(total_students-1) * 4/total_students
 ```
@@ -324,6 +333,13 @@ $\frac{_{12} P_8}{_{12} C_4}$
 The newly elected president needs to decide the remaining 7 spots available in the cabinet he/she is appointing. If there are 13 eligible candidates for these positions (where rank matters), how many different ways can the members of the cabinet be
 appointed?
 
+$$ C(13,7) = \frac{13!}{7!(13-7)!} =  \frac{6227020800}{5040\cdot 6!} = \frac{6227020800}{5040\cdot 720} = \frac{6227020800}{3628800} = 1716$$
+
+```{r}
+q22_data <- combinations(13,7)
+nrow(q22_data)
+```
+
 ****
 
 ### Question 23
@@ -341,25 +357,49 @@ factorial(length(letters))
 ### Question 24
 
 Consider the following data:
-𝒙𝒙 5 6 7 8 9
-𝒑𝒑(𝒙𝒙) 0.1 0.2 0.3 0.2 0.2
+
+----------------------------------------
+  &nbsp;    NA    NA    NA    NA    NA  
+---------- ----- ----- ----- ----- -----
+  **x**      5     6     7     8     9  
+
+ **P(x)**   0.1   0.2   0.3   0.2   0.2 
+----------------------------------------
 
 #### Step 1
 
 Find the expected value $E(x)$ Round your answer to one decimal place.
+$$E(x) = \Sigma {xP(x)}= (5 \times 0.1)+(6 \times 0.2)+(7 \times 0.3)+(8 \times 0.2)+(9 \times 0.2) = 7.2$$
+```{r}
+x <- c(5, 6, 7, 8, 9)
+px <-c(0.1, 0.2, 0.3,  0.2, 0.2)
+ex <- sum(x*px)
+ex
+```
 
 #### Step 2
 
 Find the variance. Round your answer to one decimal place.
 
+$$\sigma^2=\frac{\Sigma (x-E(x))^2}{N} = \frac{(5-7.2)^2+(6-7.2)^2+(7-7.2)^2+(8-7.2)^2+(9-7.2)^2}{5}$$
+$$\sigma^2= \frac{4.84+1.44+0.04+0.64+3.24}{5}=\frac{10.2}{5}=2.04$$
+
+```{r}
+v <- sum((x-ex)**2)/length(x)
+v
+```
 #### Step 3
 
 Find the standard deviation. Round your answer to one decimal place.
+$$\sigma = \sqrt{\sigma ^2} = \sqrt{2.04} \approx 1.4$$
+```{r}
+v**(1/2)
+```
 
-#### Step 4
+
+### Step 4
 
 Find the value of $P(X\hat e9)$. Round your answer to one decimal place.
-
 
 #### Step 5
 
