@@ -61,7 +61,7 @@ $$P(hnf)= \frac{52 \cdot \frac{1}{4}}{52-12}=\frac{13}{40}=0.325$$
 
 A standard pair of six-sided dice is rolled. What is the probability of rolling a sum less than 6? Write your answer as a fraction or a decimal number rounded to four decimal places.
 
-$$P(l) =\frac{\{1,2,3,4,5\}}{\{1,2,3,4,5,6\}}=5/6\approx0.8333$$
+$$P(l) =\frac{\{1,2,3,4,5\}}{\{1,2,3,4,5,6\}}=\frac{5}{6}\approx0.8333$$
 ```{r}
 5/6
 ```
@@ -162,6 +162,8 @@ total_students <- sum(q9_data$Male) + sum(q9_data$Female)
 
 Out of 300 applicants for a job, 141 are male and 52 are male and have a graduate degree.
 
+&nbsp;
+
 #### Step 1. 
 
 What is the probability that a randomly chosen applicant has a graduate degree, given that they are male? Enter your answer as a fraction or a decimal rounded to four decimal places.
@@ -170,6 +172,8 @@ $$P(g|m) = \frac{52}{141} \approx 0.3688$$
 ```{r}
 52/141
 ```
+
+&nbsp;
 
 #### Step 2. 
 
@@ -197,7 +201,6 @@ q11_data <- crossing(drinks, sandwiches) %>%
   crossing(., chips)
 nrow(q11_data)
 ```
-
 
 ****
 
@@ -301,14 +304,19 @@ numbers <- combinations(5,3)
 nrow(letters) * nrow(numbers)
 ```
 
-
 *****
 
 ### Question 19
 
-Evaluate the following expression.
+Evaluate the following expression. 
 
-$_9 P_4$
+$$_9 P_4$$
+$$_9 P_4=\frac{9!}{(9-4)!}=\frac{362880}{120}=3024$$
+```{r}
+N <- 9
+n <- 4
+factorial(N)/factorial((N-n))
+```
 
 *****
 
@@ -316,7 +324,15 @@ $_9 P_4$
 
 Evaluate the following expression.
 
-$_11 C_8$
+$$_{11}C_8$$
+
+$$_{11}C_8=\frac{11!}{8!\cdot(11-8)!}=\frac{11!}{8!\cdot3!}=\frac{39916800}{403208 \cdot 6}=165$$
+
+```{r}
+N <- 11
+n <- 8
+factorial(N)/(factorial(n)*factorial(N-n))
+```
 
 *****
 
@@ -324,7 +340,21 @@ $_11 C_8$
 
 Evaluate the following expression.
 
-$\frac{_{12} P_8}{_{12} C_4}$
+$$\frac{_{12} P_8}{_{12} C_4}$$
+
+$$_{12}P_8 = \frac{12!}{(12-8)!}=\frac{479001600}{4!}=\frac{479001600}{24}=19958400$$
+
+$$ _{12}C_4=\frac{12!}{4!\cdot(12-4)!}=\frac{479001600}{24\cdot8!}=\frac{479001600}{24\cdot 40320}=\frac{479001600}{967680}=495$$
+$$\frac{_{12} P_8}{_{12} C_4}=\frac{19958400}{495}=40320$$
+
+```{r}
+N <- 12
+n1 <- 8
+n2 <- 4
+q21_p <- factorial(N)/factorial((N-n1))
+q21_c <- factorial(N)/(factorial(n2)*factorial(N-n2))
+q21_p/q21_c
+```
 
 *****
 
@@ -366,6 +396,8 @@ Consider the following data:
  **P(x)**   0.1   0.2   0.3   0.2   0.2 
 ----------------------------------------
 
+&nbsp;
+
 #### Step 1
 
 Find the expected value $E(x)$ Round your answer to one decimal place.
@@ -377,33 +409,56 @@ ex <- sum(x*px)
 ex
 ```
 
+&nbsp;
+
 #### Step 2
 
 Find the variance. Round your answer to one decimal place.
 
-$$\sigma^2=\frac{\Sigma (x-E(x))^2}{N} = \frac{(5-7.2)^2+(6-7.2)^2+(7-7.2)^2+(8-7.2)^2+(9-7.2)^2}{5}$$
-$$\sigma^2= \frac{4.84+1.44+0.04+0.64+3.24}{5}=\frac{10.2}{5}=2.04$$
+$$\sigma^2=\Sigma_i (x_i-E(x))^2P(x_i) $$
+$$\sigma^2= 0.1(5-7.2)^2+0.2(6-7.2)^2+0.3(7-7.2)^2+0.2(8-7.2)^2+0.2(9-7.2)^2$$
+$$\sigma^2= (0.1\times 4.84)+(0.2 \times 1.44)+(0.3 \times 0.04)+(0.2 \times 0.64)+(0.2 \times 3.24)$$
+$$\sigma^2=0.484+0.288+0.012+0.128+0.648\approx1.6$$
 
 ```{r}
-v <- sum((x-ex)**2)/length(x)
+v <- sum(px*(x-ex)**2)
 v
 ```
+
+&nbsp;
+
 #### Step 3
 
 Find the standard deviation. Round your answer to one decimal place.
-$$\sigma = \sqrt{\sigma ^2} = \sqrt{2.04} \approx 1.4$$
+$$\sigma = \sqrt{\sigma ^2} \approx \sqrt{1.6} \approx 1.3$$
 ```{r}
 v**(1/2)
 ```
+The difference is due the the fact that I used 1.6 as the variance instead of 1.56.
 
+&nbsp;
 
 ### Step 4
 
-Find the value of $P(X\hat e9)$. Round your answer to one decimal place.
+Find the value of $P(X\geq9)$. Round your answer to one decimal place.
+
+The answer is **0.2** because this is the only P(x) where x >= 9.
+
+```{r}
+sum(px[x>=9])
+```
+
+&nbsp;
 
 #### Step 5
 
-Find the value of $P(X\c{C} 7)$. Round your answer to one decimal place.
+Find the value of $P(X\leq7)$. Round your answer to one decimal place.
+
+$$0.1 + 0.2 + 0.3= 0.6$$
+
+```{r}
+sum(px[x<=7])
+```
 
 *****
 
@@ -411,13 +466,48 @@ Find the value of $P(X\c{C} 7)$. Round your answer to one decimal place.
 
 Suppose a basketball player has made 188 out of 376 free throws. If the player makes the next 3 free throws, I will pay you 23 dollars. Otherwise you pay me 4 dollars.
 
+&nbsp;
+
 #### Step 1
 
 Find the expected value of the proposition. Round your answer to two decimal places.
 
+The player shooting $\frac{188}{376}$ free throws so they have a 50% probability of making the shot.  We can now estimate the probability of them making the next 3 shots as $\frac{1}{8}$.  The probability that they won't is $\frac{7}{8}$.
+
+The expected value of the proposition is:
+
+$$P(\mbox{winning bet}) \times \mbox{winnings } - P(\mbox{not winning bet}) \times \mbox{loss}$$
+
+$$ \frac{1}{8}\times 23 - \frac{7}{8} \times 4 = \frac{23}{8}-\frac{28}{8} = -\frac{5}{8} \approx -0.63$$
+```{r}
+makes_it <-c(1,0)
+
+q25_data <- crossing(makes_it, makes_it) %>%
+  crossing(., makes_it)
+
+q25_data$shots_made <- rowSums(q25_data)
+
+made_all_3 <- 1
+n <- nrow(q25_data)
+
+pwin <- made_all_3/n
+ploose <- 1 - pwin
+
+ex25 <- (pwin * 23) - (ploose * 4)
+ex25
+```
+
+&nbsp;
+
 #### Step 2
 
 If you played this game 994 times how much would you expect to win or lose? (Losses must be entered as negative.)
+
+$$994 \times -0.63 = -626.22$$
+
+```{r}
+994 * ex25
+```
 
 ****
 
@@ -425,13 +515,49 @@ If you played this game 994 times how much would you expect to win or lose? (Los
 
 Flip a coin 11 times. If you get 8 tails or less, I will pay you 1 dollar. Otherwise you pay me 7 dollars.
 
+&nbsp;
+
 #### Step 1
 
 Find the expected value of the proposition. Round your answer to two decimal places.
 
+```{r}
+flipped_tails <- c(1,0)
+
+q26_data <- crossing(flipped_tails, flipped_tails) %>%
+  crossing(., flipped_tails) %>%
+  crossing(., flipped_tails) %>%
+  crossing(., flipped_tails) %>%
+  crossing(., flipped_tails) %>%
+  crossing(., flipped_tails) %>%
+  crossing(., flipped_tails) %>%
+  crossing(., flipped_tails) %>%
+  crossing(., flipped_tails) %>%
+  crossing(., flipped_tails)
+
+q26_data$total_tails <- rowSums(q26_data)
+
+tails_8_or_less <- q26_data %>%
+  filter(total_tails < 9) %>%
+  nrow(.)
+n <- nrow(q26_data)
+
+pwin <- tails_8_or_less/n
+ploose <- 1 - pwin
+
+ex26 <- (pwin * 1 )-(ploose * 7)
+ex26
+```
+
+&nbsp;
+
 #### Step 2
 
 If you played this game 615 times how much would you expect to win or lose? (Losses must be entered as negative.)
+
+```{r}
+615 * ex26
+```
 
 *****
 
@@ -439,19 +565,59 @@ If you played this game 615 times how much would you expect to win or lose? (Los
 
 If you draw two clubs on two consecutive draws from a standard deck of cards you win 583 dollars. Otherwise you pay me 35 dollars. (Cards drawn without replacement.)
 
+&nbsp;
+
 #### Step 1
 
 Find the expected value of the proposition. Round your answer to two decimal places.
 
+$$P(c|c) = \frac{12}{51} \cdot \frac{13}{52} \approx 0.059$$
+
+$$ (0.059 \times 583)-((1-0.59)\times 35) \approx 1.46$$
+
+```{r}
+pwin <- (12/51)*(13/52)
+ploose <- 1 - pwin
+ex27 <- (pwin * 583)-(ploose * 35)
+ex27
+```
+
+The difference is due to the rounding of the probability of wining, but I will use this figure for step 2
+
+&nbsp;
+
 #### Step 2
 
 If you played this game 632 times how much would you expect to win or lose? (Losses must be entered as negative.)
+
+$$632 \times 1.35 = 853.20$$
+```{r}
+632 * ex27
+```
+
+Again the difference is due to rounding.  **Lesson: Don't use rounded values when calculating values (garbage in garbage out).**
 
 *****
 
 ### Question 28
 
 A quality control inspector has drawn a sample of 10 light bulbs from a recent production lot. If the number of defective bulbs is 2 or less, the lot passes inspection. Suppose 30% of the bulbs in the lot are defective. What is the probability that the lot will pass inspection? (Round your answer to 3 decimal places)
+
+$$F(x;p,n) = \sum_{i=0}^{x}{\left( \begin{array}{c} n \\ i \end{array}
+ \right) (p)^{i}(1 - p)^{(n-i)}}$$
+
+Not wanting to mess this up I will just us R to solve:
+
+```{r}
+p <- 0.3
+n <- 10
+x <- 2
+dbinom(0,n,p)+dbinom(1,n,p)+dbinom(2,n,p)
+q28 <- pbinom(x, n, p)
+q28
+```
+
+The answer is **0.383**.
 
 *****
 
@@ -460,6 +626,12 @@ A quality control inspector has drawn a sample of 10 light bulbs from a recent p
 A quality control inspector has drawn a sample of 5 light bulbs from a recent production lot. Suppose that 30% of the bulbs in the lot are defective. What is the expected value of the number of defective bulbs in the sample? Do not round your
 answer.
 
+Given $ p=0.3$ and $n=5$:
+$$E = p\cdot n = 1.5$$
+
+```{r}
+0.3*5
+```
 
 *****
 
@@ -467,6 +639,16 @@ answer.
 
 The auto parts department of an automotive dealership sends out a mean of 5.5 special orders daily. What is the probability that, for any day, the number of special orders sent out will be more than 5? (Round your answer to 4 decimal places)
 
+$$F(x;\lambda) = \sum_{i=0}^{x}{\frac{e^{-\lambda}\lambda^{i}} {i!}}$$
+Given the complexity of the formula they will only be solved in R.
+
+```{r}
+x <- 5
+lambda <- 5.5
+1 - ppois(1, lambda)
+```
+
+The answer is **0.9723**.
 
 *****
 
@@ -474,11 +656,29 @@ The auto parts department of an automotive dealership sends out a mean of 5.5 sp
 
 At the Fidelity Credit Union, a mean of 5.7 customers arrive hourly at the drive-through window. What is the probability that, in any hour, more than 4 customers will arrive? (Round your answer to 4 decimal places)
 
+```{r}
+x <- 4
+lambda <- 5.7
+1 - ppois(1, lambda)
+```
+
+The answer is **0.9776**.
+
 *****
 
 ### Question 32
 
 The computer that controls a bank's automatic teller machine crashes a mean of 0.4 times per day. What is the probability that, in any 7-day week, the computer will crash no more than 1 time? (Round your answer to 4 decimal places)
+
+Since they provide a daily lambda the weekly lambda is $7\times 0.4$ or $2.8$.
+
+```{r}
+x <- 1
+lambda <- 0.4 * 7
+ppois(x, lambda)
+```
+
+The answer is **0.2311**.
 
 *****
 
@@ -487,11 +687,31 @@ The computer that controls a bank's automatic teller machine crashes a mean of 0
 A town recently dismissed 8 employees in order to meet their new budget reductions. The town had 6 employees over 50 years of age and 19 under 50. If the dismissed employees were selected at random, what is the probability that more than 1
 employee was over 50? Write your answer as a fraction or a decimal number rounded to three decimal places.
 
+```{r}
+q <- 1
+m <- 6
+n <- 19
+k <- 8
+1 - phyper(q, m, n, k)
+```
+
+The answer is **0.651**.
+
 *****
 
 ### Question 34
 
 Unknown to a medical researcher, 10 out of 25 patients have a heart problem that will result in death if they receive the test drug. Eight patients are randomly selected to receive the drug and the rest receive a placebo. What is the probability that less
 than 7 patients will die? Write your answer as a fraction or a decimal number rounded to three decimal places
+
+```{r}
+q <- 6
+m <- 10
+n <- (25-m)
+k <- 8
+phyper(q, m, n, k)
+```
+
+The answer is **0.998**.
 
 *****
