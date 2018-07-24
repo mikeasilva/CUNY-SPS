@@ -9,10 +9,14 @@ output: html_document
 
 The weights of steers in a herd are distributed normally. The variance is 40,000 and the mean steer weight is 1300 lbs. Find the probability that the weight of a randomly selected steer is greater than 979 lbs. (Round your answer to 4 decimal places)
 
+**0.9458**
+
 ```{r}
-m <- 13000 
+m <- 1300 
 sd <- 40000**(1/2)
-round(1-pnorm(979, m, sd), 4)
+x <- 979
+z <- (x-m)/sd
+round(1-pnorm(z),4)
 ```
 
 
@@ -20,15 +24,22 @@ round(1-pnorm(979, m, sd), 4)
 
 SVGA monitors manufactured by TSI Electronics have life spans that have a normal distribution with a variance of 1,960,000 and a mean life span of 11,000 hours. If a SVGA monitor is selected at random, find the probability that the life span of the monitor will be more than 8340 hours. (Round your answer to 4 decimal places)
 
+**0.9713**
+
 ```{r}
 m <- 11000 
 sd <- 1960000 **(1/2)
-round(1-pnorm(8340, m, sd), 4)
+x <- 8340
+z <- (x-m)/sd
+round(1-pnorm(z),4)
+round(1-pnorm(x, m, sd), 4)
 ```
 
 ### Question 3
 
 Suppose the mean income of firms in the industry for a year is 80 million dollars with a standard deviation of 3 million dollars. If incomes for the industry are distributed normally, what is the probability that a randomly selected firm will earn between 83 and 85 million dollars? (Round your answer to 4 decimal places)
+
+**0.1109**
 
 ```{r}
 m <- 80 
@@ -39,6 +50,8 @@ round(1 - pnorm(83, m, sd) - (1-pnorm(85, m, sd)), 4)
 ### Question 4
 
 Suppose GRE Verbal scores are normally distributed with a mean of 456 and a standard deviation of 123. A university plans to offer tutoring jobs to students whose scores are in the top 14%. What is the minimum score required for the job offer? Round your answer to the nearest whole number, if necessary.
+
+**589**
 
 ```{r}
 m <- 456 
@@ -51,12 +64,14 @@ round(qnorm(p, m, sd, lower.tail = FALSE), 0)
 
 The lengths of nails produced in a factory are normally distributed with a mean of 6.13 centimeters and a standard deviation of 0.06 centimeters. Find the two lengths that separate the top 7% and the bottom 7%. These lengths could serve as limits used to identify which nails should be rejected. Round your answer to the nearest hundredth, if necessary.
 
+**6.04 and 6.22 cm**
+
 ```{r}
 m <- 6.13 
 sd <- 0.06
 p <- 7/100
-round(qnorm(p, m, sd), 3)
-round(qnorm(p, m, sd, lower.tail = FALSE), 3)
+round(qnorm(p, m, sd), 2)
+round(qnorm(p, m, sd, lower.tail = FALSE), 2)
 ```
 
 ### Question 6
@@ -71,6 +86,8 @@ F: Bottom 9% of scores
 
 Scores on the test are normally distributed with a mean of 78.8 and a standard deviation of 9.8. Find the numerical limits for a C grade. Round your answers to the nearest whole number, if necessary.
 
+**71 and 80**
+
 ```{r}
 m <- 78.8 
 sd <- 9.8
@@ -81,6 +98,8 @@ round(qnorm((45/100), m, sd, lower.tail = FALSE), 0)
 ### Question 7
 
 Suppose ACT Composite scores are normally distributed with a mean of 21.2 and a standard deviation of 5.4. A university plans to admit students whose scores are in the top 45%. What is the minimum score required for admission? Round your answer to the nearest tenth, if necessary.
+
+**21.9**
 
 ```{r}
 m <- 21.2 
@@ -93,17 +112,45 @@ round(qnorm(p, m, sd, lower.tail = FALSE), 1)
 
 Consider the probability that less than 11 out of 151 students will not graduate on time. Assume the probability that a given student will not graduate on time is 9%. Approximate the probability using the normal distribution. (Round your answer to 4 decimal places.)
 
+```{r}
+
+```
+
+
 ### Question 9
 
 The mean lifetime of a tire is 48 months with a standard deviation of 7. If 147 tires are sampled, what is the probability that the mean of the sample would be greater than 48.83 months? (Round your answer to 4 decimal places)
+
+$$ Z = \frac{(X-\mu)}{\sigma}=\frac{(48.83-48)}{7}=0.1185714$$
+
+Looking it up in a Z table the area under the curve (to the left) is 0.5478.  Since we are looking for the area greater than 48.83 we take 1 - 0.5478 = **0.4528**
+
+```{r}
+z <- (48.83-48)/7
+round(1 - pnorm(z),4)
+```
 
 ### Question 10
 
 The quality control manager at a computer manufacturing company believes that the mean life of a computer is 91 months, with a standard deviation of 10. If he is correct, what is the probability that the mean of a sample of 68 computers would be greater than 93.54 months? (Round your answer to 4 decimal places)
 
+$$ Z = \frac{(X-\mu)}{\sigma}=\frac{(93.54-91)}{10}=0.254$$
+
+**0.4388**
+
+```{r}
+m <- 91
+x <- 92.54
+sd <- 10
+z <- (x-m)/sd
+round(pnorm(z, lower.tail = FALSE), 4)
+```
+
 ### Question 11
 
 A director of reservations believes that 7% of the ticketed passengers are no-shows. If the director is right, what is the probability that the proportion of no-shows in a sample of 540 ticketed passengers would differ from the population proportion by less than 3%? (Round your answer to 4 decimal places)
+
+
 
 ### Question 12
 
@@ -114,6 +161,7 @@ A bottle maker believes that 23% of his bottles are defective. If the bottle mak
 A research company desires to know the mean consumption of beef per week among males over age 48. Suppose a sample of size 208 is drawn with $\bar{X}$=3.9. Assume å = 0.8 . Construct the 80% confidence interval for the mean number of lb. of beef per week among males over 48. (Round your answers to 1 decimal place)
 
 Lower Bound:
+
 Upper Bound:
 
 ### Question 14
@@ -121,6 +169,7 @@ Upper Bound:
 An economist wants to estimate the mean per capita income (in thousands of dollars) in a major city in California. Suppose a sample of size 7472 is drawn with $\bar{X}$= 16.6. Assume å = 11 . Construct the 98% confidence interval for the mean per capita income. (Round your answers to 1 decimal place)
 
 Lower Bound:
+
 Upper Bound:
 
 ### Question 15
@@ -160,6 +209,7 @@ Find the critical value that should be used in constructing the confidence inter
 Construct the 90% confidence interval. (Round answer to 2 decimal places)
 
 Lower Bound:
+
 Upper Bound:
 
 ### Question 17
@@ -175,6 +225,7 @@ Find the critical value that should be used in constructing the confidence inter
 Construct the 80% confidence interval. (Round answer to 1 decimal place)
 
 Lower Bound:
+
 Upper Bound:
 
 ### Question 18
@@ -198,6 +249,7 @@ Suppose a sample of 2089 tenth graders is drawn. Of the students sampled, 1734 r
 Suppose a sample of 2089 tenth graders is drawn. Of the students sampled, 1734 read above the eighth grade level. Using the data, construct the 98% confidence interval for the population proportion of tenth graders reading at or below the eighth grade level. (Round your answers to 3 decimal places)
 
 Lower Bound:
+
 Upper Bound:
 
 ### Question 21
@@ -213,4 +265,5 @@ Suppose a sample of 474 tankers is drawn. Of these ships, 156 had spills. Using 
 Suppose a sample of 474 tankers is drawn. Of these ships, 156 had spills. Using the data, construct the 95% confidence interval for the population proportion of oil tankers that have spills each month. (Round your answers to 3 decimal places)
 
 Lower Bound:
+
 Upper Bound:
