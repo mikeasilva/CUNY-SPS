@@ -13,7 +13,7 @@ The weights of steers in a herd are distributed normally. The variance is 40,000
 
 ```{r}
 m <- 1300 
-sd <- 40000**(1/2)
+sd <- sqrt(40000)
 x <- 979
 z <- (x-m)/sd
 round(1-pnorm(z),4)
@@ -28,7 +28,7 @@ SVGA monitors manufactured by TSI Electronics have life spans that have a normal
 
 ```{r}
 m <- 11000 
-sd <- 1960000 **(1/2)
+sd <- sqrt(1960000)
 x <- 8340
 z <- (x-m)/sd
 round(1-pnorm(z),4)
@@ -112,10 +112,23 @@ round(qnorm(p, m, sd, lower.tail = FALSE), 1)
 
 Consider the probability that less than 11 out of 151 students will not graduate on time. Assume the probability that a given student will not graduate on time is 9%. Approximate the probability using the normal distribution. (Round your answer to 4 decimal places.)
 
+**0.2307**
+
+$$\mu=N\pi=151\times0.09 = 13.59$$
+
+$$\sigma=\sqrt{N\pi(1-\pi)} = \sqrt{151\times0.09\times 0.91}\approx3.51666$$
+
+$$ Z = \frac{(x-\mu)}{\sigma}=\frac{(11-13.59)}{3.51666}\approx-0.7364942$$
+
 ```{r}
-
+N <- 151
+n <- 11
+p <- 0.09
+m <- N * p
+sd <- sqrt(N*p*(1-p))
+z <- (n-m)/sd
+round(pnorm(z),4)
 ```
-
 
 ### Question 9
 
@@ -150,27 +163,86 @@ round(pnorm(z, lower.tail = FALSE), 4)
 
 A director of reservations believes that 7% of the ticketed passengers are no-shows. If the director is right, what is the probability that the proportion of no-shows in a sample of 540 ticketed passengers would differ from the population proportion by less than 3%? (Round your answer to 4 decimal places)
 
+$$\mu=N\pi=540\times0.07 = 37.8$$
 
+$$\sigma=\sqrt{N\pi(1-\pi)} = \sqrt{540\times0.07\times 0.93}\approx5.929081$$
+
+$$\bar{x}=N\pi=540\times(0.07-0.03) = 21.6$$
+$$ Z = \frac{(\bar{x}-\mu)}{\sigma}=\frac{(21.6-37.8)}{5.929081}\approx-2.732295$$
+
+**0.0031**
+
+```{r}
+n <- 540
+p <- 0.07
+dif <- -0.03
+m <- n*p
+sd <- sqrt(n*p*(1-p))
+x <- n*(p+dif)
+z <- (x-m)/sd
+round(pnorm(z), 4)
+```
 
 ### Question 12
 
 A bottle maker believes that 23% of his bottles are defective. If the bottle maker is accurate, what is the probability that the proportion of defective bottles in a sample of 602 bottles would differ from the population proportion by greater than 4%? (Round your answer to 4 decimal places)
 
+**0.0098**
+
+```{r}
+n <- 602
+p <- 0.23
+dif <- 0.04 
+m <- n*p
+sd <- sqrt(n*p*(1-p))
+x <- n*(p+dif)
+z <- (x-m)/sd
+round(pnorm(z, lower.tail = FALSE), 4)
+```
+
+
 ### Question 13
 
-A research company desires to know the mean consumption of beef per week among males over age 48. Suppose a sample of size 208 is drawn with $\bar{X}$=3.9. Assume å = 0.8 . Construct the 80% confidence interval for the mean number of lb. of beef per week among males over 48. (Round your answers to 1 decimal place)
+A research company desires to know the mean consumption of beef per week among males over age 48. Suppose a sample of size 208 is drawn with $\bar{X}$=3.9. Assume $\sigma$=0.8. Construct the 80% confidence interval for the mean number of lb. of beef per week among males over 48. (Round your answers to 1 decimal place)
 
-Lower Bound:
 
-Upper Bound:
+Lower Bound: **3.8**
+
+Upper Bound: **4.0**
+
+I looked up the Z value for 80% in a table which is 1.282.
+
+```{r}
+n <- 208
+x <- 3.9
+sd <- 0.8
+sdm <- sd / sqrt(n) 
+z <- 1.282
+
+round(x - z * sdm, 1)
+
+round(x + z * sdm, 1)
+```
 
 ### Question 14
 
-An economist wants to estimate the mean per capita income (in thousands of dollars) in a major city in California. Suppose a sample of size 7472 is drawn with $\bar{X}$= 16.6. Assume å = 11 . Construct the 98% confidence interval for the mean per capita income. (Round your answers to 1 decimal place)
+An economist wants to estimate the mean per capita income (in thousands of dollars) in a major city in California. Suppose a sample of size 7472 is drawn with $\bar{X}$= 16.6. Assume $\sigma$= 11 . Construct the 98% confidence interval for the mean per capita income. (Round your answers to 1 decimal place)
 
-Lower Bound:
+Lower Bound: **16.3**
 
-Upper Bound:
+Upper Bound: **16.9**
+
+```{r}
+n <- 7472
+x <- 16.6
+sd <- 11
+sdm <- sd / sqrt(n) 
+z <- 2.326
+
+round(x - z * sdm, 1)
+
+round(x + z * sdm, 1)
+```
 
 ### Question 15
 
@@ -180,10 +252,35 @@ Find the value of t such that 0.05 of the area under the curve is to the left of
 
 Choose the picture which best describes the problem.
 
+```{r echo=FALSE}
+library(ggplot2)
+funcShaded <- function(x) {
+  df <- 26
+  y <- dt(x, df)
+  t_val <- qt(0.05, df)
+  y[x > t_val] <- NA
+  return(y)
+}
+ggplot(data.frame(x = c(-4, 4)), aes(x = x)) +
+  stat_function(fun = dt, args = list(df = 26)) + 
+  stat_function(fun=funcShaded, geom="area", fill="#84CA72", alpha=0.5) + 
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())
+```
+
 #### Step 2
 
 Write your answer below.
 
+**-1.705618**
+
+```{r}
+qt(0.05, 26)
+```
 
 ### Question 16
 
@@ -196,21 +293,53 @@ Using these measurements, construct a 90% confidence interval for the mean level
 
 Calculate the sample mean for the given sample data. (Round answer to 2 decimal places)
 
+**352.17**
+
+```{r}
+obs <- c(383.6, 347.1, 371.9, 347.6, 325.8, 337)
+n <- length(obs)
+m <- mean(obs)
+round(m, 2)
+```
+
+
 #### Step 2
 
 Calculate the sample standard deviation for the given sample data. (Round answer to 2 decimal places)
+
+**21.68**
+
+```{r}
+sdm = sd(obs)
+round(sdm, 2)
+```
+
 
 #### Step 3
 
 Find the critical value that should be used in constructing the confidence interval. (Round answer to 3 decimal places)
 
+**1.476**
+
+```{r}
+df <- n - 1
+t <- qt(.9, df)
+round(t, 3)
+```
+
 #### Step 4
 
 Construct the 90% confidence interval. (Round answer to 2 decimal places)
 
-Lower Bound:
+Lower Bound: **320.18**
 
-Upper Bound:
+Upper Bound: **384.16**
+
+```{r}
+round(m-t*sdm, 2)
+round(m+t*sdm, 2)
+```
+
 
 ### Question 17
 
@@ -220,21 +349,63 @@ A random sample of 16 fields of spring wheat has a mean yield of 46.4 bushels pe
 
 Find the critical value that should be used in constructing the confidence interval. (Round answer to 3 decimal places)
 
+**0.866**
+
+```{r}
+n <- 16
+m <- 46.4
+sdm <- 2.45
+df <- n - 1
+t <- qt(.8, df)
+round(t, 3)
+```
+
 #### Step 2
 
 Construct the 80% confidence interval. (Round answer to 1 decimal place)
 
-Lower Bound:
+Lower Bound: **44.28**
 
-Upper Bound:
+Upper Bound: **48.52**
+
+```{r}
+round(m-t*sdm, 2)
+round(m+t*sdm, 2)
+```
 
 ### Question 18
 
 A toy manufacturer wants to know how many new toys children buy each year. She thinks the mean is 8 toys per year. Assume a previous study found the standard deviation to be 1.9. How large of a sample would be required in order to estimate the mean number of toys bought per child at the 99% confidence level with an error of at most 0.13 toys? (Round your answer up to the next integer)
 
+**1417**
+
+```{r}
+ci <- 0.99
+z <- qnorm(1-(1-ci)/2)
+sigma <- 1.9
+moe <- 0.13
+n <- ((z * sigma)/moe)**2
+round(n, 0)
+```
+
+
 ### Question 19
 
 A research scientist wants to know how many times per hour a certain strand of bacteria reproduces. He believes that the mean is 12.6. Assume the variance is known to be 3.61. How large of a sample would be required in order to estimate the mean number of reproductions per hour at the 95% confidence level with an error of at most 0.19 reproductions? (Round your answer up to the next integer)
+
+**384**
+
+```{r}
+m <- 12.6
+sigma <- sqrt(3.61)
+
+ci <- 0.95
+z <- qnorm(1-(1-ci)/2)
+moe <- 0.19
+n <- ((z * sigma)/moe)**2
+round(n, 0)
+```
+
 
 ### Question 20
 
@@ -244,13 +415,35 @@ The state education commission wants to estimate the fraction of tenth grade stu
 
 Suppose a sample of 2089 tenth graders is drawn. Of the students sampled, 1734 read above the eighth grade level. Using the data, estimate the proportion of tenth graders reading at or below the eighth grade level. (Write your answer as a fraction or a decimal number rounded to 3 decimal places)
 
+**35/2089 or 0.170**
+
+$$\frac{2089-1734}{2089} = \frac{355}{2089} \approx 0.170 $$
+
+```{r}
+N <- 2089
+n <- 1734
+p <- (N-n)/N
+round(p, 3)
+```
+
 #### Step 2
 
 Suppose a sample of 2089 tenth graders is drawn. Of the students sampled, 1734 read above the eighth grade level. Using the data, construct the 98% confidence interval for the population proportion of tenth graders reading at or below the eighth grade level. (Round your answers to 3 decimal places)
 
-Lower Bound:
+Lower Bound: **0.153**
 
-Upper Bound:
+Upper Bound: **0.187**
+
+```{r}
+ci <- 0.98
+m <- N * p
+sdm <- sqrt(N*p*(1-p))
+
+df <- (N-n) - 1
+t <- qt(ci, df)
+round((m-t*sdm)/N, 3)
+round((m+t*sdm)/N, 3)
+```
 
 ### Question 21
 
@@ -260,10 +453,31 @@ An environmentalist wants to find out the fraction of oil tankers that have spil
 
 Suppose a sample of 474 tankers is drawn. Of these ships, 156 had spills. Using the data, estimate the proportion of oil tankers that had spills. (Write your answer as a fraction or a decimal number rounded to 3 decimal places)
 
+**156/474 or 0.329**
+
+```{r}
+N <- 474
+n <- 156
+p <- n/N
+round(p, 3)
+```
+
 #### Step 2
 
 Suppose a sample of 474 tankers is drawn. Of these ships, 156 had spills. Using the data, construct the 95% confidence interval for the population proportion of oil tankers that have spills each month. (Round your answers to 3 decimal places)
 
-Lower Bound:
+Lower Bound: **0.294**
 
-Upper Bound:
+Upper Bound: **0.365**
+
+```{r}
+ci <- .95
+m <- N * p
+sdm <- sqrt(N*p*(1-p))
+
+df <- (N-n) - 1
+t <- qt(ci, df)
+round((m-t*sdm)/N, 3)
+round((m+t*sdm)/N, 3)
+```
+
