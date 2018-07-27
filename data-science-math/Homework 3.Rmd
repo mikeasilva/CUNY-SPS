@@ -430,19 +430,18 @@ round(p, 3)
 
 Suppose a sample of 2089 tenth graders is drawn. Of the students sampled, 1734 read above the eighth grade level. Using the data, construct the 98% confidence interval for the population proportion of tenth graders reading at or below the eighth grade level. (Round your answers to 3 decimal places)
 
-Lower Bound: **0.153**
+Lower Bound: **0.151**
 
-Upper Bound: **0.187**
+Upper Bound: **0.189**
 
 ```{r}
 ci <- 0.98
 m <- N * p
-sdm <- sqrt(N*p*(1-p))
-
+sdm <- sqrt((p*(1-p))/n)
 df <- (N-n) - 1
 t <- qt(ci, df)
-round((m-t*sdm)/N, 3)
-round((m+t*sdm)/N, 3)
+round(p-t*sdm, 3)
+round(p+t*sdm, 3)
 ```
 
 ### Question 21
@@ -466,18 +465,17 @@ round(p, 3)
 
 Suppose a sample of 474 tankers is drawn. Of these ships, 156 had spills. Using the data, construct the 95% confidence interval for the population proportion of oil tankers that have spills each month. (Round your answers to 3 decimal places)
 
-Lower Bound: **0.294**
+Lower Bound: **0.267**
 
-Upper Bound: **0.365**
+Upper Bound: **0.391**
 
 ```{r}
 ci <- .95
 m <- N * p
-sdm <- sqrt(N*p*(1-p))
-
+sdm <- sqrt((p*(1-p))/n)
 df <- (N-n) - 1
 t <- qt(ci, df)
-round((m-t*sdm)/N, 3)
-round((m+t*sdm)/N, 3)
+round(p-t*sdm, 3)
+round(p+t*sdm, 3)
 ```
 
