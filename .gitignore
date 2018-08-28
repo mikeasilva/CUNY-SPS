@@ -1,1 +1,6 @@
 data-science-math/rsconnect/
+.Rproj.user
+.RData
+.Rhistory
+CUNY-SPS.Rproj
+.ipynb_checkpoints
