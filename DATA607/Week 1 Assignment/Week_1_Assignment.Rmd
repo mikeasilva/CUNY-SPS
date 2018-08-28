@@ -3,7 +3,9 @@ title: "CUNY SPS DATA-607 Week 1 Assignment"
 subtitle: "Loading Data into a Data Frame"
 author: "Mike Silva"
 date: "August 27, 2018"
-output: html_document
+output:
+  html_document:
+    keep_md: yes
 ---
 
 ## Description
@@ -23,10 +25,11 @@ download.file('https://archive.ics.uci.edu/ml/machine-learning-databases/mushroo
 Now that we have the dataset locally we will create a data frame:
 
 ```{r load-data}
-df <- read.table('agaricus-lepiota.data', sep=',')
+df <- read.table('agaricus-lepiota.data', sep=',', stringsAsFactors=FALSE)
+head(df)
 ```
 
-According to the documentation we should have 8,124 rows and 22 columns of data.
+According to the documentation we should have 8,124 rows and 23 columns of data.
 
 ```{r data-size}
 dim(df)
@@ -46,6 +49,62 @@ I will rename the columns by using the dplyr package:
 library(dplyr)
 
 df <- df %>%
-  r
+  rename(type = V1,
+         cap_shape = V2,
+         cap_surface = V3,
+         cap_color = V4,
+         bruises = V5,
+         odor = V6,
+         gill_attachment = V7,
+         gill_spacing = V8,
+         gill_size = V9,
+         gill_color = V10,
+         stalk_shape = V11,
+         stalk_root = V12,
+         stalk_surface_above_ring = V13,
+         stalk_surface_below_ring = V14,
+         stalk_color_above_ring = V15,
+         stalk_color_below_ring = V16,
+         veil_type = V17,
+         veil_color = V18,
+         ring_number = V19,
+         ring_type = V20,
+         spore_print_color = V21,
+         population = V22,
+         habitat = V23)
 ```
 
+## Step 4: Subsetting Data Frame
+
+Before changing the data to be more meaningful I want to subset the data frame.  I would like to use this data to predict if a mushroom is poisonous or not.  According to the documentation the odor, spore print color, stalk surface below ring, and stalk color above ring are 4 attributes that can predict if a mushroom is poisonous with a 99.9% accuracy for these 23 species.
+
+```{r subset-data}
+df <- df %>%
+  select(type, odor, spore_print_color, stalk_color_below_ring, stalk_color_above_ring)
+```
+
+Now that we have these subsets, let's examine the values:
+
+```{r subset-tables}
+lapply(df, function(x) table(x)) 
+```
+
+## Step 5: Recoding Variables
+
+Now that we have the subset of columns we can recode the variables.  I will accomplish this with dplyr and recode statements.
+
+```{r recode-variables}
+df <- df %>%
+  mutate(type = recode(type, p="Poisonous", e="Edible"),
+         odor = recode(odor, a="Almond", c="Creosote", f="Foul", l="Anise", m="Musty", n="None", p="Pungent", s="Spicy", y="Fishy"),
+         spore_print_color = recode(spore_print_color, b="Buff", h="Chocolate", k="Black", n="Brown", o="Orange", r="Green", u="Purple", w="White", y="Yellow"),
+         stalk_color_below_ring = recode(stalk_color_below_ring, b="Buff", c="Cinnamon", e="Red", g="Gray", n="Brown", o="Orange", p="Pink", w="White", y="Yellow"),
+         stalk_color_above_ring = recode(stalk_color_above_ring, b="Buff", c="Cinnamon", e="Red", g="Gray", n="Brown", o="Orange", p="Pink", w="White", y="Yellow"))
+```
+
+Now to examine the final product:
+
+```{r final-product}
+head(df)
+tail(df)
+```
