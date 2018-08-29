@@ -292,11 +292,17 @@ The data are stored in a data frame called `present`.
     
 ```{r}
 unique(present$year)
-message("1940 to 2002")
+```
 
+**1940 to 2002**
+
+```{r}
 dim(present)
-message("63 rows and 3 columns")
+```
 
+**63 rows and 3 columns**
+
+```{r}
 names(present)
 ```
 
@@ -312,10 +318,9 @@ combined <- rbind(arbuthnot, present) %>%
 combined %>%
   group_by(Dataset) %>%
   summarise(`Average records per year` = mean(total))
-
-message("Present dataset has significantly more records per year than Arbuthnot's")
 ```
 
+**Present dataset has significantly more records per year than Arbuthnot's**
 
 -   Make a plot that displays the boy-to-girl ratio for every year in the data 
     set. What do you see? Does Arbuthnot's observation about boys being born in
@@ -328,9 +333,9 @@ combined %>%
   mutate(`Boy-to-Girl Ratio` = boys / girls) %>%
   ggplot(., aes(x = Dataset, y = `Boy-to-Girl Ratio`, fill = Dataset)) + 
   geom_boxplot(show.legend = FALSE) 
-
-message("Arbuthnot's observations does not hold in the Present dataset")
 ```
+
+**Arbuthnot's observations does not hold in the Present dataset**
 
 -   In what year did we see the most total number of births in the U.S.? You can
     refer to the help files or the R reference card 

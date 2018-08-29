@@ -507,13 +507,8 @@ unique(present$year)
 ## [57] 1996 1997 1998 1999 2000 2001 2002
 ```
 
-```r
-message("1940 to 2002")
-```
+**1940 to 2002**
 
-```
-## 1940 to 2002
-```
 
 ```r
 dim(present)
@@ -523,13 +518,8 @@ dim(present)
 ## [1] 63  3
 ```
 
-```r
-message("63 rows and 3 columns")
-```
+**63 rows and 3 columns**
 
-```
-## 63 rows and 3 columns
-```
 
 ```r
 names(present)
@@ -562,14 +552,7 @@ combined %>%
 ## 2 Present                     3679515.
 ```
 
-```r
-message("Present dataset has significantly more records per year than Arbuthnot's")
-```
-
-```
-## Present dataset has significantly more records per year than Arbuthnot's
-```
-
+**Present dataset has significantly more records per year than Arbuthnot's**
 
 -   Make a plot that displays the boy-to-girl ratio for every year in the data 
     set. What do you see? Does Arbuthnot's observation about boys being born in
@@ -585,15 +568,9 @@ combined %>%
   geom_boxplot(show.legend = FALSE) 
 ```
 
-![](Michael-intro_to_r_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
+![](Michael-intro_to_r_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
 
-```r
-message("Arbuthnot's observations does not hold in the Present dataset")
-```
-
-```
-## Arbuthnot's observations does not hold in the Present dataset
-```
+**Arbuthnot's observations does not hold in the Present dataset**
 
 -   In what year did we see the most total number of births in the U.S.? You can
     refer to the help files or the R reference card 
