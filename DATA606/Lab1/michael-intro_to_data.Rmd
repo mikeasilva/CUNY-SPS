@@ -65,6 +65,14 @@ as their desired weight, `wtdesire`, `age` in years, and `gender`.
 1.  How many cases are there in this data set?  How many variables?  For each 
     variable, identify its data type (e.g. categorical, discrete).
 
+```{r}
+dim(cdc)
+
+summary(cdc)
+```
+
+**There are 20K records with 9 variables.  height weight wtdesire and age are numeric and continuous. gender and genhlth are categorical.  exerany, hlthplan and smoke100 are categorical (0=no and 1=yes).**
+
 We can have a look at the first few entries (rows) of our data with the command
 
 ```{r head, eval=TRUE}
@@ -162,6 +170,38 @@ another important idea that we'll return to later.
     `gender` and `exerany`. How many males are in the sample? What proportion of
     the sample reports being in excellent health?
 
+```{r}
+summary(cdc$height)
+```
+
+```{r}
+IQR(cdc$height)
+```
+
+```{r}
+summary(cdc$age)
+```
+
+```{r}
+IQR(cdc$age)
+```
+
+```{r}
+table(cdc$gender) / nrow(cdc)
+```
+
+```{r}
+table(cdc$exerany) / nrow(cdc)
+```
+
+```{r}
+nrow(cdc[cdc$gender=="m",])
+```
+
+```{r}
+nrow(cdc[cdc$genhlth == "excellent",]) / nrow(cdc)
+```
+
 The `table` command can be used to tabulate any number of variables that you 
 provide.  For example, to examine which participants have smoked across each 
 gender, we could use the following.
@@ -182,6 +222,8 @@ We could have accomplished this in two steps by saving the table in one line and
 applying `mosaicplot` in the next (see the table/barplot example above).
 
 3.  What does the mosaic plot reveal about smoking habits and gender?
+
+**Males are more likely to smoke than females.**
 
 ## Interlude: How R thinks about data
 
@@ -338,6 +380,10 @@ when forming a subset.
     lifetime. Write the command you used to create the new object as the answer
     to this exercise.
 
+```{r}
+under23_and_smoke <- subset(cdc, smoke100 == "1" & age < 23)
+```
+
 ## Quantitative data
 
 With our subsetting tools in hand, we'll now return to the task of the day: 
@@ -401,6 +447,14 @@ very simple expressions.
     might think it would have a relationship to BMI,  and indicate what the 
     figure seems to suggest. 
 
+**The box plot shows the distribution of the data.  It shows the IQR, median, and outliers.  The above box plot shows that the individuals with poorer general health are more likely to have a higher BMI than those with better health.**
+
+```{r}
+boxplot(bmi ~ cdc$gender)
+```
+
+**I picked gender because general health status was already taken.  I would expect a difference based on the gender because men and women are different.  The plot shows a greater variation among the women than the men.**
+
 Finally, let's make some histograms. We can look at the histogram for the age of
 our respondents with the command
 
@@ -436,22 +490,52 @@ will serve us well throughout this course.
 
 -   Make a scatterplot of weight versus desired weight. Describe the 
     relationship between these two variables.
+    
+```{r}
+plot(x = cdc$weight, y = cdc$wtdesire)
+abline(lm(cdc$weight ~ cdc$wtdesire), col="#357FAA", lty='longdash', lwd=2)
+```
+
+**The relationship is positive.**    
 
 -   Let's consider a new variable: the difference between desired weight 
     (`wtdesire`) and current weight (`weight`). Create this new variable by 
     subtracting the two columns in the data frame and assigning them to a new 
     object called `wdiff`.
+    
+```{r}
+wdiff <- cdc$wtdesire - cdc$weight
+```
 
 -   What type of data is `wdiff`? If an observation `wdiff` is 0, what does 
     this mean about the person's weight and desired weight. What if `wdiff` is 
     positive or negative?
 
+**It is a continous variable.  If wdiff is equal to 0 it means that their desired weight is their current weight.  If wdiff is positive they desire to put on weight.  If it is negative they desire to weight less.**
+
 -   Describe the distribution of `wdiff` in terms of its center, shape, and 
     spread, including any plots you use. What does this tell us about how people 
     feel about their current weight?
 
+```{r}
+library(e1071)
+summary(wdiff)
+skewness(wdiff)
+```
+
+```{r}
+hist(wdiff)
+```
+
+**The data is left skewed and clustered around -10 to -15.  There is a few extreme values but in generall people want to loose a few pounds.**
+
 -   Using numerical summaries and a side-by-side box plot, determine if men tend
     to view their weight differently than women.
+
+```{r}
+
+```
+
 
 -   Now it's time to get creative. Find the mean and standard deviation of 
     `weight` and determine what proportion of the weights are within one 
