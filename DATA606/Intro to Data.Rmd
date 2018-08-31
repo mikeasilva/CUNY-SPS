@@ -120,7 +120,7 @@ boxplot(scores)
 
 Describe the distribution in the histograms below and match them to the box plots.
 
-![ ](https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA606/intro_to_data_1_50.png)
+![ ](https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA606/Figures/intro_to_data_1_50.png)
 
 **(a) is a normal distribution.  The corresponding box plot is 2**
 
@@ -152,7 +152,7 @@ For each of the following, state whether you expect the distribution to be symme
 
 The Stanford University Heart Transplant Study was conducted to determine whether an experimental heart transplant program increased lifespan. Each patient entering the program was designated an experimental heart transplant candidate, meaning that he was gravely ill and would most likely benefit from a new heart. Some patients got a transplant and some did not. The variable transplant indicates which group the patients were in; patients in the treatment group got a transplant and those in the control group did not. Another variable called survived was used to indicate whether or not the patient was alive at the end of the study. Of the 34 patients in the control group, 30 died. Of the 69 people in the treatment group, 45 died.
 
-![ ](https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA606/intro_to_data_1_70_1.png)
+![ ](https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA606/Figures/intro_to_data_1_70_1.png)
 
 (a) Based on the mosaic plot, is survival independent of whether or not the patient got a transplant? Explain your reasoning.
 
@@ -174,8 +174,10 @@ i. What are the claims being tested?
 
 ii. The paragraph below describes the set up for such approach, if we were to do it without using statistical software. Fill in the blanks with a number or phrase, whichever is appropriate.
 
-We write alive on **28** cards representing patients who were alive at the end of the study, and dead on **75** cards representing patients who were not. Then, we shuffle these cards and split them into two groups: one group of size **69** representing treatment, and another group of size **34** representing control. We calculate the difference between the proportion of dead cards in the treatment and control groups (treatment - control) and record this value. We repeat this 100 times to build a distribution centered at **zero**. Lastly, we calculate the fraction of simulations where the simulated differences in proportions are **less than zero**. If this fraction is low, we conclude that it is unlikely to have observed such an outcome by chance and that the null hypothesis should be rejected in favor of the alternative.
+We write alive on **28** cards representing patients who were alive at the end of the study, and dead on **75** cards representing patients who were not. Then, we shuffle these cards and split them into two groups: one group of size **69** representing treatment, and another group of size **34** representing control. We calculate the difference between the proportion of dead cards in the treatment and control groups (treatment - control) and record this value. We repeat this 100 times to build a distribution centered at **zero**. Lastly, we calculate the fraction of simulations where the simulated differences in proportions are **greater than zero**. If this fraction is low, we conclude that it is unlikely to have observed such an outcome by chance and that the null hypothesis should be rejected in favor of the alternative.
 
 iii. What do the simulation results shown below suggest about the effectiveness of the transplant program?
 
-![ ](https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA606/intro_to_data_1_70_2.png)
+![ ](https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA606/Figures/intro_to_data_1_70_2.png)
+
+**It suggests the effectiveness of the treatmant in increasing life is not due to chance.**
