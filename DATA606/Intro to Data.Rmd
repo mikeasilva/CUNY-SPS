@@ -166,7 +166,7 @@ The Stanford University Heart Transplant Study was conducted to determine whethe
 
 **Roughly 88% of the control group and 65% of the treatment group died when the box plot was made.  Eventually 100% of both groups died.**
 
-(d) One approach for investigating whether or not the treatment is e↵ective is to use a randomization technique.
+(d) One approach for investigating whether or not the treatment is effective is to use a randomization technique.
 
 i. What are the claims being tested?
 
