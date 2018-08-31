@@ -116,23 +116,43 @@ boxplot(scores)
 
 Describe the distribution in the histograms below and match them to the box plots.
 
+![ ](https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA606/intro_to_data_1_50.png)
+
+**(a) is a normal distribution.  The corresponding box plot is 2**
+
+**(b) is a uniform distribution.  3 is the box plot**
+
+**(c) is a long-tailed or right skewed distribution and 1 is the box plot**
+
 ## 1.56 Distributions and appropriate statistics, Part II
 
 For each of the following, state whether you expect the distribution to be symmetric, right skewed, or left skewed. Also specify whether the mean or median would best represent a typical observation in the data, and whether the variability of observations would be best represented using the standard deviation or IQR. Explain your reasoning. 
 
 (a) Housing prices in a country where 25% of the houses cost below $350,000, 50% of the houses cost below $450,000, 75% of the houses cost below $1,000,000 and there are a meaningful number of houses that cost more than $6,000,000.
 
+**This is long tailed right skewed distribution.  The median would be the best option to represent the central tendancy and IQR would be best for the spread.  Since "the are a meaningful number" of very expensive houses, the mean would be larger than the median and less representative of the average.**
+
 (b) Housing prices in a country where 25% of the houses cost below $300,000, 50% of the houses cost below $600,000, 75% of the houses cost below $900,000 and very few houses that cost more than $1,200,000.
+
+**This is symetric distribution.  Mean and standard deviation could be used on this distribution because the spread is much more compact than the previous example.**
 
 (c) Number of alcoholic drinks consumed by college students in a given week. Assume that most of these students don’t drink since they are under 21 years old, and only a few drink excessively.
 
+**This is a bimodal distribution.  You can't use median or mean to summarize because it really isn't meaningful.**
+
 (d) Annual salaries of the employees at a Fortune 500 company where only a few high level executives earn much higher salaries than all the other employees.
+
+**This is probably a symetric distribution with some outliers on the right tail.  A median and IQR would be the best choice because of the top level executives would pull the mean to the right.**
 
 ## 1.70 Heart transplants
 
 The Stanford University Heart Transplant Study was conducted to determine whether an experimental heart transplant program increased lifespan. Each patient entering the program was designated an experimental heart transplant candidate, meaning that he was gravely ill and would most likely benefit from a new heart. Some patients got a transplant and some did not. The variable transplant indicates which group the patients were in; patients in the treatment group got a transplant and those in the control group did not. Another variable called survived was used to indicate whether or not the patient was alive at the end of the study. Of the 34 patients in the control group, 30 died. Of the 69 people in the treatment group, 45 died.
 
+![ ](https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA606/intro_to_data_1_70.png)
+
 (a) Based on the mosaic plot, is survival independent of whether or not the patient got a transplant? Explain your reasoning.
+
+**Survival is dependent of whether the patient got a transplant.  The probability (proportion) of living when they got the treatment is larger than that when they did not.**
 
 (b) What do the box plots below suggest about the efficaacy (effectiveness) of the heart transplant treatment.
 
