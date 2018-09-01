@@ -518,8 +518,9 @@ wdiff <- cdc$wtdesire - cdc$weight
     feel about their current weight?
 
 ```{r}
-library(e1071)
 summary(wdiff)
+
+library(e1071)
 skewness(wdiff)
 ```
 
@@ -527,19 +528,38 @@ skewness(wdiff)
 hist(wdiff)
 ```
 
-**The data is left skewed and clustered around -10 to -15.  There is a few extreme values but in generall people want to loose a few pounds.**
+**The data is left skewed and clustered around -10 to -15.  There is a few extreme values but in general people want to loose a bit of weight.**
 
 -   Using numerical summaries and a side-by-side box plot, determine if men tend
     to view their weight differently than women.
 
 ```{r}
+cdc$wdiff <- cdc$wtdesire - cdc$weight
+summary(cdc[cdc$gender == "m",]$wtdesire)
+summary(cdc[cdc$gender == "f",]$wtdesire)
 
+boxplot(cdc$wtdesire ~ cdc$gender)
 ```
 
+**In order to see how they different genders viewed their weight I decided to look at the weight they desired.  It would stand as a proxy for the "ideal" man or woman.  As one would expect the "ideal" male's weight is heavier than the "ideal" female's.**
 
 -   Now it's time to get creative. Find the mean and standard deviation of 
     `weight` and determine what proportion of the weights are within one 
     standard deviation of the mean.
+    
+```{r}
+mu <- mean(cdc$weight)
+mu
+sigma <- sd(cdc$weight)
+sigma
+
+upper <- mu + sigma
+lower <- mu - sigma
+
+nrow(cdc[cdc$weight>=lower & cdc$weight<=upper,]) / nrow(cdc)
+```
+
+**The mean is roughly 170 with a standard deviation of about 40.  About 71% are within one standard deviation of the mean.**
 
 <div id="license">
 This is a product of OpenIntro that is released under a 
