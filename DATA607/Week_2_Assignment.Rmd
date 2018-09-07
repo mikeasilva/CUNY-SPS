@@ -1,0 +1,79 @@
+---
+title: "Week 2 Assignment"
+author: "Mike Silva"
+date: "September 1, 2018"
+output: html_document
+---
+
+## Description
+
+Choose six recent popular movies.  Ask at least five people that you know (friends, family, classmates, imaginary friends) to rate each of these movie that they have seen on a scale of 1 to 5.  Take the results (observations) and store them in a SQL database.  Load the information into an R dataframe.
+
+The films used in this study were selected by Googling "2018 recent films" and getting the first 6 films listed in the search results.
+
+## What's Been Done So Far
+
+The 'Week 2 Assignment.sql' script has been executed which has set up the flix database with the ratings.
+
+## Connect To The Database
+
+Using settings in a hidden file, connect to the database.
+
+```{r connect,message=FALSE}
+library(RMySQL)
+library(ggplot2)
+library(dplyr)
+source('hidden/MySQL Settings.R')
+conn <- dbConnect(MySQL(), user=user, password=password, dbname='flix', host=host)
+```
+
+## Pull Data From The Database 
+
+Pull data via the connection.
+
+```{r pull_data}
+sql <- 'SELECT `films`.`title`, 
+`reviewers`.`name`, 
+`ratings`.`rating`
+FROM `ratings`
+JOIN `films` ON `films`.`id` = `ratings`.`films_id`
+JOIN `reviewers` ON `reviewers`.`id` = `ratings`.`reviewers_id`'
+df <- dbGetQuery(conn, sql)
+
+# Disconnect from the database
+disconnected <- dbDisconnect(conn)
+```
+
+## Exploratory Data Analysis
+
+Now that the data is loaded into a dataframe let's take a look at the data.
+
+```{r first_look}
+dim(df)
+names(df)
+```
+
+Now for a preview of the data
+
+```{r preview}
+head(df)
+```
+
+```{r viz}
+ggplot(df, aes(x=title, y=rating, fill=title)) + 
+  geom_boxplot() + 
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+```
+
+The data is centered arround 3 with the exception of Annihilaton and Deadpool 2 which have a lower rating.
+
+```{r}
+df %>%
+  group_by(title) %>%
+  summarise(min=min(rating),
+            mean=mean(rating),
+            median=median(rating),
+            max=max(rating))
+```
