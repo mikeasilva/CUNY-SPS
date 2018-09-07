@@ -1,0 +1,27 @@
+---
+title: "Hands on Lab 2-3: Combining Data from Multiple Sources"
+author: "Mike Silva"
+date: "September 7, 2018"
+output: html_document
+---
+
+## Description
+
+Your task is to create an R dataframe that shows rates of tuberculosis infection by country. You should use the information from the tb database and the attached population.csv file. Your R dataframe should have the following columns:
+
+Country, Year, Rate
+
+Where Rate is defined as Cases/Population.
+
+## Step 1: Read in the Data
+
+First I will extract the TB cases from the MySQL database.  I will make use of a MySQL Settings file which hold authentication credentials.  It is not included in the [GitHub repo](https://github.com/mikeasilva/CUNY-SPS/tree/master/DATA607) for obvious reasons.
+
+```{r connect,message=FALSE}
+library(RMySQL)
+library(ggplot2)
+library(dplyr)
+source('hidden/MySQL Settings.R')
+conn <- dbConnect(MySQL(), user=user, password=password, dbname='tb', host=host)
+```
+
