@@ -15,7 +15,9 @@ Where Rate is defined as Cases/Population.
 
 ## Step 1: Read in the Data
 
-First I will extract the TB cases from the MySQL database.  I will make use of a MySQL Settings file which hold authentication credentials.  It is not included in the [GitHub repo](https://github.com/mikeasilva/CUNY-SPS/tree/master/DATA607) for obvious reasons.
+### Step 1-A: Extract the TB Cases From MySQL Database
+
+First I will extract the TB cases from the MySQL database.  I will make use of a MySQL Settings file which hold authentication credentials.  It is not included in the [GitHub repo](https://github.com/mikeasilva/CUNY-SPS/tree/master/DATA607) for obvious reasons.  I will start by connecting to the database.
 
 ```{r connect,message=FALSE}
 library(RMySQL)
@@ -25,3 +27,59 @@ source('hidden/MySQL Settings.R')
 conn <- dbConnect(MySQL(), user=user, password=password, dbname='tb', host=host)
 ```
 
+Now that we have a connection I will pull the total cases by country and year from the database.
+
+```{r pull_data}
+sql <- 'SELECT 
+    `country`, `year`, SUM(child + adult + elderly) AS `cases`
+FROM
+    `tb`
+GROUP BY `country`, `year`
+HAVING `cases` IS NOT NULL'
+
+tb <- dbGetQuery(conn, sql)
+
+# Disconnect from the database
+disconnected <- dbDisconnect(conn)
+
+head(tb)
+```
+
+### Step 1-B: Retreive the Population From GitHub
+
+I will now bring in the population data from GitHub.
+
+```{r}
+url <- 'https://raw.githubusercontent.com/mikeasilva/CUNY-SPS/master/DATA607/data/population.csv'
+
+pop <- read.csv(url)
+
+head(pop)
+```
+
+## Step 2: Wrangle the Datasets
+
+The next step is to wrangle the data prior to merging the two datasets together.  I will be joining on the country name and year.  Since there may be variations in the capitalization between the two datasets I will be capitalizing all of them.
+
+The data from the MySQL is not encoded in a way that plays nicely with the population data, so an additional step is taken.
+
+```{r wrangle}
+tb <- tb %>%
+  mutate(country = enc2utf8(country)) %>%
+  mutate(country = toupper(country)) 
+
+df <- pop %>%
+  mutate(country = toupper(country))  %>%
+  merge(tb)
+```
+
+Since there are `nrow(tb)` observations in the TB dataset and `nrow(df)` in the combined dataset I want to see what fell out.
+
+```{r}
+tb_countries <- unique(tb$country)
+df_countires <- unique(df$country)
+missing <- tb_countries[!tb_countries %in% df_countires]
+missing
+```
+
+The Ivory Coast fell out of the dataset.
