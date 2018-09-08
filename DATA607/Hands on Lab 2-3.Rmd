@@ -75,11 +75,54 @@ df <- pop %>%
 
 Since there are `nrow(tb)` observations in the TB dataset and `nrow(df)` in the combined dataset I want to see what fell out.
 
-```{r}
+```{r find_missing_records}
 tb_countries <- unique(tb$country)
 df_countires <- unique(df$country)
 missing <- tb_countries[!tb_countries %in% df_countires]
 missing
 ```
 
-The Ivory Coast fell out of the dataset.
+The Ivory Coast fell out of the dataset.  This is due to the encoding issue and is something that I will not be addressing.
+
+## Step 2: Compute the Rate
+
+Now that the two datasets are combined I will calculate the prevalance rate:
+
+```{r calculate_rate}
+df <- df %>%
+  mutate(rate = cases / population)
+```
+
+## Step 3: Exploratory Analysis
+
+First we will look at the newly created rate variable
+
+```{r}
+summary(df$rate)
+```
+
+The scale is not very useful.  I will rescale it to per 100,000.
+
+```{r}
+df <- df %>%
+  mutate(rate_per_100k = rate * 100000)
+```
+
+
+```{r}
+ggplot(df, aes(x=year, y=rate_per_100k)) +
+  geom_smooth(method='lm',formula=y~x) +
+  ylab("TB Infections Rate per 100,000") +
+  xlab('Year')
+```
+
+The trend show that on average TB infections have been increasing over time from 25 to 90 cases per 100,000 residents. But the summary above says there is 813 cases per 100,000 as a maximum.  So I want to look at a boxplot of the data.
+
+```{r boxplot}
+ggplot(df, aes(x=year, y=rate_per_100k, group=year)) + 
+  geom_boxplot() +
+  ylab("TB Infections Rate per 100,000") +
+  xlab('Year')
+```
+
+The median has been on the rise but there is a lot of outliers.  It seems that there was an outbreak in 2006 where TB rates increased above 400 cases for a few locations.
