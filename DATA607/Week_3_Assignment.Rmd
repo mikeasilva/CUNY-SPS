@@ -1,0 +1,66 @@
+---
+title: "Week 3 Assignment"
+author: "Mike Silva"
+date: "September 9, 2018"
+output: html_document
+---
+
+## Description
+
+The following problems come from chapter 8, regular expressions and essential string functions from "Automated Data Collection with R"
+
+### Problem 3
+
+```{r}
+library(stringr)
+raw.data <-"555-1239Moe Szyslak(636) 555-0113Burns, C. Montgomery555-6542Rev. Timothy Lovejoy555 8904Ned Flanders636-555-3226Simpson, Homer5553642Dr. Julius Hibbert"
+
+name <- unlist(str_extract_all(raw.data, "[[:alpha:]., ]{2,}"))
+
+name
+```
+
+(a) Use the tools of this chapter to rearrange  the vector so that all elements conform to the standard *first_name* *last_name*.
+
+```{r}
+get_first_last <- function(n){
+  # Strip out title and middle name
+  n <- str_replace(n, '(Rev. )|(C. )|(Dr. )','')
+  # Reorder if comma is present
+  split_n <- unlist(str_split(n, ', '))
+  if(length(split_n)==2){
+    n <- paste(split_n[2],split_n[1])
+  }
+  return(n)
+}
+
+first_name_last_name <- as.vector(sapply(name, get_first_last))
+
+first_name_last_name
+```
+
+(b) Construct a logical vector indicating whether a character has a title (i.e. Rev. and Dr.)
+
+```{r}
+# Look for two letters followed by a period and a space
+has_title <- str_count(name, '\\w{2}. ') > 1
+has_title
+```
+
+(c) Construct a logical vector indicating whether a character has a second name.
+
+```{r}
+# Find a space followed by one letter then a period then a space
+has_second_name <- str_count(name, ' \\w{1}. ') == 1
+has_second_name
+```
+
+## Problem 4
+
+Describe the types of strings that conform to the following regular expressions and construct an example that is matched by the regular expression
+
+(a) [0-9]+\\$
+(b) \\b[a-z]{1,4}\\b
+(c) .*?\\.txt$
+(d) \\d{2}/\\d{2}/\\d{4}
+(e) <(.+?)>.+?</\\1>
