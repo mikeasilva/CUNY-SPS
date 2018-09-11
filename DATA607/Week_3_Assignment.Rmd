@@ -13,7 +13,7 @@ The following problems come from chapter 8, regular expressions and essential st
 
 ```{r}
 library(stringr)
-raw.data <-"555-1239Moe Szyslak(636) 555-0113Burns, C. Montgomery555-6542Rev. Timothy Lovejoy555 8904Ned Flanders636-555-3226Simpson, Homer5553642Dr. Julius Hibbert"
+raw.data <- "555-1239Moe Szyslak(636) 555-0113Burns, C. Montgomery555-6542Rev. Timothy Lovejoy555 8904Ned Flanders636-555-3226Simpson, Homer5553642Dr. Julius Hibbert"
 
 name <- unlist(str_extract_all(raw.data, "[[:alpha:]., ]{2,}"))
 
@@ -25,11 +25,11 @@ name
 ```{r}
 get_first_last <- function(n){
   # Strip out title and middle name
-  n <- str_replace(n, '(Rev. )|(C. )|(Dr. )','')
+  n <- str_replace(n, "(Rev. )|(C. )|(Dr. )", "")
   # Reorder if comma is present
-  split_n <- unlist(str_split(n, ', '))
-  if(length(split_n)==2){
-    n <- paste(split_n[2],split_n[1])
+  split_n <- unlist(str_split(n, ", "))
+  if (length(split_n) == 2){
+    n <- paste(split_n[2], split_n[1])
   }
   return(n)
 }
@@ -43,7 +43,7 @@ first_name_last_name
 
 ```{r}
 # Look for two letters followed by a period and a space
-has_title <- str_count(name, '\\w{2}. ') > 1
+has_title <- str_count(name, "\\w{2}. ") > 1
 has_title
 ```
 
@@ -51,7 +51,7 @@ has_title
 
 ```{r}
 # Find a space followed by one letter then a period then a space
-has_second_name <- str_count(name, ' \\w{1}. ') == 1
+has_second_name <- str_count(name, " \\w{1}. ") == 1
 has_second_name
 ```
 
