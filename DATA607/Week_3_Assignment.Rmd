@@ -59,8 +59,10 @@ has_second_name
 
 Describe the types of strings that conform to the following regular expressions and construct an example that is matched by the regular expression
 
-(a) [0-9]+\\$
-(b) \\b[a-z]{1,4}\\b
-(c) .*?\\.txt$
-(d) \\d{2}/\\d{2}/\\d{4}
-(e) <(.+?)>.+?</\\1>
+| Question | Regular Expression | Type of String | Examples |
+|----------|--------------------|----------------|----------|
+| (a) | [0-9]+\\$ | Numbers followed by a dollar sign| 100$, 25$ |
+| (b) | \\b[a-z]{1,4}\\b | A one to four lower-case character string  | help, bat | 
+| (c) | .*?\\.txt$ | Alphanumeric characters followed by .txt | readme.txt, 1.txt |
+| (d) | \\d{2}/\\d{2}/\\d{4} | A date in a DD/MM/YYYY or MM/DD/YYYY format | 12/31/2018 |
+| (e) | <(.+?)>.+?</\\1> | Text between to HTML tags | `<b>This is bold</b>` |
