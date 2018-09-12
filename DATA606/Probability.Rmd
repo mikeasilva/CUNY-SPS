@@ -1,7 +1,7 @@
 ---
 title: "Probability"
 author: "Mike Silva"
-date: "September 11, 2018"
+date: "September 9, 2018"
 output: html_document
 ---
 ## Description
@@ -12,11 +12,11 @@ The following is the graded problems for the Probability chapter of Open Intro t
 
 If you roll a pair of fair dice, what is the probability of
 
-(a) getting a sum of 1?
+(a) getting a sum of 1? **0.  It is impossible.**
 
-(b) getting a sum of 5?
+(b) getting a sum of 5? **4/36 or 0.1111111**
 
-(c) getting a sum of 12?
+(c) getting a sum of 12? **1/36 or 0.02777778**
 
 ## 2.8 Poverty and language
 
