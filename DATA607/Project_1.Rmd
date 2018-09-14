@@ -15,7 +15,7 @@ For the first player, the information would be: Gary Hua, ON, 6.0, 1794, 1605
 
 1605 was calculated by using the pre-tournament opponents’ ratings of 1436, 1563, 1600, 1610, 1649, 1663, 1716, and dividing by the total number of games played.
 
-## Setting up My Environment
+## Setting Up My Environment
 
 Before I explain my whole approach to this task I will do a bit of preliminary work to set up my environment.  I will load the libraries I will be using:
 
@@ -34,7 +34,7 @@ lines[1:7]
 
 ## My Approach
 
-Now to explain my apporach.  I will loop through the character vector.  I will check if the line is made up of dashes.  After reading two dashed lines I will start extracting data.  There are two lines that have useful data.  The first has the player's id, name and match data.  The second line has the player's state and starting score.
+I will loop through the character vector.  I will check if the line is made up of dashes.  After reading two dashed lines I will start extracting data.  There are two lines that have useful data.  The first has the player's id, name and match data.  The second line has the player's state and starting score.
 
 I will extract the player data into a list then load that into a dataframe.  The match data will be a set of player ids that I will join to the player scores to compute the average.  Once I have these averages I will merge that in with the player data.
 
@@ -89,10 +89,12 @@ for (line in lines){
       player_id <- str_extract(split_line[1], "[[:digit:]]+")
       # Extract name, split name into parts, capitalize the first letter and
       # put it back together
-      player_name <- str_extract(split_line[2], "[[:alpha:]]+ [[:alpha:]]+")
-      player_name <- unlist(strsplit(player_name, " "))
+      player_name <- str_extract_all(split_line[2], "[[:alpha:]]+")
+      player_name <- unlist(player_name)
       player_name <- capitalize_first_letter(player_name)
       player_name <- paste(player_name, collapse = " ")
+      # Extract total number of points
+      player_total_points <- as.numeric(trimws(split_line[3]))
       # Loop through the match results
       for (game in split_line[4:10]){
         # Extract if it is a win, loss, draw, etc.
@@ -112,6 +114,7 @@ for (line in lines){
       player_data <- list("player_id" = player_id,
                           "players_name" = player_name,
                           "players_state" = player_state,
+                          "player_total_points" = player_total_points,
                           "players_pre_rating" = player_rating)
       # Turn that list into a dataframe with one row
       player_row <- data.frame(bind_rows(player_data))
