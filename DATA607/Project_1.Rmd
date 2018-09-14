@@ -1,0 +1,201 @@
+---
+title: "DATA 607 Project 1 - Chess Scores"
+author: "Mike Silva"
+date: "September 9, 2018"
+output: html_document
+---
+
+## Description
+
+In this project, I was given a text file with chess tournament results where the information has some structure. The task is to create an R Markdown file that generates a .CSV file with the following information for all of the players:
+
+Player’s Name, Player’s State, Total Number of Points, Player’s Pre-Rating, and Average Pre Chess Rating of Opponents
+
+For the first player, the information would be: Gary Hua, ON, 6.0, 1794, 1605
+
+1605 was calculated by using the pre-tournament opponents’ ratings of 1436, 1563, 1600, 1610, 1649, 1663, 1716, and dividing by the total number of games played.
+
+## Setting up My Environment
+
+Before I explain my whole approach to this task I will do a bit of preliminary work to set up my environment.  I will load the libraries I will be using:
+
+```{r load_libraries, warning=FALSE, message=FALSE}
+library(readr)
+library(stringr)
+library(dplyr)
+```
+
+Next I will read in the chess data using readr's read_lines function which loads each line into a character vector.
+
+```{r read_data}
+lines <- read_lines("https://raw.githubusercontent.com/mikeasilva/CUNY-SPS/master/DATA607/data/tournamentinfo.txt")
+lines[1:7]
+```
+
+## My Approach
+
+Now to explain my apporach.  I will loop through the character vector.  I will check if the line is made up of dashes.  After reading two dashed lines I will start extracting data.  There are two lines that have useful data.  The first has the player's id, name and match data.  The second line has the player's state and starting score.
+
+I will extract the player data into a list then load that into a dataframe.  The match data will be a set of player ids that I will join to the player scores to compute the average.  Once I have these averages I will merge that in with the player data.
+
+The name data is in all capital letters.  We will need to function that will capitalize the first letter.
+
+```{r capitalize}
+capitalize_first_letter <- function(x) {
+  x <- tolower(x)
+  substr(x, 1, 1) <- toupper(substr(x, 1, 1))
+  x
+}
+```
+
+Now we are ready to process the file.  First we will initialize some variables.
+```{r init_vars}
+# Initialize counters
+dash_lines_found <- 0
+data_line_count <- 0
+# Initialize the extract data flag
+extract_data <- FALSE
+# Initialize a vector that will hold the match data
+matches <- c()
+```
+
+### Data Extraction
+
+Now for the heart of the project: the for loop.
+
+```{r the_loop}
+# Loop through line by line
+for (line in lines){
+  # Look for the dash line
+  if (line == "-----------------------------------------------------------------------------------------"){
+    # Increment the dash line count
+    dash_lines_found <- dash_lines_found + 1
+    # Check if we need to reset the data line counter
+    if (extract_data){
+      data_line_count <- 0
+    }
+    # Check if we need to extract data
+    if (dash_lines_found == 2){
+      extract_data <- TRUE
+    }
+  } else if (extract_data) {
+    # Increase the data line count by one
+    data_line_count <- data_line_count + 1
+    # Split the data by the pipe character
+    split_line <- unlist(strsplit(line, "\\|"))
+    # Extract the data
+    if (data_line_count == 1){
+      # This is the first line so extract the player's id
+      player_id <- str_extract(split_line[1], "[[:digit:]]+")
+      # Extract name, split name into parts, capitalize the first letter and
+      # put it back together
+      player_name <- str_extract(split_line[2], "[[:alpha:]]+ [[:alpha:]]+")
+      player_name <- unlist(strsplit(player_name, " "))
+      player_name <- capitalize_first_letter(player_name)
+      player_name <- paste(player_name, collapse = " ")
+      # Loop through the match results
+      for (game in split_line[4:10]){
+        # Extract if it is a win, loss, draw, etc.
+        result <- str_extract(game, "[[:alpha:]]")
+        # Extract the opponent's id
+        opponent_id <- str_extract(game, "[[:digit:]]+")
+        # Add the data to the match vector
+        matches <- rbind(matches, c(player_id, opponent_id, result))
+      }
+    } else {
+      # This is the second line so Get the player's rating
+      player_rating <- unlist(str_extract_all(split_line[2], "[[:digit:]]+"))
+      player_rating <- as.numeric(player_rating[2])
+      # Get the player's state
+      player_state <- str_extract(split_line[1], "[[:alpha:]]+")
+      # Pull all the extracted player data together into a list
+      player_data <- list("player_id" = player_id,
+                          "players_name" = player_name,
+                          "players_state" = player_state,
+                          "players_pre_rating" = player_rating)
+      # Turn that list into a dataframe with one row
+      player_row <- data.frame(bind_rows(player_data))
+      # Add it to the players dataframe
+      if (!exists("player_df")){
+        player_df <- player_row
+      } else {
+        player_df <- rbind(player_df, player_row)
+      }
+    }
+  }
+}
+```
+
+### Extracton Results
+
+Now that the data is extracted we need to take a look at it.  Here's what the extracted player data looks like:
+
+```{r view_player_df}
+head(player_df)
+```
+
+We also have the match data:
+
+```{r view_matches}
+matches[1:6,]
+```
+
+## Post-Processing
+
+Now that we have extracted the data we move into the post-processing stage.  First we need to turn the match results data into a dataframe, rename the variables and add in the player ranking data.
+
+```{r wrangel_matches}
+# Take the match results
+matches <- matches %>%
+  data.frame() %>%
+  rename(player_id = X1,
+         opponent = X2,
+         results = X3)
+# Add in the player's initial rating
+matches <- player_df %>%
+  rename(opponent = player_id) %>%
+  select(opponent, players_pre_rating) %>%
+  merge(matches)
+```
+
+Here's what our match results dataframe looks like
+
+```{r view_matches_2}
+head(matches)
+```
+
+Now we need to compute the averages.  We need to group the data by player id and compute an average using a dplyr pipeline.
+
+```{r average_matches}
+averages <- matches %>%
+  group_by(player_id) %>%
+  summarise(average = mean(players_pre_rating))
+```
+
+Here's what the averages looks like:
+
+```{r view_averages}
+head(averages)
+```
+
+Now we need to merge the averages to the player dataframe and drop the player id so it matches what is asked for in the description.  The averages are doubles, not integers like the example so we will adjust that
+
+```{r add_averages}
+player_df <- merge(player_df, averages) %>%
+  mutate(average_opponent_pre_rating = as.integer(average)) %>%
+    select(-player_id, -average)
+```
+
+Here's what the dataframe looks like:
+
+```{r view_player_df_2}
+head(player_df)
+```
+
+### Finalizing the CSV
+
+Now that the player data is in the form specified we need to save it as a CSV.
+
+```{r save_csv}
+write_csv(player_df, 'data/chess.csv')
+```
