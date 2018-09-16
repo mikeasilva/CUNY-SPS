@@ -184,15 +184,15 @@ head(averages)
 Now we need to merge the averages to the player dataframe and drop the player id so it matches what is asked for in the description.  The averages are doubles, not integers like the example so we will adjust that
 
 ```{r add_averages}
-player_df <- merge(player_df, averages) %>%
+df <- merge(player_df, averages) %>%
   mutate(average_opponent_pre_rating = as.integer(average)) %>%
     select(-player_id, -average)
 ```
 
 Here's what the dataframe looks like:
 
-```{r view_player_df_2}
-head(player_df)
+```{r view_df}
+head(df)
 ```
 
 ### Finalizing the CSV
@@ -202,3 +202,28 @@ Now that the player data is in the form specified we need to save it as a CSV.
 ```{r save_csv}
 write_csv(player_df, 'data/chess.csv')
 ```
+
+## Fun with the Data
+
+I really enjoy graph theory and couldn't pass up the oportunity to create a network graph from this chess data and visualize it.  I will use the igraph library to do that.  This is beyond the scope of the project and is for the fun of it.
+
+```{r}
+library(igraph)
+G <- matches %>%
+  select(player_id, opponent) %>%
+  graph_from_data_frame(., directed = FALSE)
+
+nodes <- data.frame(V(G)$name) %>%
+  rename(player_id = V.G..name) %>%
+  merge(player_df) %>%
+  select(player_id, players_name)
+
+par(oma=c(0, 0, 0, 0))
+par(mar=c(0, 0, 0, 0))
+#par(pin=c(3, 3)) 
+#plot(G, layout = layout_with_fr(G))
+plot(G, layout = layout_with_graphopt(G))
+#G$layout <- layout_in_circle
+#plot(G)
+```
+
