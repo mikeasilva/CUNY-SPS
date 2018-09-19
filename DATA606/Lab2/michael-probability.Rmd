@@ -293,7 +293,7 @@ Using `calc_streak`, compute the streak lengths of `sim_basket`.
     comparison, do you have evidence that the hot hand model fits Kobe's 
     shooting patterns? Explain.
     
-    **They are similar distributions.  This suggests that Kobe Bryant is very similar to the simulated independet shooter.  The hot hand model does not explain Kobe's shooting percentage.**
+    **They are similar distributions.  This suggests that Kobe Bryant is very similar to the simulated independent shooter.  The hot hand model does not explain Kobe's shooting percentage.  Additional simulations should be run before making a firm conclusion about the hot hand model.**
     
     ```{r, warning=FALSE, message=FALSE}
     library(dplyr)
