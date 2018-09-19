@@ -22,17 +22,23 @@ If you roll a pair of fair dice, what is the probability of
 
 The American Community Survey is an ongoing survey that provides data every year to give communities the current information they need to plan investments and services. The 2010 American Community Survey estimates that 14.6% of Americans live below the poverty line, 20.7% speak a language other than English (foreign language) at home, and 4.2% fall into both categories.
 
-(a) Are living below the poverty line and speaking a foreign language at home disjoint?
+(a) Are living below the poverty line and speaking a foreign language at home disjoint? **No because if they were there wouldn't be the 4.2% that fall into both categories.  It would be 0%.**
 
 (b) Draw a Venn diagram summarizing the variables and their associated probabilities.
+```{r venn_diagram, warning=FALSE, message=FALSE, results='hide'}
+library(VennDiagram)
+grid.newpage()
+draw.pairwise.venn(area1 = 20.7, area2 = 14.6, cross.area = 4.2, category = c("Foreign Lang", "Poverty"), fill = c("cornflower blue", "yellow"))
+```
 
-(c) What percent of Americans live below the poverty line and only speak English at home?
 
-(d) What percent of Americans live below the poverty line or speak a foreign language at home?
+(c) What percent of Americans live below the poverty line and only speak English at home? **10.4%**
 
-(e) What percent of Americans live above the poverty line and only speak English at home?
+(d) What percent of Americans live below the poverty line or speak a foreign language at home? **26.9%**
 
-(f) Is the event that someone lives below the poverty line independent of the event that the person speaks a foreign language at home?
+(e) What percent of Americans live above the poverty line and only speak English at home? **73.1%**
+
+(f) Is the event that someone lives below the poverty line independent of the event that the person speaks a foreign language at home?  **No.  If they were independent than the probability of living in poverty would be the same for those that speak english and those that don't.**
 
 ## 2.20 Assortative mating
 
@@ -51,13 +57,15 @@ Assortative mating is a nonrandom mating pattern where individuals with similar 
 </tbody>
 </table>
 
-(a) What is the probability that a randomly chosen male respondent or his partner has blue eyes?
+(a) What is the probability that a randomly chosen male respondent or his partner has blue eyes? **(108 + 114 - 78)/204 = 144/204 = 0.7058824**
 
-(b) What is the probability that a randomly chosen male respondent with blue eyes has a partner with blue eyes?
+(b) What is the probability that a randomly chosen male respondent with blue eyes has a partner with blue eyes? **78/114 = 0.6842105**
 
-(c) What is the probability that a randomly chosen male respondent with brown eyes has a partner with blue eyes? What about the probability of a randomly chosen male respondent with green eyes having a partner with blue eyes?
+(c) What is the probability that a randomly chosen male respondent with brown eyes has a partner with blue eyes?  **19/54 = 0.3518519**
 
-(d) Does it appear that the eye colors of male respondents and their partners are independent? Explain your reasoning.
+What about the probability of a randomly chosen male respondent with green eyes having a partner with blue eyes? **11/36 = 0.3055556**
+
+(d) Does it appear that the eye colors of male respondents and their partners are independent? Explain your reasoning.  **No.  If they were independent, than the female eye colors would be evenly distributed across the categories.**
 
 ## 2.30 Books on a bookshelf
 
