@@ -205,25 +205,41 @@ write_csv(player_df, 'data/chess.csv')
 
 ## Fun with the Data
 
-I really enjoy graph theory and couldn't pass up the oportunity to create a network graph from this chess data and visualize it.  I will use the igraph library to do that.  This is beyond the scope of the project and is for the fun of it.
+I really enjoy graph theory and couldn't pass up the oportunity to create a network graph from this chess data.  I recently learned how to use the igraph library from DataCamp so I will practice my skills on this data.  This is beyond the scope of the project and is for the fun of it.
 
-```{r}
+
+I want the graph to use the players names as the ids
+```{r, warning=FALSE, message=FALSE}
 library(igraph)
-G <- matches %>%
-  select(player_id, opponent) %>%
-  graph_from_data_frame(., directed = FALSE)
 
-nodes <- data.frame(V(G)$name) %>%
-  rename(player_id = V.G..name) %>%
-  merge(player_df) %>%
+players_names_1 <- player_df %>%
   select(player_id, players_name)
 
-par(oma=c(0, 0, 0, 0))
-par(mar=c(0, 0, 0, 0))
-#par(pin=c(3, 3)) 
-#plot(G, layout = layout_with_fr(G))
-plot(G, layout = layout_with_graphopt(G))
-#G$layout <- layout_in_circle
-#plot(G)
+players_names_2 <- player_df %>%
+  rename(opponent = player_id,
+         opponents_name = players_name) %>%
+  select(opponent, opponents_name)
+
+G <- matches %>%
+  select(player_id, opponent) %>%
+  merge(players_names_1) %>%
+  merge(players_names_2) %>%
+  select(players_name, opponents_name) %>%
+  graph_from_data_frame(., directed = FALSE) %>%
+  simplify()
 ```
 
+Now that we have loaded up the data into a graph let's see who Gary Hua played
+```{r}
+neighbors(G, 'Gary Hua')
+```
+
+One last thing.  I want to see if any of the people who played Gary Hua played each other.  I want to visualize it.
+
+```{r}
+G_sub <- induced_subgraph(G, neighbors(G, 'Gary Hua'))
+layout <- layout.reingold.tilford(G_sub, circular=T)
+plot(G_sub, layout=layout, vertex.size=20, vertex.color='white', vertex.frame.color = 'cornflower blue')
+```
+
+It looks like Joel R Hendon and Dinh Dang Bui were the only two who played each other and Gary Hua.
