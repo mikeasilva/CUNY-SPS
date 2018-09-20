@@ -1,0 +1,62 @@
+---
+title: "Distributions of Random Variables"
+author: "Mike Silva"
+date: "September 20, 2018"
+output: html_document
+---
+
+## Description
+
+The following is the graded problems for the Distribution of Random Variable chapter of Open Intro to Statistics.  My answers to the questions in **bold.**  The headers correspond to a question.
+
+## 3.4 Triathlon Times, Part I. 
+
+In triathlons, it is common for racers to be placed into age and gender groups. Friends Leo and Mary both completed the Hermosa Beach Triathlon, where Leo competed in the Men, Ages 30 - 34 group while Mary competed in the Women, Ages 25 - 29 group. Leo completed the race in 1:22:28 (4948 seconds), while Mary completed the race in 1:31:53 (5513 seconds). Obviously Leo finished faster, but they are curious about how they did within their respective groups. Can you help them? Here is some information on the performance of their groups:
+
+* The finishing times of the Men, Ages 30 - 34 group has a mean of 4313 seconds with a standard deviation of 583 seconds.
+* The finishing times of the Women, Ages 25 - 29 group has a mean of 5261 seconds with a standard deviation of 807 seconds.
+* The distributions of finishing times for both groups are approximately Normal. Remember: a better performance corresponds to a faster finish.
+
+(a) Write down the short-hand for these two normal distributions.
+(b) What are the Z-scores for Leo’s and Mary’s finishing times? What do these Z-scores tell you?
+(c) Did Leo or Mary rank better in their respective groups? Explain your reasoning.
+(d) What percent of the triathletes did Leo finish faster than in his group?
+(e) What percent of the triathletes did Mary finish faster than in her group?
+(f) If the distributions of finishing times are not nearly normal, would your answers to parts b to e change? Explain your reasoning
+
+## 3.18 Heights of Female College Students
+
+Below are heights of 25 female college students.
+
+| 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 |
+|---|---|---|---|---|---|---|---|---|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
+| 54, | 55, | 56, | 56, | 57, | 58, | 58, | 59, | 60, | 60, | 60, | 61, | 61, | 62, | 62, | 63, | 63, | 63, | 64, | 65, | 65, | 67, | 67, | 69, | 73 |
+
+(a) The mean height is 61.52 inches with a standard deviation of 4.58 inches. Use this information to determine if the heights approximately follow the 68-95-99.7% Rule.
+(b) Do these data appear to follow a normal distribution? Explain your reasoning using the graphs provided below.
+
+![ ](https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA606/Figures/distributions_3_18.png)
+
+## 3.22 Defective Rate
+
+A machine that produces a special type of transistor (a component of computers) has a 2% defective rate. The production is considered a random process where each transistor is independent of the others.
+(a) What is the probability that the 10th transistor produced is the first with a defect?
+(b) What is the probability that the machine produces no defective transistors in a batch of 100?
+(c) On average, how many transistors would you expect to be produced before the first with a defect? What is the standard deviation?
+(d) Another machine that also produces transistors has a 5% defective rate where each transistor is produced independent of the others. On average how many transistors would you expect to be produced with this machine before the first with a defect? What is the standard deviation?
+(e) Based on your answers to parts (c) and (d), how does increasing the probability of an event affect the mean and standard deviation of the wait time until success?
+
+## 3.38 Male Children
+
+While it is often assumed that the probabilities of having a boy or a girl are the same, the actual probability of having a boy is slightly higher at 0.51. Suppose a couple plans to have 3 kids.
+(a) Use the binomial model to calculate the probability that two of them will be boys.
+(b) Write out all possible orderings of 3 children, 2 of whom are boys. Use these scenarios to calculate the same probability from part (a) but using the addition rule for disjoint outcomes. Confirm that your answers from parts (a) and (b) match.
+(c) If we wanted to calculate the probability that a couple who plans to have 8 kids will have 3 boys, briefly describe why the approach from part (b) would be more tedious than the approach from part (a).
+
+## 3.42 2 Serving in Volleyball
+
+A not-so-skilled volleyball player has a 15% chance of making the serve, which involves hitting the ball so it passes over the net on a trajectory such that it will land in the opposing team’s court. Suppose that her serves are independent of each other.
+
+(a) What is the probability that on the 10th try she will make her 3rd successful serve?
+(b) Suppose she has made two successful serves in nine attempts. What is the probability that her 10th serve will be successful?
+(c) Even though parts (a) and (b) discuss the same scenario, the probabilities you calculated should be different. Can you explain the reason for this discrepancy?
