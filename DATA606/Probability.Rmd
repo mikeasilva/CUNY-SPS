@@ -83,13 +83,13 @@ The table below shows the distribution of books on a bookcase based on whether t
 </tbody>
 </table>
 
-(a) Find the probability of drawing a hardcover book first then a paperback fiction book second when drawing without replacement.
+(a) Find the probability of drawing a hardcover book first then a paperback fiction book second when drawing without replacement. **28/95 x 59/94 = 0.2947368 x 0.6276596 = 0.1849944**
 
-(b) Determine the probability of drawing a fiction book first and then a hardcover book second, when drawing without replacement.
+(b) Determine the probability of drawing a fiction book first and then a hardcover book second, when drawing without replacement. **72/95 x 28/94 = 0.7578947 x 0.2978723 = 0.2257559**
 
-(c) Calculate the probability of the scenario in part (b), except this time complete the calculations under the scenario where the first book is placed back on the bookcase before randomly drawing the second book.
+(c) Calculate the probability of the scenario in part (b), except this time complete the calculations under the scenario where the first book is placed back on the bookcase before randomly drawing the second book.**72/95 x 28/95 = 0.7578947 x 0.2978723 = 0.2233795**
 
-(d) The final answers to parts (b) and (c) are very similar. Explain why this is the case.
+(d) The final answers to parts (b) and (c) are very similar. Explain why this is the case.  **Because they are basically the same scenario.  The only difference is the second one was drawing with replacement.**
 
 ## 2.38 Baggage fees
 
@@ -97,7 +97,31 @@ An airline charges the following baggage fees: $25 for the first bag and $35 for
 
 (a) Build a probability model, compute the average revenue per passenger, and compute the corresponding standard deviation.
 
+```{r}
+fees <- c(rep(0, 54), rep(25, 34), rep(35+25, 12))
+mean(fees)
+```
+
+**Average revenue = $15.70**
+
+```{r}
+sd(fees)
+```
+**Standard deviation = $20.05**
+
 (b) About how much revenue should the airline expect for a flight of 120 passengers? With what standard deviation? Note any assumptions you make and if you think they are justified.
+
+```{r}
+n <- 120
+zero_fee <- n * .54
+twenty_five_fee <- n * .34
+sixty_fee <- n * .12
+fees2 <-c(rep(0, zero_fee), rep(25, twenty_five_fee), rep(60, sixty_fee))
+mean(fees2)
+sd(fees2)
+```
+
+**The average is $15.59 with a standard deviation of $19.98.  This assumes that the proportions hold, that the airplane has space for the 70 bags and that the airline prices are unchanged.  I think that these are all reasonable assumptions.**
 
 ## 2.44 Income and gender
 
@@ -115,11 +139,11 @@ The relative frequency table below displays the distribution of annual total per
 | $75,000 to $99,999   | 8.4%  |
 | $100,000 or more     | 9.7%  |
 
-(a) Describe the distribution of total personal income.
+(a) Describe the distribution of total personal income. **Long tailed/right skewed**
 
-(b) What is the probability that a randomly chosen US resident makes less than $50,000 per year?
+(b) What is the probability that a randomly chosen US resident makes less than $50,000 per year? **0.02 + 0.047 + 0.158 + 0.183 + 0.213 = 0.621**
 
-(c) What is the probability that a randomly chosen US resident makes less than $50,000 per year and is female? Note any assumptions you make.
+(c) What is the probability that a randomly chosen US resident makes less than $50,000 per year and is female? Note any assumptions you make.  **0.41 the same as the probability that they are female.  This assumes income is not dependant on gender (a horrible assumption which I don't believe is true).**
 
 (d) The same data source indicates that 71.8% of females make less than $50,000 per year. Use this value to determine whether or not the assumption you made in
-part (c) is valid.
+part (c) is valid.  **This indicates that the assumption of income level is independant of gender is not true.**
