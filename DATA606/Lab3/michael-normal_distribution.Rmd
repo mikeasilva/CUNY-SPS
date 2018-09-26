@@ -46,6 +46,14 @@ fdims <- subset(bdims, sex == 0)
 
 1.  Make a histogram of men's heights and a histogram of women's heights.  How 
     would you compare the various aspects of the two distributions?
+    ```{r, message = FALSE, echo=FALSE}
+    library(dplyr)
+    library(ggplot2)
+bdims %>%
+      mutate(sex = ifelse(sex==1, "Male", "Female")) %>%
+      select(hgt, sex) %>%
+      ggplot(., aes(x = hgt, color=sex, fill=sex)) + geom_histogram() + facet_grid(sex ~ .) + guides(fill=FALSE, color=FALSE)
+    ```
 
 ## The normal distribution
 
@@ -98,6 +106,7 @@ the histogram function: `ylim = c(0, 0.06)`.
 
 2.  Based on the this plot, does it appear that the data follow a nearly normal 
     distribution?
+    **Yes it looks nearly normally distributed to me.**
 
 
 ## Evaluating the normal distribution
@@ -138,6 +147,12 @@ as well as its normal probability plot.
 3.  Make a normal probability plot of `sim_norm`.  Do all of the points fall on 
     the line?  How does this plot compare to the probability plot for the real 
     data?
+    ```{r}
+    qqnorm(sim_norm)
+    qqline(sim_norm)
+    ```
+    
+    **Most of the points fall upon the line.  It looks very similar to the preceeding plot**
 
 Even better than comparing the original plot to a single plot generated from a 
 normal distribution is to compare it to many more plots using the following 
@@ -150,9 +165,13 @@ qqnormsim(fdims$hgt)
 4.  Does the normal probability plot for `fdims$hgt` look similar to the plots 
     created for the simulated data?  That is, do plots provide evidence that the
     female heights are nearly normal?
+    **Yes they look similar to the plots created for the simulated data.  They seem nearly normal.**
 
 5.  Using the same technique, determine whether or not female weights appear to 
     come from a normal distribution.
+    ```{r qqnormsim2, eval=TRUE}
+qqnormsim(fdims$wgt)
+```
 
 ## Normal probabilities
 
