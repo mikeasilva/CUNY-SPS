@@ -219,6 +219,24 @@ theoretical probabilities will be.
     those probabilities using both the theoretical normal distribution as well 
     as the empirical distribution (four probabilities in all).  Which variable,
     height or weight, had a closer agreement between the two methods?
+    
+    ```{r echo=FALSE}
+    fwgtmean <- mean(fdims$wgt)
+    fwgtsd   <- sd(fdims$wgt)
+    ```
+    
+    **1) Given the mean height of a male is `r round(mean(mdims$hgt), 0)` cm, what is the probability that a female is taller than the average male?**
+    
+    **The theoretical probability is: `r 1 - pnorm(q = mean(mdims$hgt), mean = fhgtmean, sd = fhgtsd)`**
+    
+    **The emperical probability is: `r sum(fdims$hgt > mean(mdims$hgt)) / length(fdims$hgt)`**
+    
+    **2) Given that the mean weight of a male is `r round(mean(mdims$wgt), 0)` kg, what is the probability that a female is heavier than the average male?**
+    
+    **The theoretical probability is: `r 1 - pnorm(q = mean(mdims$wgt), mean = fwgtmean, sd = fwgtsd)`**
+    
+    **The emperical probability is: `r sum(fdims$wgt > mean(mdims$wgt)) / length(fdims$wgt)`**
+    
 
 * * *
 
@@ -232,28 +250,37 @@ theoretical probabilities will be.
     generate the plots in R to check.
 
     **a.** The histogram for female biiliac (pelvic) diameter (`bii.di`) belongs
-    to normal probability plot letter ____.
+    to normal probability plot letter **B**.
 
     **b.** The histogram for female elbow diameter (`elb.di`) belongs to normal 
-    probability plot letter ____.
+    probability plot letter **C**.
 
     **c.** The histogram for general age (`age`) belongs to normal probability 
-    plot letter ____.
+    plot letter **D**.
 
     **d.** The histogram for female chest depth (`che.de`) belongs to normal 
-    probability plot letter ____.
+    probability plot letter **A**.
 
 -   Note that normal probability plots C and D have a slight stepwise pattern.  
-    Why do you think this is the case?
+    Why do you think this is the case?  **Because they are variable with discrete units not continuous.  Thats what gives them the stepwise pattern.**
 
 -   As you can see, normal probability plots can be used both to assess 
     normality and visualize skewness.  Make a normal probability plot for female 
     knee diameter (`kne.di`).  Based on this normal probability plot, is this 
     variable left skewed, symmetric, or right skewed?  Use a histogram to confirm 
     your findings.
+    ```{r}
+    qqnorm(fdims$kne.di)
+    qqline(fdims$kne.di)
+    ```
+    
+    **It is right skewed.**
+    
+    ```{r}
+    hist(fdims$kne.di)
+    ```
 
-
-![histQQmatch](more/histQQmatch.png)
+![](more/histQQmatch.png)
 
 <div id="license">
 This is a product of OpenIntro that is released under a 

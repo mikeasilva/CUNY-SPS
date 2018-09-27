@@ -5,6 +5,4 @@ data-science-math/rsconnect/
 CUNY-SPS.Rproj
 .ipynb_checkpoints
 DATA607/hidden/
-DATA607/rsconnect/
-DATA606/rsconnect/
-DATA606/Lab2/rsconnect
+*rsconnect*
