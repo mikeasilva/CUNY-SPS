@@ -18,11 +18,38 @@ In triathlons, it is common for racers to be placed into age and gender groups. 
 * The distributions of finishing times for both groups are approximately Normal. Remember: a better performance corresponds to a faster finish.
 
 (a) Write down the short-hand for these two normal distributions.
-(b) What are the Z-scores for Leo’s and Mary’s finishing times? What do these Z-scores tell you?
-(c) Did Leo or Mary rank better in their respective groups? Explain your reasoning.
+
+$$ N_{\text{men 30 to 34}}(\mu=4313, \sigma=583) $$ 
+$$ N_{\text{women 25 to 29}}(\mu=5261, \sigma=807) $$
+
+(b) What are the Z-scores for Leo’s and Mary’s finishing times? What do these Z-scores tell you? **The Z-scores tell us that Mary was closer to the mean of her group and therefore was comparitively faster than Leo.**
+
+```{r}
+z_leo <- (4948-4313)/583
+z_leo
+```
+
+```{r}
+z_mary <- (5513-5261)/807
+z_mary
+```
+
+(c) Did Leo or Mary rank better in their respective groups? Explain your reasoning.  **Mary because her Z score is lower so she is closer to the mean than Leo.**
+
 (d) What percent of the triathletes did Leo finish faster than in his group?
+
+```{r}
+# Faster would be the area to the left of Leo's time
+1 - pnorm(z_leo)
+```
+
 (e) What percent of the triathletes did Mary finish faster than in her group?
-(f) If the distributions of finishing times are not nearly normal, would your answers to parts b to e change? Explain your reasoning
+
+```{r}
+1 - pnorm(z_mary)
+```
+
+(f) If the distributions of finishing times are not nearly normal, would your answers to parts b to e change? Explain your reasoning **No.  If it were a right skewed distribution then the proportion to the left of Mary's time would be different.**
 
 ## 3.18 Heights of Female College Students
 
@@ -33,9 +60,30 @@ Below are heights of 25 female college students.
 | 54, | 55, | 56, | 56, | 57, | 58, | 58, | 59, | 60, | 60, | 60, | 61, | 61, | 62, | 62, | 63, | 63, | 63, | 64, | 65, | 65, | 67, | 67, | 69, | 73 |
 
 (a) The mean height is 61.52 inches with a standard deviation of 4.58 inches. Use this information to determine if the heights approximately follow the 68-95-99.7% Rule.
+
+```{r}
+heights <- c(54, 55, 56, 56, 57, 58, 58, 59, 60, 60, 60, 61, 61, 62, 62, 63, 63, 63, 64, 65, 65, 67, 67, 69, 73)
+
+mu <- mean(heights)
+sigma <- sd(heights)
+
+for(n_sigma in 1:3){
+  # Return a Boolean vector
+  boolean_vector <- heights < (mu + n_sigma * sigma) & heights > (mu + -n_sigma * sigma)
+  # Count the TRUEs
+  n_true <- length(boolean_vector[boolean_vector==TRUE])
+  # Share TRUE
+  print(n_true / length(heights))
+}
+```
+
+**Yes, they roughly follow the 68-95-99.7 Rule.**
+
 (b) Do these data appear to follow a normal distribution? Explain your reasoning using the graphs provided below.
 
 ![ ](https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA606/Figures/distributions_3_18.png)
+
+**Yes.  The dots on the Q-Q plot roughly fall on the line.  This indicates the data are normally distributed.**
 
 ## 3.22 Defective Rate
 
