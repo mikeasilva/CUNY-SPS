@@ -2,7 +2,9 @@
 title: "Week 5 Assignment"
 author: "Mike Silva"
 date: "September 28, 2018"
-output: html_document
+output: 
+  rmdformats::readthedown:
+    highlight: kate
 ---
 
 ## Description
@@ -81,9 +83,12 @@ total_flights_by_arrival_type <- tidy_df %>%
   ungroup()
 ```
 
+
+### Airline Examination
+
 I want to begin by examining the airlines.  What share of the flights are on time for each airline?
 
-```{r, results='asis'}
+```{r, results='asis', echo=FALSE}
 tidy_df %>%
   group_by(airline, arrival_type) %>%
   summarise(flights = sum(flights)) %>%
@@ -129,6 +134,9 @@ tidy_df %>%
 ```
 
 This shows a litle different picture.  57% of Alaska airlines flights are to Seatle, which makes sense.  AM West flies to Phoenix most often then LA.
+
+
+### Airport Examination
 
 So lets take a closer look at the airports  Let's see if there is a difference between the arrival times and the airport.
 
@@ -198,3 +206,128 @@ tidy_df %>%
 ```
 
 Most of the delayed flights to Phoenix are due to AM West, and most of the on time flights to Seatle are due to Alaska Airlines.  Let's look at the delayed flights.
+
+### What If Scenario 
+
+Now I want to do a what if scenario.  What if these two airlines don't fly to Phoenix or Seattle.  How would that change these airline on time arrivals?
+
+```{r}
+what_if <- tidy_df %>%
+  filter(!airport %in% c("Phoenix", "Seatle"))
+
+what_if_total_flights_by_airline <- what_if %>%
+  group_by(airline) %>%
+  summarise(total_flights = sum(flights)) %>%
+  ungroup()
+
+temp <- what_if %>%
+  group_by(airline, arrival_type) %>%
+  summarise(flights = sum(flights)) %>%
+  merge(what_if_total_flights_by_airline) %>%
+  mutate(what_if_share = flights / total_flights) %>%
+  select(airline, arrival_type, what_if_share)
+
+scenario <- tidy_df %>%
+  group_by(airline, arrival_type) %>%
+  summarise(flights = sum(flights)) %>%
+  merge(total_flights_by_airline) %>%
+  mutate(share = flights / total_flights) %>%
+  select(airline, arrival_type, share) %>%
+  merge(temp) %>%
+  mutate(delta = what_if_share - share)
+```
+
+```{r, results='asis', echo=FALSE}
+  pander(scenario)
+```
+
+We see that this would not change the airline's ratings much.  Alaska Airlines is basically unchange and AM West changed by less than 1 percentage point.
+
+What if they only flew to Phoenix or Seatle?  What would that do?
+
+```{r}
+what_if <- tidy_df %>%
+  filter(airport %in% c("Phoenix", "Seatle"))
+
+what_if_total_flights_by_airline <- what_if %>%
+  group_by(airline) %>%
+  summarise(total_flights = sum(flights)) %>%
+  ungroup()
+
+temp <- what_if %>%
+  group_by(airline, arrival_type) %>%
+  summarise(flights = sum(flights)) %>%
+  merge(what_if_total_flights_by_airline) %>%
+  mutate(what_if_share = flights / total_flights) %>%
+  select(airline, arrival_type, what_if_share)
+
+scenario <- tidy_df %>%
+  group_by(airline, arrival_type) %>%
+  summarise(flights = sum(flights)) %>%
+  merge(total_flights_by_airline) %>%
+  mutate(share = flights / total_flights) %>%
+  select(airline, arrival_type, share) %>%
+  merge(temp) %>%
+  mutate(delta = what_if_share - share)
+```
+
+```{r, results='asis', echo=FALSE}
+  pander(scenario)
+```
+
+That would give Alaska Airlines on time arrivals a boost of 8 percentage points and AM West a 3 percentage point boost. 
+
+### Optimization
+
+Let's suppose that these two airlines live and die by their on time arrival rating.  What set of airports would then need to fly to to get their highest rating?
+
+I will use the combn function to build out the list of all possible combinations.  I will loop through these combinations and run what if scenarios.  If the on time arrival share is bigger than the 
+
+```{r}
+# Initial settings for on time arrival share
+alaska_on_time <- 0
+am_west_on_time <- 0
+
+# Get a vector of airports
+airports <- tidy_df$airport %>%
+  unique() %>%
+  as.vector()
+
+# Loop through all combinations
+for(m in length(airports):1){
+  airport_combinations <- combn(airports, m)
+  # Run a what if scenario for the combination
+  for(col in 1:dim(airport_combinations)[2]){
+    what_if <- tidy_df %>%
+      filter(airport %in% airport_combinations[, col])
+    
+    what_if_total_flights_by_airline <- what_if %>%
+      group_by(airline) %>%
+      summarise(total_flights = sum(flights)) %>%
+      ungroup()
+    
+    temp <- what_if %>%
+      filter(arrival_type == "on time") %>%
+      group_by(airline) %>%
+      summarise(flights = sum(flights)) %>%
+      merge(what_if_total_flights_by_airline) %>%
+      mutate(what_if_share = flights / total_flights) %>%
+      select(airline, what_if_share)
+    
+    # See if the on time share is larger and if so save the airport set 
+    if(temp[1,2] > alaska_on_time){
+      alaska_on_time <- temp[1, 2]
+      alaska_optimal <- airport_combinations[, col]
+    }
+    
+    if(temp[2,2] > am_west_on_time){
+      am_west_on_time <- temp[2, 2]
+      am_west_optimal <- airport_combinations[, col]
+    }
+  }
+}
+```
+
+So currently Alaska airlines and AM West has an on time arrival 86.73% and 89.11% respectively.  If they selected the optimal set of airports to fly into the on time arrival would increase to `r round(alaska_on_time * 100, 2)`% and `r round(am_west_on_time * 100, 2)`%.
+
+Alaska Airlines would only fly to `r pander(alaska_optimal)` and AM West would only fly to `r pander(am_west_optimal)`.
