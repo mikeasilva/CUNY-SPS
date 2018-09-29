@@ -1,0 +1,200 @@
+---
+title: "Week 5 Assignment"
+author: "Mike Silva"
+date: "September 28, 2018"
+output: html_document
+---
+
+## Description
+
+TThe assignment is to load in an "untidy" .CSV file and transform it into a tidy dataset.  The data contains the arrival data for two airlines.  After the data has been wrangled I am to preform an analysis comparing the arrival delays for the two airlines, and publish my code and findings to rpubs and GitHub.
+
+## Data Acquisition
+
+I have created a .CSV file that is identical to the assignment and have it hosted in my GitHub repository.  I will read in the .CSV file and display it.
+
+```{r}
+untidy_df <- read.csv('https://raw.githubusercontent.com/mikeasilva/CUNY-SPS/master/DATA607/data/flights.csv')
+```
+
+Here's what the untidy data frame.
+```{r, results='asis', echo=FALSE}
+library(pander)
+pander(untidy_df)
+```
+
+## Data Cleaning
+
+### The Plan
+
+Before starting on the data cleaning I think it is important to identify what needs to change in the data set.  The name the first two variables needs to change.  There is a blank row between the two airlines that needs to change.  The dots for the airport names need to be replaced with spaces.  This will evenutally become a categorical variable.  The first to variables data types need to be changed from factors to characters.  The first variable has some blanks that need to be filled too.
+
+Once these changes are made the data needs to be normalized using the *gather()* command from *tidyr*.  Knowing that I will want to create some visualizations I will convert the airline, arrival type and airport variables back into factors.  It will make things easier to work with. 
+
+## The Code
+
+```{r, message=FALSE}
+library(dplyr)
+library(tidyr)
+
+tidy_df <- untidy_df %>%
+  rename(airline = X,
+         arrival_type = X.1,
+         "Los Angeles" = Los.Angeles,
+         "San Diego" = San.Diego,
+         "San Francisco" = San.Francisco)%>%
+  mutate(airline = as.character(airline),
+         arrival_type = as.character(arrival_type)) %>%
+  na.omit() %>% # Drop the empty row
+  mutate(airline = ifelse(nchar(airline)==0, lag(airline), airline)) %>% # Fill in the holes
+  gather(., airport, flights, -airline, -arrival_type) %>% # Transform from wide to long
+  mutate(airline = as.factor(airline),
+         arrival_type = as.factor(arrival_type),
+         airport = as.factor(airport))
+```
+
+Here's what the table looks like. 
+
+```{r, results='asis', echo=FALSE}
+pander(tidy_df)
+```
+## Analysis
+
+There are a few questions that I want to ask this tidy data set.  But before I begin I will compute a few totals, and load ggplot2
+
+```{r}
+library(ggplot2)
+
+total_flights_by_airline <- tidy_df %>%
+  group_by(airline) %>%
+  summarise(total_flights = sum(flights)) %>%
+  ungroup()
+
+total_flights_by_airport <- tidy_df %>%
+  group_by(airport) %>%
+  summarise(total_flights = sum(flights)) %>%
+  ungroup()
+
+total_flights_by_arrival_type <- tidy_df %>%
+  group_by(arrival_type) %>%
+  summarise(total_flights = sum(flights)) %>%
+  ungroup()
+```
+
+I want to begin by examining the airlines.  What share of the flights are on time for each airline?
+
+```{r, results='asis'}
+tidy_df %>%
+  group_by(airline, arrival_type) %>%
+  summarise(flights = sum(flights)) %>%
+  merge(total_flights_by_airline) %>%
+  mutate(share = flights / total_flights) %>%
+  pander()
+```
+
+It looks like AM West is on time 89% of the time on average.  Alaska airlines is on time about 87% of the time.  One also observes that AM West has more flights than Alaska airlines.
+
+Is this difference in the on time/delayed share due to the airports the airlines fly to?  Let's examine the share of times the airline flies to an airport
+
+```{r}
+tidy_df %>%
+  group_by(airline, airport) %>%
+  summarise(flights = sum(flights)) %>%
+  merge(total_flights_by_airport) %>%
+  mutate(share = flights / total_flights) %>%
+  ggplot(aes(airport, airline)) +
+  geom_tile(aes(fill = share), show.legend = FALSE) +
+  geom_text(aes(label = round(share*100,0))) +
+  scale_fill_distiller(palette = "Spectral") + 
+  coord_fixed() +
+  ggtitle("Percent of Flights by Airline and Airport") +
+  theme(panel.grid.major=element_blank(), axis.title.x=element_blank(), axis.ticks.x=element_blank(), axis.title.y=element_blank(), axis.ticks.y=element_blank(), plot.title = element_text(hjust = 0.5))
+```
+
+So Alaska airlines flies to San Fancisco and Seatle more tha AM West.  Let's look at this picture again by comparing across all flights the airline takes.
+
+```{r}
+tidy_df %>%
+  group_by(airline, airport) %>%
+  summarise(flights = sum(flights)) %>%
+  merge(total_flights_by_airline) %>%
+  mutate(share = flights / total_flights) %>%
+  ggplot(aes(airport, airline)) +
+  geom_tile(aes(fill = share), show.legend = FALSE) +
+  geom_text(aes(label = round(share*100,0))) +
+  scale_fill_distiller(palette = "Spectral") + 
+  coord_fixed() +
+  ggtitle("Percent of Flights by Airline and Airports") +
+  theme(panel.grid.major=element_blank(), axis.title.x=element_blank(), axis.ticks.x=element_blank(), axis.title.y=element_blank(), axis.ticks.y=element_blank(), plot.title = element_text(hjust = 0.5))
+```
+
+This shows a litle different picture.  57% of Alaska airlines flights are to Seatle, which makes sense.  AM West flies to Phoenix most often then LA.
+
+So lets take a closer look at the airports  Let's see if there is a difference between the arrival times and the airport.
+
+```{r}
+tidy_df %>%
+  group_by(airport, arrival_type) %>%
+  summarise(flights = sum(flights)) %>%
+  merge(total_flights_by_airport) %>%
+  mutate(share = flights / total_flights) %>%
+  ggplot(aes(airport, arrival_type)) +
+  geom_tile(aes(fill = share), show.legend = FALSE) +
+  geom_text(aes(label = round(share*100,0))) +
+  scale_fill_distiller(palette = "Spectral") + 
+  coord_fixed() +
+  ggtitle("Percent of Flights by Arrival Type and Airport") +
+  theme(panel.grid.major=element_blank(), axis.title.x=element_blank(), axis.ticks.x=element_blank(), axis.title.y=element_blank(), axis.ticks.y=element_blank(), plot.title = element_text(hjust = 0.5))
+```
+
+The Phoenix airport has the best record for on time arrivals and San Francisco has the worst.
+
+Let's look at the on time arrivals.  How do these two airlines stack up when we look at the airports.  If each airlines are the same.
+
+```{r}
+on_time_flights_by_airport <- tidy_df %>%
+  filter(arrival_type == "on time") %>%
+  group_by(airport) %>%
+  summarise(total_flights = sum(flights)) %>%
+  ungroup()
+
+tidy_df %>%
+  filter(arrival_type == "on time") %>%
+  group_by(airline, airport) %>%
+  summarise(flights = sum(flights)) %>%
+  merge(on_time_flights_by_airport) %>%
+  mutate(share = flights / total_flights) %>%
+  ggplot(aes(airport, airline)) +
+  geom_tile(aes(fill = share), show.legend = FALSE) +
+  geom_text(aes(label = round(share*100,0))) +
+  scale_fill_distiller(palette = "Spectral") + 
+  coord_fixed() +
+  ggtitle("Percent of On Time Flights by Airline and Airport") +
+  theme(panel.grid.major=element_blank(), axis.title.x=element_blank(), axis.ticks.x=element_blank(), axis.title.y=element_blank(), axis.ticks.y=element_blank(), plot.title = element_text(hjust = 0.5))
+```
+
+Most of the on time flights to Phoenix are due to AM West, and most of the on time flights to Seatle are due to Alaska Airlines.  Let's look at the delayed flights.
+
+```{r}
+delayed_flights_by_airport <- tidy_df %>%
+  filter(arrival_type == "delayed") %>%
+  group_by(airport) %>%
+  summarise(total_flights = sum(flights)) %>%
+  ungroup()
+
+tidy_df %>%
+  filter(arrival_type == "delayed") %>%
+  group_by(airline, airport) %>%
+  summarise(flights = sum(flights)) %>%
+  merge(delayed_flights_by_airport) %>%
+  mutate(share = flights / total_flights) %>%
+  ggplot(aes(airport, airline)) +
+  geom_tile(aes(fill = share), show.legend = FALSE) +
+  geom_text(aes(label = round(share*100,0))) +
+  scale_fill_distiller(palette = "Spectral") + 
+  coord_fixed() +
+  ggtitle("Percent of Delayed Flights by Airline and Airport") +
+  theme(panel.grid.major=element_blank(), axis.title.x=element_blank(), axis.ticks.x=element_blank(), axis.title.y=element_blank(), axis.ticks.y=element_blank(), plot.title = element_text(hjust = 0.5))
+```
+
+Most of the delayed flights to Phoenix are due to AM West, and most of the on time flights to Seatle are due to Alaska Airlines.  Let's look at the delayed flights.
