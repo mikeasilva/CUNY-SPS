@@ -7,7 +7,7 @@ output:
     theme: yeti
     highlight: tango
     toc: true
-    toc_depth: 3
+    toc_depth: 4
     toc_float: true
 ---
 
@@ -22,11 +22,21 @@ library(stringr)
 ```
 
 
-## 2017 United Nations International Migrant Stock
+## United Nations International Migrant Stock
 
 The first dataset that will undergo the cleanup is the 2017 International Migrant Stock data produced by the United Nations Department of Economic and Social Affairs Population Division.  They produce multiple datasets.  This project will use the immigrants by origin and destination.
 
+### Research Questions
+
+Here are the questions I want to answer with this data:
+
+* What are the top-10 countries receiving/loosing migrants in absolute numbers by year?
+
+* Do communities exist in this network?  Using the number of migrants as the edge between the countries (nodes) in the network graph, do communities emerge from the data?
+
 ```{r echo=FALSE}
+#### About the Data
+
 # [http://www.un.org/en/development/desa/population/migration/data/estimates2/docs/MigrationStockDocumentation_2017.pdf](http://www.un.org/en/development/desa/population/migration/data/estimates2/docs/MigrationStockDocumentation_2017.pdf)
 # 
 # This dataset provides estimates of the international migrant stock by age, sex and origin for the mid-point (1 July) of each year: 1990, 1995, 2000,
@@ -50,7 +60,7 @@ if(!file.exists(file_name)){
 }
 ```
 
-### Parsing Untidy Data
+### Creating Tidy Data
 
 I will begin by reading in a few rows and examing them to determine what actions need to be taken.
 
@@ -106,12 +116,13 @@ un_df <- un_df %>%
   drop_na(Migrants)
 ```
 
-Now I need to clean up the Origins columns.  There are periods that represent spaces.  When there are two periods it needs to be changed into a period and space.  An example of that is Micronesia.(Fed..States.of).
+Now I need to clean up the Origins columns.  There are periods that represent spaces.  When there are two periods it needs to be changed into a period and space.  An example of that is Micronesia.(Fed..States.of).  I will also reorder the columns.
 
 ```{r}
 un_df <- un_df %>%
   mutate(Origin = str_replace_all(Origin, "[.]", " ")) %>%
-  mutate(Origin = str_replace_all(Origin, "  ", ". "))
+  mutate(Origin = str_replace_all(Origin, "  ", ". ")) %>%
+  select(Origin, Destination, Migrants, Year)
 ```
 
 And here is the results:
@@ -123,4 +134,10 @@ un_df[1:10,] %>%
   scroll_box(width = "100%", height = "200px")
 ```
 
-Text
+### Analysis
+
+#### Top 10 Receivers of International Migrants
+
+What countries are the top ten in the number of migrants they are receiving by year?
+
+
