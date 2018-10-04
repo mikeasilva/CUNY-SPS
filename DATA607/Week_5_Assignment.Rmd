@@ -9,7 +9,7 @@ output:
 
 ## Description
 
-TThe assignment is to load in an "untidy" .CSV file and transform it into a tidy dataset.  The data contains the arrival data for two airlines.  After the data has been wrangled I am to preform an analysis comparing the arrival delays for the two airlines, and publish my code and findings to rpubs and GitHub.
+The assignment is to load in an "untidy" .CSV file and transform it into a tidy dataset.  The data contains the arrival data for two airlines.  After the data has been wrangled I am to preform an analysis comparing the arrival delays for the two airlines, and publish my code and findings to rpubs and GitHub.
 
 ## Data Acquisition
 
