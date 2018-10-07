@@ -2,13 +2,9 @@
 title: "DATA 607 Project 2"
 author: "Mike Silva"
 date: "October 1, 2018"
-output:
-  html_document:
-    theme: yeti
-    highlight: tango
-    toc: true
-    toc_depth: 4
-    toc_float: true
+output: 
+  rmdformats::readthedown:
+    highlight: kate
 ---
 
 ## Description
@@ -19,11 +15,8 @@ This project involves transforming three untidy datasets into tidy datasets usin
 library(dplyr)
 library(tidyr)
 library(stringr)
+library(ggplot2)
 library(kableExtra)
-
-#output: 
-#  rmdformats::readthedown:
-#    highlight: kate
 ```
 
 ## American Community Survey
@@ -163,7 +156,7 @@ acs_df %>%
   spread(stat, val) %>%
   select(Variable, min, mean, median, max) %>%
   kable() %>%
-  kable_styling("striped")
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive"))
 ```
 
 I see there are cases where the median earnings are -666666666.  This is the Census Bureau's equivalent of N/A, so we will remove those observations.
@@ -183,7 +176,8 @@ acs_df %>%
   spread(stat, val) %>%
   select(Variable, min, mean, median, max) %>%
   kable() %>%
-  kable_styling("striped")
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive")) %>%
+  scroll_box(width = "100%", height = "200px")
 ```
 
 
@@ -207,8 +201,8 @@ We now have `r nrow(acs_df)` observations ready for analysis.
 
 The female workers earn `r round(min(acs_df$Ratio), 2)` to `r round(max(acs_df$Ratio), 2)` dollars for every dollar a male worker earns.  That's a considerable range!  The median is `r round(median(acs_df$Ratio), 2)` as shown by the verticle line in the graph below.
 
+##### Figure 1. Earning Ratio Density Plot (Median Verticle Line in Red)
 ```{r acs_viz, echo=FALSE}
-library(ggplot2)
 ratio_line <- median(acs_df$Ratio)
 
 ggplot(acs_df, aes(Ratio)) +
@@ -235,7 +229,7 @@ acs_avg_df %>%
   spread(stat, val) %>%
   select(Variable, min, mean, median, max) %>%
   kable() %>%
-  kable_styling("striped")
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive"))
 ```
 
 There is no occupation group where women on average earn more than men.  Let's examine which occupations women earn less than their male counterparts.
@@ -246,7 +240,7 @@ acs_avg_df %>%
   arrange(Ratio) %>%
   top_n(5, -Ratio) %>%
   kable() %>%
-  kable_styling("striped")
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive"))
 ```
 
 Legal, sales, and health diagnosing/treatment/technical occupations seem to be the top occpuations with a gender pay gap.  It is interesting to note that most of these occupations have a higher than avergae female conentration.  Now let's see which occupations are closer to equal pay.
@@ -257,7 +251,7 @@ acs_avg_df %>%
   arrange(-Ratio) %>%
   top_n(5, Ratio) %>%
   kable() %>%
-  kable_styling("striped")
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive"))
 ```
 
 It looks like community/social service, food preperation and serving, installation/repair, computer and science related occupations have the closest pay equality.  The concentration levels are a mixed bag.
@@ -266,6 +260,7 @@ It looks like community/social service, food preperation and serving, installati
 
 Is there any relationship between the equality of gender representation and pay?  Our previous example looked at aggregate trends and it appeared to not have a strong relationship.  Let's examine all the observations.
 
+##### Figure 2. Concentration and Earning Ratio Scatter Plot
 ```{r acs_scatter_plot, echo=FALSE}
 ggplot(acs_df, aes(Concentration, Ratio, alpha=0.0001)) + geom_point() + guides(alpha = "none")
 ```
@@ -409,7 +404,7 @@ top_destinations %>%
   spread(Year, Country) %>%
   arrange(Rank) %>%
   kable() %>%
-  kable_styling("striped")
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive"))
 ```
 
 The United States is consitently at the top of the list.  I guess we continue to  be a nation of immigrants.  Russia, Germany and the United Kingdom look like other hot spots for immigrants.  
@@ -436,7 +431,7 @@ rankings_df %>%
   spread(Year, Country) %>%
   arrange(Rank) %>%
   kable() %>%
-  kable_styling("striped")
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive"))
 ```
 
 Mexico seems to consistently be the highest source of immigrants to the United States.  China and India have recently increased in popularity.  Puerto Rico is often high on the list.  The mix of top countries is pretty consistent year over year.
@@ -533,6 +528,7 @@ arrest_df[1:25,] %>%
 
 Crime rates have been declining generally across the country.  Are the arrests rates decreasing in NYS?
 
+##### Figure 3. Total Adult Arrests by County and Year
 ```{r, echo=FALSE}
 arrest_df %>%
   filter(Type == "Total") %>%
@@ -552,7 +548,7 @@ arrest_df <- arrest_df %>%
   mutate(Change = (Arrests / Arrests_Base)-1)
 ```
 
-
+##### Figure 4. Percentage Change from 1970 Level (No Change in Red)
 ```{r, echo=FALSE}
 arrest_df %>%
   filter(Type == "Total") %>%
@@ -573,7 +569,8 @@ arrest_df %>%
   select(Variable, Year, min, mean, median, max) %>%
   arrange(Variable, Year) %>%
   kable() %>%
-  kable_styling("striped")
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive")) %>%
+  scroll_box(width = "100%", height = "200px")
 
 ```
 
