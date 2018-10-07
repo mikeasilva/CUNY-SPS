@@ -15,45 +15,293 @@ output:
 
 This project involves transforming three untidy datasets into tidy datasets using dplyr and tidyr.  Once the data is transformed a brief exploratory data analysis will be preformed.  Since we are using dplyr and tidyr we will load them now (all other libraries will be loaded as needed).
 
-```{r, message=FALSE, warning=FALSE}
+```{r initialize, message=FALSE, warning=FALSE}
 library(dplyr)
 library(tidyr)
 library(stringr)
+library(kableExtra)
+
+#output: 
+#  rmdformats::readthedown:
+#    highlight: kate
 ```
 
+## American Community Survey
 
-## United Nations International Migrant Stock
-
-The first dataset that will undergo the cleanup is the 2017 International Migrant Stock data produced by the United Nations Department of Economic and Social Affairs Population Division.  They produce multiple datasets.  This project will use the immigrants by origin and destination.
+The American Community Survey (henceforth ACS), is a product of the U.S. Census Bureau and measures the current characteristics of the American population.  It is the replacement for the Census long form.  In this analysis I will be pulling data for all counties in the United States.  The two tables contain the count of workers by occupation and gender and their median income.
 
 ### Research Questions
 
 Here are the questions I want to answer with this data:
 
-* What are the top-10 countries receiving/loosing migrants in absolute numbers by year?
+* What occupation has the the greatest pay gap between genders?  And which occupations have the most pay equity?
 
-* Do communities exist in this network?  Using the number of migrants as the edge between the countries (nodes) in the network graph, do communities emerge from the data?
+* How does the pay gap relate to concentration? 
 
-```{r echo=FALSE}
 #### About the Data
 
-# [http://www.un.org/en/development/desa/population/migration/data/estimates2/docs/MigrationStockDocumentation_2017.pdf](http://www.un.org/en/development/desa/population/migration/data/estimates2/docs/MigrationStockDocumentation_2017.pdf)
-# 
-# This dataset provides estimates of the international migrant stock by age, sex and origin for the mid-point (1 July) of each year: 1990, 1995, 2000,
-# 2005, 2010, 2015 and 2017. 
-# 
-# Most of the data used to estimate the international migrant stock by country or area were obtained from population censuses. Additionally, population registers and nationally representative surveys provided information on the number and composition of international migrants.
-# 
-# In estimating the international migrant stock, international migrants have been equated with the foreignborn population whenever this information is available, which is the case in most countries or areas. In most countries lacking data on place of birth, information on the country of citizenship of those enumerated was available, and was used as the basis for the identification of international migrants, thus effectively equating, in these cases, international migrants with foreign citizens.
-# 
-# Equating international migrants with foreign citizens when estimating the migrant stock has important shortcomings. In countries where citizenship is conferred on the basis of jus sanguinis, people who were born in the country of residence may be included in the number of international migrants even though they may have never lived abroad. Conversely, persons who were born abroad and who naturalized in their 
+The data we want to use for this is county level data.  We want the most robust numbers so we will be using the latest 5 year estimates available.
+
+### Data Acquisition
+
+In order to pull the data I will be using the ACS R package.  I have previously [registered for an API key](https://api.census.gov/), and have use the *api.key.install()* command to save it to my environment.
+
+```{r get_acs_data, message=FALSE}
+# C24010 SEX BY OCCUPATION FOR THE CIVILIAN EMPLOYED POPULATION 16 YEARS AND OVER
+file_name <- "data/C24010_2016_5_est.csv"
+if(!file.exists(file_name)){
+  geos <- acs::geo.make(county = "*", state = "*")
+  acs <- acs::acs.fetch(2016, geography = geos, table.number = "C24010", col.names = "pretty")
+  acs_df_C24010 <- data.frame(acs::estimate(acs))
+  write.csv(acs_df_C24010, file = file_name)
+} else {
+  acs_df_C24010 <- read.csv(file_name)
+}
+
+# B24022 SEX BY OCCUPATION AND MEDIAN EARNINGS IN THE PAST 12 MONTHS (IN 2016 INFLATION-ADJUSTED DOLLARS) FOR THE FULL-TIME, YEAR-ROUND CIVILIAN EMPLOYED POPULATION 16 YEARS AND OVER
+file_name <- "data/B24022_2016_5_est.csv"
+if(!file.exists(file_name)){
+  geos <- acs::geo.make(county = "*", state = "*")
+  acs <- acs::acs.fetch(2016, geography = geos, table.number = "B24022", col.names = "pretty")
+  acs_df_B24022 <- data.frame(acs::estimate(acs))
+  write.csv(acs_df_B24022, file = file_name)
+} else {
+  acs_df_B24022 <- read.csv(file_name)
+}
 ```
+
+### Creating Tidy Data
+
+The ACS data is broken out by gender and occupation.  The rows are counties.  It is an extremly wide dataset with `r ncol(acs_df_C24010)` columns.
+
+##### Table 1. C24010 Sex by Occupation for Civilain Employed Pop 16+
+```{r untidy_acs_table, echo=FALSE}
+acs_df_C24010[1:10,] %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive")) %>%
+  scroll_box(width = "100%", height = "200px")
+```
+
+#### Developing a Workplan
+
+In order to make a tidy data frame the first step will be to transform it from wide to long form.  Then the gender and occupation needs to be split out from the column header.  Spliting the gender will be simple enough but extracting the occupations will require a bit of cleanup.  I will use the following function to strip out the non-occupational parts of the string, then replace the periods added to the columns by R with spaces, remove the duplicate spaces and strip off leading and trailing white space. 
+
+```{r get_occupation}
+get_occupation <- function(string){
+  string <- str_remove(string, "SEX.BY.OCCUPATION.FOR.THE.CIVILIAN.EMPLOYED.POPULATION.16.YEARS.AND.OVER..")
+  string <- str_remove(string, "B24022..Sex.by.Occupation.and.Median.Earnings.in.the.Past.12.Months..in.2015.Inflation.Adjusted.Dollars..for.the.Full.Time..Year.Round.Civilian.Employed.Population.16.Years.and.Over")
+  string <- str_remove(string, "Female")
+  string <- str_remove(string, "Male")
+  string <- str_replace_all(string, "[.]", " ")
+  string <- str_replace_all(string, "  ", " ")
+  string <- trimws(string)
+  # Simplify occupations
+  # Select everything after the last capital letter started sequence
+  search_for <- str_extract(string, "[A-Z][[:alpha:] ]+[A-Z]")
+  replace_with <- str_sub(search_for, start=-1)
+  string <- str_replace_all(string, search_for, replace_with)
+  string
+}
+```
+
+Now that I have the get_occupation function I am ready to apply it to the dataset.
+
+#### Execution of the Plan
+
+I will start with the worker counts by sex and occupation.
+
+```{r tidy_C24010}
+acs_df_C24010 <- acs_df_C24010 %>%
+  rename(County = X) %>%
+  gather(key = Header, value = Workers, -County) %>%
+  mutate(Occupation = get_occupation(Header),
+         Gender = ifelse(grepl("Female", Header), "Female", ifelse(grepl("Male", Header), "Male", "Total"))) %>% 
+  filter(Gender != "Total") %>%
+  select(-Header) %>%
+  drop_na()
+```
+
+Thre are `r nrow(acs_df_C24010)` rows in acs_df_C24010.  Now I will apply the same prcess to the median earnings data.
+
+```{r tidy_B24022}
+acs_df_B24022 <- acs_df_B24022 %>%
+  rename(County = X) %>%
+  gather(key = Header, value = "Earnings", -County) %>%
+  mutate(Occupation = get_occupation(Header),
+         Gender = ifelse(grepl("Female", Header), "Female", ifelse(grepl("Male", Header), "Male", "Total"))) %>%
+  filter(Gender != "Total") %>%
+  select(-Header)
+```
+
+Thre are `r nrow(acs_df_B24022)` rows in acs_df_B24022.  The final step in assembling the tidy dataset is to merge the two data frames togther.
+
+```{r merge_acs}
+acs_df <- merge(acs_df_C24010, acs_df_B24022)
+```
+
+There are `r nrow(acs_df)` rows in the combined data frame.  Since I want to look at the gender concentrations withing the occupation I will need to create that varaible.
+
+```{r add_gender_concentrations}
+acs_df <- acs_df %>%
+  select(Occupation, County, Workers) %>%
+  group_by(Occupation, County) %>%
+  summarise(Total = sum(Workers)) %>% 
+  merge(acs_df) %>%
+  mutate(Concentration = Workers / Total) %>%
+  select(-Total)
+```
+
+Let's do a quick sanity check on the data.  Let's examine the Workers, Earnigns and Concentration
+
+##### Table 2. ACS Data Check
+```{r acs_sanity_check_1, echo=FALSE}
+acs_df %>%
+  select(Workers, Earnings, Concentration) %>%
+  summarise_all(funs(min=min, median=median, mean = mean, max=max)) %>%
+  gather(stat, val) %>%
+  separate(stat, into = c("Variable", "stat"), "_") %>%
+  spread(stat, val) %>%
+  select(Variable, min, mean, median, max) %>%
+  kable() %>%
+  kable_styling("striped")
+```
+
+I see there are cases where the median earnings are -666666666.  This is the Census Bureau's equivalent of N/A, so we will remove those observations.
+
+```{r remove_no_earnings}
+acs_df <- acs_df %>%
+  filter(Earnings > 0)
+```
+
+##### Table 3. ACS Data After Cleanup
+```{r acs_sanity_check_2, echo=FALSE}
+acs_df %>%
+  select(Workers, Earnings, Concentration) %>%
+  summarise_all(funs(min=min, median=median, mean = mean, max=max)) %>%
+  gather(stat, val) %>%
+  separate(stat, into = c("Variable", "stat"), "_") %>%
+  spread(stat, val) %>%
+  select(Variable, min, mean, median, max) %>%
+  kable() %>%
+  kable_styling("striped")
+```
+
+
+The median earnings are reasonable and the concentration rates range from roughly 0% to 100%.  Now I need to compute a female to male earning ratio.
+
+```{r add_earning_ratio}
+acs_df <- acs_df %>%
+  filter(Gender == "Male") %>%
+  select(County, Occupation, Earnings) %>%
+  rename(Male_Earnings = Earnings) %>%
+  merge(acs_df) %>%
+  filter(Gender == "Female") %>%
+  mutate(Ratio = Earnings / Male_Earnings)
+```
+
+We now have `r nrow(acs_df)` observations ready for analysis.
+
+### Analysis
+
+#### Occupation with the the Largest and Smallest Pay Gap
+
+The female workers earn `r round(min(acs_df$Ratio), 2)` to `r round(max(acs_df$Ratio), 2)` dollars for every dollar a male worker earns.  That's a considerable range!  The median is `r round(median(acs_df$Ratio), 2)` as shown by the verticle line in the graph below.
+
+```{r acs_viz, echo=FALSE}
+library(ggplot2)
+ratio_line <- median(acs_df$Ratio)
+
+ggplot(acs_df, aes(Ratio)) +
+  geom_density() +
+  geom_vline(aes(xintercept = ratio_line), color="red", linetype="dashed")
+```
+
+
+So which occupations are the most inequitable in pay?  There may be some highly unusual markest so let's average the ratios by occupation and look at the results.
+
+```{r acs_average_by_occupation}
+acs_avg_df <- acs_df %>%
+  group_by(Occupation) %>%
+  summarise(Ratio = mean(Ratio), Concentration = mean(Concentration), N = n())
+```
+
+##### Table 4. ACS Average Summary Statistics
+```{r acs_average_by_occupation_summary, echo=FALSE}
+acs_avg_df %>%
+  select(Ratio, Concentration, N) %>%
+  summarise_all(funs(min=min, median=median, mean = mean, max=max)) %>%
+  gather(stat, val) %>%
+  separate(stat, into = c("Variable", "stat"), "_") %>%
+  spread(stat, val) %>%
+  select(Variable, min, mean, median, max) %>%
+  kable() %>%
+  kable_styling("striped")
+```
+
+There is no occupation group where women on average earn more than men.  Let's examine which occupations women earn less than their male counterparts.
+
+##### Table 5. Top 5 Occupations with Income Inequality
+```{r acs_highest_inequity, echo=FALSE}
+acs_avg_df %>%
+  arrange(Ratio) %>%
+  top_n(5, -Ratio) %>%
+  kable() %>%
+  kable_styling("striped")
+```
+
+Legal, sales, and health diagnosing/treatment/technical occupations seem to be the top occpuations with a gender pay gap.  It is interesting to note that most of these occupations have a higher than avergae female conentration.  Now let's see which occupations are closer to equal pay.
+
+##### Table 6. Top 5 Occupations with Lowest Income Inequality
+```{r acs_lowest_inequity, echo=FALSE}
+acs_avg_df %>%
+  arrange(-Ratio) %>%
+  top_n(5, Ratio) %>%
+  kable() %>%
+  kable_styling("striped")
+```
+
+It looks like community/social service, food preperation and serving, installation/repair, computer and science related occupations have the closest pay equality.  The concentration levels are a mixed bag.
+
+#### Pay Gap and Concentration Relationship 
+
+Is there any relationship between the equality of gender representation and pay?  Our previous example looked at aggregate trends and it appeared to not have a strong relationship.  Let's examine all the observations.
+
+```{r acs_scatter_plot, echo=FALSE}
+ggplot(acs_df, aes(Concentration, Ratio, alpha=0.0001)) + geom_point() + guides(alpha = "none")
+```
+
+Looking at the scatterplot it doesn't appear to be much of a relationship.  Let's look at the Pearson's R.
+
+```{r acs_correlation}
+cor(acs_df$Concentration, acs_df$Ratio)
+```
+
+This confirms that the relationship is not based on the level of concentration in the industry.  Which suggests that if someone wants to improve the gender pay gap and thinks having more females representation in the occupations will solve that problem, they might be disappointed.
+
+
+## U.N. International Migrant Stock
+
+The next dataset that will undergo the cleanup is the 2017 International Migrant Stock data produced by the United Nations Department of Economic and Social Affairs Population Division.  They produce multiple datasets.  This project will use the immigrants by origin and destination.
+
+### Research Questions
+
+Here are the questions I want to answer with this data:
+
+* What are the top countries receiving/loosing migrants in absolute numbers by year?
+
+* How does the United States compare?
+
+* Do communities exist in this network? 
+
+#### About the Data
+
+These estimates of the international migrants have been equated with the foreignborn population whenever this information is available, which is the case in most countries or areas.  It is for the mid-point of each year.
 
 ### Data Acquisition
 
 We will download the migration stock by destination and origin data to our local system.
 
-```{r}
+```{r get_un_data}
 file_name <- "data/UN_MigrantStockByOriginAndDestination_2017.xlsx"
 if(!file.exists(file_name)){
   download.file("http://www.un.org/en/development/desa/population/migration/data/estimates2/data/UN_MigrantStockByOriginAndDestination_2017.xlsx", file_name)
@@ -64,9 +312,9 @@ if(!file.exists(file_name)){
 
 I will begin by reading in a few rows and examing them to determine what actions need to be taken.
 
-```{r, results='asis'}
+##### Table 7. First Look at UN Data
+```{r untidy_un_table, results='asis', echo=FALSE}
 library(openxlsx)
-library(kableExtra)
 read.xlsx(file_name, sheet = "Table 1", rows = 1:25) %>%
   kable() %>%
   kable_styling(bootstrap_options = c("striped", "hover", "responsive")) %>%
@@ -79,7 +327,7 @@ There is a lot of data at the begining of the file that needs to be overlooked. 
 
 #### Execution of the Plan
 
-```{r}
+```{r read_un}
 un_df <- read.xlsx('data/UN_MigrantStockByOriginAndDestination_2017.xlsx', 'Table 1', startRow = 16, na.strings = "..") %>%
   rename(Year = X1,
          Sort.order = X2,
@@ -87,30 +335,30 @@ un_df <- read.xlsx('data/UN_MigrantStockByOriginAndDestination_2017.xlsx', 'Tabl
          Notes = X4,
          Code = X5,
          Type.of.data = X6) %>%
-  select(-Sort.order, -Code, -Type.of.data)
+  select(-Sort.order, -Code, -Notes)
 ```
 
 Now that these steps have been taken let's take a look at the data frame to determine what to do next.
 
-```{r, echo=FALSE}
+##### Table 8. Untidy UN Data
+```{r untidy_un_table_2, echo=FALSE}
 un_df[1:10,] %>%
   kable() %>%
   kable_styling(bootstrap_options = c("striped", "hover", "responsive")) %>%
   scroll_box(width = "100%", height = "200px")
 ```
 
-The Notes column is not NA on the rows I want to keep.  There are regional aggregates that I don't want to include too.  These aggregates have letters in the Notes column.  If I try to coorce them into numeric data they will turn into NAs and I can drop all the rows in one fell swoop.  I will then drop the Notes, Total, Other.North and Other.South columns.
+There are regional aggregates that I don't want to include  These aggregates dont have a type of data column.  I will use that to remove them.  I will then drop the Notes, Total, Other.North and Other.South columns.
 
-```{r, warning=FALSE}
+```{r tidy_un, warning=FALSE}
 un_df <- un_df %>%
-  mutate(Notes = as.numeric(Notes)) %>% # Introduces NAs where desired
-  drop_na(Notes) %>%
-  select(-Notes:-Other.South)
+  filter(str_length(Type.of.data)>0) %>%
+  select(-Type.of.data:-Other.South)
 ```
 
 Now we are ready to change the data from wide to long.
 
-```{r}
+```{r un_wide_to_long}
 un_df <- un_df %>%
   gather(key = Origin, value = Migrants, -Year, -Destination) %>%
   drop_na(Migrants)
@@ -118,16 +366,19 @@ un_df <- un_df %>%
 
 Now I need to clean up the Origins columns.  There are periods that represent spaces.  When there are two periods it needs to be changed into a period and space.  An example of that is Micronesia.(Fed..States.of).  I will also reorder the columns.
 
-```{r}
+```{r un_remove_periods}
 un_df <- un_df %>%
   mutate(Origin = str_replace_all(Origin, "[.]", " ")) %>%
   mutate(Origin = str_replace_all(Origin, "  ", ". ")) %>%
+  mutate(Migrants = as.numeric(Migrants)) %>%
+  mutate(Origin = as.vector(Origin)) %>%
+  mutate(Destination = as.vector(Destination)) %>%
   select(Origin, Destination, Migrants, Year)
 ```
 
 And here is the results:
 
-```{r, echo=FALSE}
+```{r tidy_un_table, echo=FALSE}
 un_df[1:10,] %>%
   kable() %>%
   kable_styling(bootstrap_options = c("striped", "hover", "responsive")) %>%
@@ -136,8 +387,194 @@ un_df[1:10,] %>%
 
 ### Analysis
 
-#### Top 10 Receivers of International Migrants
+#### Top 5 Receivers of International Migrants
 
-What countries are the top ten in the number of migrants they are receiving by year?
+What countries are the top receiverd of migrants they are receiving by year?  Does the contries on this list change over time?  Note: These data are not adjusted for population.
+
+```{r up_top_receivers, message=FALSE}
+top_destinations <- un_df %>%
+  select(-Origin) %>%
+  group_by(Year, Destination) %>%
+  summarise(Migrants = sum(Migrants)) %>%
+  rename(Country = Destination) %>%
+  arrange(Year, -Migrants) %>%
+  top_n(5) %>%
+  mutate(Rank = 1:n())
+```
+
+##### Table 9. Top 5 Migrant Destinations by Year
+```{r top_recipient_table, echo=FALSE}
+top_destinations %>%
+  select(-Migrants) %>%
+  spread(Year, Country) %>%
+  arrange(Rank) %>%
+  kable() %>%
+  kable_styling("striped")
+```
+
+The United States is consitently at the top of the list.  I guess we continue to  be a nation of immigrants.  Russia, Germany and the United Kingdom look like other hot spots for immigrants.  
+
+#### The United States
+
+I was originally going to look at how the United States stacks up in the ranking but we know the answer to that from the last analysis.  I will look deeper into the United States.  What countries do most of the immgigrants come from?
+
+```{r un_rankings, message=FALSE}
+rankings_df <- un_df %>%
+  filter(Destination == "United States of America") %>%
+  group_by(Year, Origin) %>%
+  summarise(Migrants = sum(Migrants)) %>%
+  rename(Country = Origin) %>%
+  arrange(Year, -Migrants) %>%
+  top_n(10) %>%
+  mutate(Rank = 1:n())
+```
+
+##### Table 10. Countries the United States Immigrants Come From
+```{r us_table, echo=FALSE}
+rankings_df %>%
+  select(-Migrants) %>%
+  spread(Year, Country) %>%
+  arrange(Rank) %>%
+  kable() %>%
+  kable_styling("striped")
+```
+
+Mexico seems to consistently be the highest source of immigrants to the United States.  China and India have recently increased in popularity.  Puerto Rico is often high on the list.  The mix of top countries is pretty consistent year over year.
+
+#### Network Communities
+
+```{r, message=FALSE}
+library(igraph)
+un_graph_2017 <- un_df %>%
+  filter(Year == 2017) %>%
+  select(Origin, Destination) %>%
+  graph_from_data_frame()
+
+communities <- cluster_walktrap(un_graph_2017)
+
+communities
+```
+
+There are 10 coomunities that emerge.  I would like to visulize it but that would take too much time. I have one more dataset to look at.
+
+```{r, eval=FALSE, echo=FALSE}
+layout <-layout.fruchterman.reingold(un_graph_2017)
+#layout <- layout.davidson.harel(un_graph_2017)
+# Change colors of nodes, polygons, and polygon borders
+new_cols <- c("#a6cee3", "#1f78b4", "#b2df8a", "#33a02c", "#fb9a99", "#e31a1c", "#fdbf6f", "#ff7f00", "#cab2d6", "#6a3d9a")[membership(communities)]
+plot(communities, un_graph_2017, col=new_cols, mark.border="white", mark.col=c("#a6cee3", "#1f78b4", "#b2df8a", "#33a02c", "#fb9a99", "#e31a1c", "#fdbf6f", "#ff7f00", "#cab2d6", "#6a3d9a"), 
+    layout=layout, vertex.label=NA, vertex.size=5, edge.arrow.size=.2, edge.color = "gray")
+```
+
+## NYS Adult Arrests by County
+
+This is the datase featured in my discussion board post.  It is produced by the NYS Division of Criminal Justics Services and is the count of adult arrests.
+
+### Research Questions
+
+Here are the questions I want to answer with this data:
+
+* What is the general trend in total arrests?
+
+#### About the Data
+
+The counts of arrests are for fingerprintable offenses.  An adult arrest is defined as an arrest of a person 16 years old or older or a juvenile offender prosecuted in adult court.  Fingerprintable offenses (defined in Criminal Procedure Law §160.10) include any felony, a misdemeanor defined in the penal law, a misdemeanor defined outside the penal law which would constitute a felony if such a person had a previous judgment of conviction for a crime, or loitering for the purpose of engaging in prostitution as defined in subdivision two of Penal Law §240.37.
+
+### Data Acquisition
+
+The dataset from the New York State Division of Criminal Justice Services was accessed via [data.ny.gov](https://data.ny.gov/Public-Safety/Adult-Arrests-by-County-Beginning-1970/rikd-mt35).  It was last updated on August 7, 2018 at the time of this pull.
+
+```{r}
+file_name <- "data/NYS_Adult_Arrests_by_County.csv"
+if(!file.exists(file_name)){
+  download.file("https://data.ny.gov/api/views/rikd-mt35/rows.csv?accessType=DOWNLOAD", file_name)
+}
+
+arrest_df <- read.csv(file_name)
+```
+
+### Creating Tidy Data
+
+I will begin by reading in a few rows and examing them to determine what actions need to be taken.
+
+##### Table 11. NYS Adult Arrests
+```{r untidy_arrest_table, echo=FALSE}
+arrest_df[1:25,] %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive")) %>%
+  scroll_box(width = "100%", height = "200px")
+```
+
+#### Developing a Workplan
+
+This is a wide data set that needs to be transformed to a long dataset.  The column headers will need to be cleaned up after the transformation.
+
+#### Execution of the Plan
+
+```{r}
+arrest_df <- arrest_df %>%
+  gather(Type, Arrests, -County, -Year) %>%
+  mutate(Type = gsub("[.]", " ", Type))
+```
+
+This is realitively straight forward and is ready for an analysis.
+
+##### Table 12. Tidy NYS Adult Arrests
+```{r untidy_arrest_table2, echo=FALSE}
+arrest_df[1:25,] %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive")) %>%
+  scroll_box(width = "100%", height = "200px")
+```
+
+### Analysis
+
+#### General Trend in Arrests
+
+Crime rates have been declining generally across the country.  Are the arrests rates decreasing in NYS?
+
+```{r, echo=FALSE}
+arrest_df %>%
+  filter(Type == "Total") %>%
+  ggplot(aes(Year, Arrests, group=County)) + geom_line()
+```
+
+It's difficult to tell.  The difference in scale is making it really difficult.  If I were continuing the analysis I would express the data on a per capita basis.  I can do it as a percentage change from 1970
+
+For both of these questions I want to look at the change in percentage terms.  I will quickly add in the percentage change to the dataset.  I will base all the changes from the earliest data, 1970.
+
+```{r, percentage_change}
+arrest_df <- arrest_df %>%
+  filter(Year == 1970) %>%
+  select( -Year) %>%
+  rename(Arrests_Base = Arrests) %>%
+  merge(arrest_df) %>%
+  mutate(Change = (Arrests / Arrests_Base)-1)
+```
 
 
+```{r, echo=FALSE}
+arrest_df %>%
+  filter(Type == "Total") %>%
+  ggplot(aes(Year, Change, group=County)) + geom_line() + geom_hline(aes(yintercept=0, color="red")) + guides(color=FALSE)
+```
+
+It appears that the number of arrests are up since 1970 which is unexpected.
+
+```{r}
+arrest_df %>%
+  group_by(Year) %>%
+  filter(Type == "Total") %>%
+  select(Arrests, Change) %>%
+  summarise_all(funs(min=min, median=median, mean = mean, max=max)) %>%
+  gather(stat, val, -Year)  %>%
+  separate(stat, into = c("Variable", "stat"), "_") %>%
+  spread(stat, val) %>%
+  select(Variable, Year, min, mean, median, max) %>%
+  arrange(Variable, Year) %>%
+  kable() %>%
+  kable_styling("striped")
+
+```
+
+It appears that there are some oddities with this dataset that would need to be better understood before carying out further analyses.
