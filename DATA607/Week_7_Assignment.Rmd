@@ -1,0 +1,178 @@
+---
+title: "Week 7 Assignment"
+author: "Mike Silva"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+---
+
+```{r, echo=FALSE, message=FALSE}
+library(dplyr)
+library(rmdformats)
+library(kableExtra)
+```
+
+```{r knitr_init, echo=FALSE, message=FALSE, eval=FALSE}
+library(dplyr)
+library(knitr)
+library(rmdformats)
+library(kableExtra)
+
+## Global options
+options(max.print="75")
+# opts_chunk$set(echo=FALSE,
+# 	             cache=TRUE,
+#                prompt=FALSE,
+#                tidy=TRUE,
+#                comment=NA,
+#                message=FALSE,
+#                warning=FALSE)
+opts_knit$set(width=75)
+```
+
+```{r, echo=FALSE}
+# A Prefix nulling hook.
+# Taken from https://stackoverflow.com/questions/22524822/how-can-i-remove-the-prefix-index-indicator-1-in-knitr-output
+
+# Make sure to keep the default for normal processing.
+default_output_hook <- knitr::knit_hooks$get("output")
+
+# Output hooks handle normal R console output.
+knitr::knit_hooks$set( output = function(x, options) {
+
+  comment <- knitr::opts_current$get("comment")
+  if( is.na(comment) ) comment <- ""
+  can_null <- grepl( paste0( comment, "\\s*\\[\\d?\\]" ),
+                     x, perl = TRUE)
+  do_null <- isTRUE( knitr::opts_current$get("null_prefix") )
+  if( can_null && do_null ) {
+    # By default R print output aligns at the right brace.
+    align_index <- regexpr( "\\]", x )[1] - 1
+    # Two cases: start or newline
+    re <- paste0( "^.{", align_index, "}\\]")
+    rep <- comment
+    x <- gsub( re, rep,  x )
+    re <- paste0( "\\\n.{", align_index, "}\\]")
+    rep <- paste0( "\n", comment )
+    x <- gsub( re, rep,  x )
+    x <- gsub( "##", "", x)
+  }
+
+  default_output_hook( x, options )
+
+})
+
+knitr::opts_template$set("kill_prefix"=list(comment=NA, null_prefix=TRUE))
+```
+
+## Description
+
+In this assignment I have selected three books that I enjoyed reading and have entered information these three books in separately created files.  One encodes the information in HTML, XML and JSON formats.  I am to pull in the data into R and answer if the three data frames are identical.
+
+### Book Files
+
+I created the files by hand and saved the [HTML](https://raw.githubusercontent.com/mikeasilva/CUNY-SPS/master/DATA607/data/books.html), [XML](https://raw.githubusercontent.com/mikeasilva/CUNY-SPS/master/DATA607/data/books.xml) and [JSON](https://raw.githubusercontent.com/mikeasilva/CUNY-SPS/master/DATA607/data/books.json) files to my GitHub repository.  I have also loaded *dplyr* into my R environment.
+
+## Reading HTML File into R
+
+Here's what the HTML file looks like:
+
+##### Table 1. Preview of books.html
+```{r, null_prefix=TRUE, echo=FALSE}
+print(readLines("https://raw.githubusercontent.com/mikeasilva/CUNY-SPS/master/DATA607/data/books.html"), quote=FALSE)
+```
+
+I will use rvest to extract the data from the table.
+
+```{r, echo=TRUE, message=FALSE}
+library(rvest)
+
+html_df <- read_html("https://raw.githubusercontent.com/mikeasilva/CUNY-SPS/master/DATA607/data/books.html") %>%
+  html_node("table") %>%
+  html_table()
+```
+
+Here's what the HTML data looks like after processed by rvest:
+
+##### Table 2. Rvest Data Frame of books.html
+```{r, echo=FALSE}
+library(kableExtra)
+html_df %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive"))
+```
+
+## Reading XML File into R 
+
+Now it's time to work on the XML file.  Here's what the XML file looks like:
+
+##### Table 3. Preview of books.xml
+```{r, null_prefix=TRUE, echo=FALSE}
+print(readLines("https://raw.githubusercontent.com/mikeasilva/CUNY-SPS/master/DATA607/data/books.xml"), quote=FALSE)
+```
+
+I will use xml2 to extract the data from the XML file.
+
+```{r, echo=TRUE}
+library(xml2)
+books_xml <- read_xml("https://raw.githubusercontent.com/mikeasilva/CUNY-SPS/master/DATA607/data/books.xml")
+
+X1 <- books_xml %>%
+  xml_children() %>%
+  xml_name()
+
+X2 <- books_xml %>%
+  xml_children() %>%
+  xml_text()
+
+xml_df <-data.frame(X1, X2)
+```
+
+Here's what the XML data looks like after passing through the above process:
+
+##### Table 4. Data Frame of books.xml
+```{r, echo=FALSE}
+xml_df %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive"))
+```
+
+## Reading JSON File into R
+
+Here's what the JSON file looks like:
+
+##### Table 5. Preview of books.json
+```{r, null_prefix=TRUE, echo=FALSE}
+print(readLines("https://raw.githubusercontent.com/mikeasilva/CUNY-SPS/master/DATA607/data/books.json"), quote=FALSE)
+```
+
+I will use jsonlite to extract the data from the file.
+
+```{r, echo=TRUE}
+library(jsonlite)
+json_df <- fromJSON("https://raw.githubusercontent.com/mikeasilva/CUNY-SPS/master/DATA607/data/books.json") %>%
+  unlist() %>%
+  as.data.frame()
+
+# Change the name
+names(json_df) <- c("X2")
+# Pull the row names into X1
+json_df <- data.frame(X1 = row.names(json_df), json_df)
+# Drop the row names
+rownames(json_df) <- c()
+```
+
+Here's what the JSON data looks like after processed by rvest:
+
+##### Table 6. Data Frame of books.json
+```{r, echo=FALSE}
+json_df %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive"))
+```
+
+## Are the Three Data Frames Identical?
+
+The three data frames are close.  I processed the XML file so that it is identical to 
+
