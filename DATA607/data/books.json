@@ -1,4 +1,5 @@
 {
+  "book": [
     "Title": "Why Nations Fail: The Origins of Power, Prosperity, and Poverty",
     "Author": [
         "Daron Acemoğlu",
@@ -7,4 +8,5 @@
     "Pages": 544,
     "Publisher": "Crown Business",
     "ISBN": 9780307719218
+	]
 }
