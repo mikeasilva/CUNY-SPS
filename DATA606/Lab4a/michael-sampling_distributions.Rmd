@@ -46,7 +46,7 @@ summary(area)
 hist(area)
 ```
 
-1.  Describe this population distribution.
+1.  Describe this population distribution. **It is long-tailed or right skewed distribution.**
 
 ## The unknown sampling distribution
 
@@ -69,7 +69,16 @@ with these 50 files would be considerably simpler than working with all 2930
 home sales.
 
 2.  Describe the distribution of this sample. How does it compare to the 
-    distribution of the population?
+    distribution of the population? **It is similar to the population distribution.**
+    ```{r, echo=FALSE, message=FALSE}
+    library(ggplot2)
+    library(dplyr)
+    df <- data.frame(area=area, Group=c("Population"))
+    df <- data.frame(area=samp1, Group=c("Sample")) %>%
+      rbind(df) %>%
+      mutate(Group = as.factor(Group))
+    ggplot(df) + geom_density(aes(x=area, fill=Group, alpha=0.2)) + guides(alpha="none")
+    ```
 
 If we're interested in estimating the average living area in homes in Ames 
 using the sample, our best single guess is the sample mean.
@@ -85,9 +94,17 @@ living area, and we were able to get it by sampling less than 3\% of the
 population.
 
 3.  Take a second sample, also of size 50, and call it `samp2`.  How does the 
-    mean of `samp2` compare with the mean of `samp1`?  Suppose we took two 
+    mean of `samp2` compare with the mean of `samp1`?  **They are pretty close to each other.** Suppose we took two 
     more samples, one of size 100 and one of size 1000. Which would you think 
-    would provide a more accurate estimate of the population mean?
+    would provide a more accurate estimate of the population mean? **The sample with more observations.**
+    ```{r samp2}
+    samp2 <- sample(area, 50)
+    message(paste("Population:", mean(area)))
+    message(paste("Sample of 50 #1:", mean(samp1)))
+    message(paste("Sample of 50 #2:", mean(samp2)))
+    message(paste("Sample of 100:", mean(sample(area, 100))))
+    message(paste("Sample of 1000:", mean(sample(area, 1000))))
+    ```
 
 Not surprisingly, every time we take another random sample, we get a different 
 sample mean.  It's useful to get a sense of just how much variability we 
@@ -120,10 +137,10 @@ Here we use R to take 5000 samples of size 50 from the population, calculate
 the mean of each sample, and store each result in a vector called 
 `sample_means50`. On the next page, we'll review how this set of code works.
 
-4.  How many elements are there in `sample_means50`?  Describe the sampling 
+4.  How many elements are there in `sample_means50`?  **`r length(sample_means50)`** Describe the sampling 
     distribution, and be sure to specifically note its center.  Would you 
     expect the distribution to change if we instead collected 50,000 sample 
-    means?
+    means?  **Its center is about `r round(mean(sample_means50), 0)`.  The distribution would still be normally distributed but it should haved a smaller spread.**
 
 ## Interlude: The `for` loop
 
@@ -158,6 +175,7 @@ With the for loop, these thousands of lines of code are compressed into a
 handful of lines. We've added one extra line to the code below, which prints 
 the variable `i` during each iteration of the `for` loop. Run this code.
 
+<div style="height:200px; overflow-y:scroll;">
 ```{r loop-again, eval=TRUE}
 sample_means50 <- rep(NA, 5000)
 
@@ -167,6 +185,7 @@ for(i in 1:5000){
    print(i)
    }
 ```
+</div>
 
 Let's consider this code line by line to figure out what it does.  In the 
 first line we *initialized a vector*.  In this case, we created a vector of 
@@ -196,10 +215,22 @@ initialized at the outset.
     smaller version.  Initialize a vector of 100 zeros called 
     `sample_means_small`.  Run a loop that takes a sample of size 50 from 
     `area` and stores the sample mean in `sample_means_small`, but only 
-    iterate from 1 to 100.  Print the output to your screen (type 
-    `sample_means_small` into the console and press enter).  How many elements 
-    are there in this object called `sample_means_small`? What does each 
-    element represent?
+    iterate from 1 to 100.
+    
+    ```{r}
+    sample_means_small <- rep(0, 100)
+    for(i in 1:100){
+      sample_means_small[i] <- mean(sample(area, 50))
+    }
+    ```
+        
+    Print the output to your screen (type `sample_means_small` into the console and press enter).  
+    ```{r}
+    sample_means_small
+    ```
+    How many elements are there in this object called `sample_means_small`? **`r length(sample_means_small)`**
+    What does each element represent? **The mean area of 50 randomly selected homes in Ames.**
+    
 
 ## Sample size and the sampling distribution
 
