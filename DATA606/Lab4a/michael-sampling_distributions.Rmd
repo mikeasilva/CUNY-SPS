@@ -293,7 +293,7 @@ specifies the range of the x-axis of the histogram, and by setting it equal
 to `xlimits` for each histogram, we ensure that all three histograms will be 
 plotted with the same limits on the x-axis.
 
-6.  When the sample size is larger, what happens to the center?  What about the spread?
+6.  When the sample size is larger, what happens to the center?  **The center becomes closer to the population mean.**  What about the spread? **The spread narrows.**
 
 * * *
 ## On your own
@@ -303,25 +303,63 @@ Ames.  Now you'll try to estimate the mean home price.
 
 -   Take a random sample of size 50 from `price`. Using this sample, what is 
     your best point estimate of the population mean?
-
+    ```{r}
+    avg_price <- mean(sample(price, 50))
+    avg_price
+    ```
+    **This is the best estimate of the population mean.**
+    
 -   Since you have access to the population, simulate the sampling 
     distribution for $\bar{x}_{price}$ by taking 5000 samples from the 
     population of size 50 and computing 5000 sample means.  Store these means 
-    in a vector called `sample_means50`. Plot the data, then describe the 
-    shape of this sampling distribution. Based on this sampling distribution, 
-    what would you guess the mean home price of the population to be? Finally, 
-    calculate and report the population mean.
-
+    in a vector called `sample_means50`. 
+    ```{r}
+    for(i in 1:5000){
+      sample_means50[i] <- mean(sample(price, 50))
+    }
+    ```
+    Plot the data, then describe the shape of this sampling distribution. 
+    
+    **The distribution is normally distributed.**
+    
+    ```{r, echo=FALSE}
+    ggplot() + geom_histogram(aes(sample_means50), bins=100) + geom_vline(xintercept=mean(sample_means50), linetype="dashed", color="red")
+    ```
+    
+    Based on this sampling distribution, what would you guess the mean home price of the population to be? **Roughly $180K.**
+    
+    Finally, calculate and report the population mean.
+    ```{r}
+    mean(price)
+    ```
+    
 -   Change your sample size from 50 to 150, then compute the sampling 
     distribution using the same method as above, and store these means in a 
-    new vector called `sample_means150`. Describe the shape of this sampling 
-    distribution, and compare it to the sampling distribution for a sample 
-    size of 50.  Based on this sampling distribution, what would you guess to 
-    be the mean sale price of homes in Ames?
-
--   Of the sampling distributions from 2 and 3, which has a smaller spread?  If
-    we're concerned with making estimates that are more often close to the 
+    new vector called `sample_means150`. 
+    ```{r}
+    sample_means150 <- rep(NA, 150)
+    for(i in 1:5000){
+      sample_means150[i] <- mean(sample(price, 150))
+    }
+    ```
+    Describe the shape of this sampling distribution, and compare it to the 
+    sampling distribution for a sample size of 50.  Based on this sampling 
+    distribution, what would you guess to be the mean sale price of homes in Ames?
+    ```{r}
+    df <- data.frame(price=sample_means150, N=c("150"))
+    df <- data.frame(price=sample_means50, N=c("50")) %>%
+      rbind(df) %>%
+      mutate(N = as.factor(N))
+    ggplot(df) + geom_density(aes(x=price, fill=N, alpha=0.2)) + guides(alpha="none")
+    ``` 
+    
+    **Roughly $180K still but I'm more certain of it.**
+  
+-   Of the sampling distributions from 2 and 3, which has a smaller spread?  
+    **The one with 150 observations in the sample.**
+    If we're concerned with making estimates that are more often close to the 
     true value, would we prefer a distribution with a large or small spread?
+    **As large as we can reasonably get.**
 
 <div id="license">
 This is a product of OpenIntro that is released under a [Creative Commons 
