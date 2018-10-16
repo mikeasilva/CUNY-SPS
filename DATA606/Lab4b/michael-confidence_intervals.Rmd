@@ -7,7 +7,40 @@ output:
     theme: cerulean
   pdf_document: default
 ---
+```{r echo=FALSE}
+# A Prefix nulling hook.
+# Taken from https://stackoverflow.com/questions/22524822/how-can-i-remove-the-prefix-index-indicator-1-in-knitr-output
 
+# Make sure to keep the default for normal processing.
+default_output_hook <- knitr::knit_hooks$get("output")
+
+# Output hooks handle normal R console output.
+knitr::knit_hooks$set(output = function(x, options) {
+
+  comment <- knitr::opts_current$get("comment")
+  if (is.na(comment)) comment <- ""
+  can_null <- grepl( paste0( comment, "\\s*\\[\\d?\\]" ),
+                     x, perl = TRUE)
+  do_null <- isTRUE( knitr::opts_current$get("null_prefix") )
+  if (can_null && do_null) {
+    # By default R print output aligns at the right brace.
+    align_index <- regexpr( "\\]", x )[1] - 1
+    # Two cases: start or newline
+    re <- paste0( "^.{", align_index, "}\\]")
+    rep <- comment
+    x <- gsub( re, rep,  x )
+    re <- paste0( "\\\n.{", align_index, "}\\]")
+    rep <- paste0( "\n", comment )
+    x <- gsub( re, rep,  x )
+    # I added this line
+    x <- gsub( "##", "", x)
+  }
+
+  default_output_hook( x, options )
+})
+
+knitr::opts_template$set("kill_prefix" = list(comment = NA, null_prefix = TRUE))
+```
 ## Sampling from Ames, Iowa
 
 If you have access to data on an entire population, say the size of every 
@@ -40,11 +73,10 @@ samp <- sample(population, 60)
 ```
 
 1.  Describe the distribution of your sample. What would you say is the 
-"typical" size within your sample? Also state precisely what you interpreted 
-"typical" to mean.
+"typical" size within your sample? **The "typical" size is `r mean(samp)`.** Also state precisely what you interpreted "typical" to mean.  **In this case typical means the mean of the mean of the sample.**
 
 2.  Would you expect another student's distribution to be identical to yours? 
-Would you expect it to be similar? Why or why not?
+Would you expect it to be similar? Why or why not? **I would expect it to be similar but not identical to mine.  Similar because they were drawn from the same population.  But not identical because they are selected using a random process.**
 
 ## Confidence intervals
 
@@ -82,27 +114,35 @@ There are a few conditions that must be met for this interval to be valid.
 
 3.  For the confidence interval to be valid, the sample mean must be normally 
 distributed and have standard error $s / \sqrt{n}$. What conditions must be 
-met for this to be true?
+met for this to be true? **Obervations are IID and sample is random.**
 
 ## Confidence levels
 
-4.  What does "95% confidence" mean? If you're not sure, see Section 4.2.2.
+4.  What does "95% confidence" mean? If you're not sure, see Section 4.2.2. **If 100 confidence intervals were taken, the population mean would fall within the CI about 95% of the time.**
 
 In this case we have the luxury of knowing the true population mean since we 
 have data on the entire population. This value can be calculated using the 
 following command:
 
 ```{r pop-mean, eval=TRUE}
-mean(population)
+pop_mean <- mean(population)
+pop_mean
 ```
 
 5.  Does your confidence interval capture the true average size of houses in 
 Ames? If you are working on this lab in a classroom, does your neighbor's 
 interval capture this value? 
+```{r, null_prefix=TRUE, echo=FALSE, results='asis'} 
+if(contains(lower, upper, pop_mean)) {
+  paste('**Yes it does.', round(pop_mean,0), 'is between', round(lower,0), 'and', round(upper,0), '.**')
+} else{
+  paste('**No it does not.', round(pop_mean,0), 'is not between', round(lower,0), 'and', round(upper,0), '.**')
+}
+```
 
 6.  Each student in your class should have gotten a slightly different 
 confidence interval. What proportion of those intervals would you expect to 
-capture the true population mean? Why? If you are working in this lab in a 
+capture the true population mean? **95%** Why? **Due to the central limit theorem.**If you are working in this lab in a 
 classroom, collect data on the intervals created by other students in the 
 class and calculate the proportion of intervals that capture the true 
 population mean.
@@ -158,16 +198,38 @@ c(lower_vector[1], upper_vector[1])
 ## On your own
 
 -   Using the following function (which was downloaded with the data set), 
-    plot all intervals. What proportion of your confidence intervals include 
-    the true population mean? Is this proportion exactly equal to the 
-    confidence level? If not, explain why.
-
+    plot all intervals. 
     ```{r plot-ci, eval=TRUE}
     plot_ci(lower_vector, upper_vector, mean(population))
     ```
-
+    
+    What proportion of your confidence intervals include the true population mean?
+    
+    ```{r}
+    n_within <- 0
+    for(i in 1:50){
+      lower <- lower_vector[i]
+      upper <- upper_vector[i]
+      if(contains(lower, upper, pop_mean)){
+        n_within <- n_within + 1
+      }
+    }
+    share_95 <- n_within / 50
+    share_95
+    ```
+    
+    Is this proportion exactly equal to the confidence level?  If not, explain why.
+    
+    ```{r, null_prefix=TRUE, echo=FALSE, results='asis'} 
+      if(share_95 >= .95){
+        print('**Yes**')
+      } else {
+        print('**No.  This is one of the 5% of the times it does not.**')
+      }
+    ```
+    
 -   Pick a confidence level of your choosing, provided it is not 95%. What is 
-    the appropriate critical value?
+    the appropriate critical value? **For a 90% CI the critical value is 1.64.**
 
 -   Calculate 50 confidence intervals at the confidence level you chose in the 
     previous question. You do not need to obtain new samples, simply calculate 
@@ -176,6 +238,33 @@ c(lower_vector[1], upper_vector[1])
     calculate the proportion of intervals that include the true population 
     mean. How does this percentage compare to the confidence level selected for
     the intervals?
+    
+    ```{r tidy = FALSE}
+    for(i in 1:50){
+      samp <- sample(population, n)
+      samp_mean[i] <- mean(samp)
+      samp_sd[i] <- sd(samp)
+    }
+
+    lower_vector <- samp_mean - 1.64 * samp_sd / sqrt(n) 
+    upper_vector <- samp_mean + 1.64 * samp_sd / sqrt(n)
+    
+    plot_ci(lower_vector, upper_vector, pop_mean)
+    
+    n_within <- 0
+    for(i in 1:50){
+      lower <- lower_vector[i]
+      upper <- upper_vector[i]
+      if(contains(lower, upper, pop_mean)){
+        n_within <- n_within + 1
+      }
+    }
+    
+    n_within / 50 
+    ```
+    
+    **There are more CI's that are red (contain the population mean) than above.**
+
 
 <div id="license">
 This is a product of OpenIntro that is released under a [Creative Commons 
