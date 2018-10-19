@@ -59,13 +59,41 @@ Researchers investigating characteristics of gifted children collected data from
 
 (a) Are conditions for inference satisfied? **The N > 30 rule of thumb is satisfied, the children were randomly selected, and the histogram appears to be normally distributed.  I think all conditions have been met.**
 
-(b) Suppose you read online that children first count to 10 successfully when they are 32 months old, on average. Perform a hypothesis test to evaluate if these data provide convincing evidence that the average age at which gifted children first count to 10 successfully is less than the general average of 32 months. Use a significance level of 0.10.
+(b) Suppose you read online that children first count to 10 successfully when they are 32 months old, on average. Perform a hypothesis test to evaluate if these data provide convincing evidence that the average age at which gifted children first count to 10 successfully is less than the general average of 32 months. Use a significance level of 0.10. **$H_0$ is that x_bar >= 32 and $H_a$ is x_bar < 32**
 
-(c) Interpret the p-value in context of the hypothesis test and the data.
+```{r}
+alpha <- 0.10
+n <- 36
+x_bar <- 30.69
+s <- 4.31
+mu <- 32
+
+se_x_bar <- s / sqrt(n)
+
+test_stat <- (x_bar - mu)/se_x_bar
+
+t_alpha <- qt(1-alpha, df = n-1) * -1
+
+p_value <- pt(test_stat, df=n-1)
+  
+if(test_stat < t_alpha){
+  message(paste(test_stat, "is less than", t_alpha, "so reject the null hypothesis (p-value:", p_value, ")"))
+} else {
+  message(paste(test_stat, "is greater than", t_alpha, "so accept the null hypothesis (p-value:", p_value, ")"))
+}
+```
+
+(c) Interpret the p-value in context of the hypothesis test and the data.  **There is a 4% probability that the difference between the two means would be equal to or more extreme than its observed value.**
 
 (d) Calculate a 90% confidence interval for the average age at which gifted children first count to 10 successfully.
+```{r}
+error <- qt(1-alpha, df=n-1) * se_x_bar
+ci_low <- x_bar - error
+ci_high <- x_bar + error
+```
+**Confidence interval: (`r ci_low`, `r ci_high`) or `r x_bar` $\pm$ `r error`**
 
-(e) Do your results from the hypothesis test and the confidence interval agree? Explain.
+(e) Do your results from the hypothesis test and the confidence interval agree? Explain. **Yes since 32 is outside of the confidence interval you would reject the null hypotheses.  it is the same conclusion you reach with the hypothesis test.**
 
 ## 4.26 Gifted children, Part II
 
@@ -75,7 +103,37 @@ Exercise 4.24 describes a study on gifted children. In this study, along with va
 
 (a) Perform a hypothesis test to evaluate if these data provide convincing evidence that the average IQ of mothers of gifted children is different than the average IQ for the population at large, which is 100. Use a significance level of 0.10.
 
+```{r}
+alpha <- 0.10
+n <- 36
+x_bar <- 118.2
+s <- 6.5
+mu <- 100
+
+se_x_bar <- s / sqrt(n)
+
+test_stat <- (x_bar - mu)/se_x_bar
+
+t_alpha <- qt(1-alpha, df = n-1) * -1
+
+p_value <- pt(test_stat, df=n-1)
+  
+if(test_stat < t_alpha){
+  message(paste(test_stat, "is less than", t_alpha, "so reject the null hypothesis (p-value:", p_value, ")"))
+} else {
+  message(paste(test_stat, "is greater than", t_alpha, "so accept the null hypothesis (p-value:", p_value, ")"))
+}
+```
+
 (b) Calculate a 90% confidence interval for the average IQ of mothers of gifted children.
+
+```{r}
+error <- qt(1-alpha, df=n-1) * se_x_bar
+ci_low <- x_bar - error
+ci_high <- x_bar + error
+```
+
+**Confidence interval: (`r ci_low`, `r ci_high`) or `r x_bar` $\pm$ `r error`**
 
 (c) Do your results from the hypothesis test and the confidence interval agree? Explain.
 
@@ -96,13 +154,13 @@ x <- 10500
 1 - pnorm(x, mu, sd)
 ```
 
-(b) Describe the distribution of the mean lifespan of 15 light bulbs. **Centered around 9,000 hours.**
+(b) Describe the distribution of the mean lifespan of 15 light bulbs. **Normal and centered around 9,000 hours.**
 
-(c) What is the probability that the mean lifespan of 15 randomly chosen light bulbs is more than 10,500 hours? **It would be roughly 0.067**
+(c) What is the probability that the mean lifespan of 15 randomly chosen light bulbs is more than 10,500 hours? 
 
 (d) Sketch the two distributions (population and sampling) on the same scale.
 
-(e) Could you estimate the probabilities from parts (a) and (c) if the lifespans of light bulbs had a skewed distribution? **Yes, but not using the above method.**
+(e) Could you estimate the probabilities from parts (a) and (c) if the lifespans of light bulbs had a skewed distribution? **Not using the above method.**
 
 ## 4.48 Same observation, different sample size
 
