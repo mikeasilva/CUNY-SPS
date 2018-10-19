@@ -172,7 +172,7 @@ pop <- rnorm(1000000, mu, sd)
 sample_pop <- sample(pop, 15)
 data <-  rbind(data.frame(x=pop, Distribution=c('Population')), data.frame(x=sample_pop, Distribution=c('Sampling')))
 
-ggplot(data, aes(x=x,color=Distribution)) + geom_density()
+ggplot(data, aes(x=x,color=Distribution)) + geom_density() + theme(axis.title.x = element_blank())
 ```
 
 (e) Could you estimate the probabilities from parts (a) and (c) if the lifespans of light bulbs had a skewed distribution? **Not using the above method.**
