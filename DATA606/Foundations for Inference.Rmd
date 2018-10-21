@@ -62,38 +62,64 @@ Researchers investigating characteristics of gifted children collected data from
 (b) Suppose you read online that children first count to 10 successfully when they are 32 months old, on average. Perform a hypothesis test to evaluate if these data provide convincing evidence that the average age at which gifted children first count to 10 successfully is less than the general average of 32 months. Use a significance level of 0.10. **$H_0$ is that x_bar >= 32 and $H_a$ is x_bar < 32**
 
 ```{r}
-alpha <- 0.10
+confidence_level <- 0.10
 n <- 36
 x_bar <- 30.69
-s <- 4.31
+sigma <- 4.31
 mu <- 32
 
-se_x_bar <- s / sqrt(n)
+se_x_bar <- sigma / sqrt(n)
 
-test_stat <- (x_bar - mu)/se_x_bar
+z <- (x_bar - mu) / se_x_bar
 
-t_alpha <- qt(1-alpha, df = n-1) * -1
+z_score_for_confidence_level <- 1.645
 
-p_value <- pt(test_stat, df=n-1)
-  
-if(test_stat < t_alpha){
-  message(paste(test_stat, "is less than", t_alpha, "so reject the null hypothesis (p-value:", p_value, ")"))
+p_value <- pnorm(z, mean=0, sd=1) * 2
+
+if(z < z_score_for_confidence_level){
+  message(paste(round(z, 3), "is less than", z_score_for_confidence_level, "so reject the null hypothesis (p-value:", round(p_value, 3), ")"))
 } else {
-  message(paste(test_stat, "is greater than", t_alpha, "so accept the null hypothesis (p-value:", p_value, ")"))
+  message(paste(round(z, 3), "is not less than", z_score_for_confidence_level, "so do not reject the null hypothesis (p-value:", round(p_value, 3), ")"))
 }
 ```
 
-(c) Interpret the p-value in context of the hypothesis test and the data.  **There is a 4% probability that the difference between the two means would be equal to or more extreme than its observed value.**
+(c) Interpret the p-value in context of the hypothesis test and the data.  **There is a 0.068 probability that the difference between these two means was due to chance.**
 
 (d) Calculate a 90% confidence interval for the average age at which gifted children first count to 10 successfully.
 ```{r}
-error <- qt(1-alpha, df=n-1) * se_x_bar
+# Same method as http://onlinestatbook.com/2/calculators/inverse_normal_dist.html
+zinv <- function(p) {
+	if (p >= 1 || p <= 0) {
+		return(FALSE)
+	}
+	if (p < .5) {
+		t <- p
+		theSign <- -1
+	}
+	else {
+		t <- 1 - p
+		theSign <- 1
+	}
+	
+	v <- sqrt(-2.0 * log(t))
+	x <- 2.515517 + (v * (0.802853 + v * 0.010328))
+	y <- 1 + (v * (1.432788 + v * (0.189269  + v * 0.001308)))
+	Q <- theSign * (v - (x / y))
+	return(Q)
+}
+
+p <- 1 - confidence_level
+x1 <- x_bar + sigma * zinv(p)
+p2 <- p / 2
+x1 <- zinv(.5 - p2)
+
+error <- sigma * -x1
 ci_low <- x_bar - error
 ci_high <- x_bar + error
 ```
 **Confidence interval: (`r ci_low`, `r ci_high`) or `r x_bar` $\pm$ `r error`**
 
-(e) Do your results from the hypothesis test and the confidence interval agree? Explain. **Yes since 32 is outside of the confidence interval you would reject the null hypotheses.  it is the same conclusion you reach with the hypothesis test.**
+(e) Do your results from the hypothesis test and the confidence interval agree? Explain. **No.  Since 32 is inside of the confidence interval you would not reject the null hypotheses.  It is the opposite conclusion you reach with the hypothesis test, which indicates to me that I did something wrong.**
 
 ## 4.26 Gifted children, Part II
 
@@ -104,38 +130,43 @@ Exercise 4.24 describes a study on gifted children. In this study, along with va
 (a) Perform a hypothesis test to evaluate if these data provide convincing evidence that the average IQ of mothers of gifted children is different than the average IQ for the population at large, which is 100. Use a significance level of 0.10.
 
 ```{r}
-alpha <- 0.10
+confidence_level <- 0.10
 n <- 36
 x_bar <- 118.2
-s <- 6.5
+sigma <- 6.5
 mu <- 100
 
-se_x_bar <- s / sqrt(n)
+se_x_bar <- sigma / sqrt(n)
 
-test_stat <- (x_bar - mu)/se_x_bar
+z <- (x_bar - mu) / se_x_bar
 
-t_alpha <- qt(1-alpha, df = n-1) * -1
+z_score_for_confidence_level <- 1.645
 
-p_value <- pt(test_stat, df=n-1)
-  
-if(test_stat < t_alpha){
-  message(paste(test_stat, "is less than", t_alpha, "so reject the null hypothesis (p-value:", p_value, ")"))
+p_value <- pnorm(z, mean=0, sd=1) 
+
+if(z < z_score_for_confidence_level){
+  message(paste(round(z, 3), "is less than", z_score_for_confidence_level, "so reject the null hypothesis (p-value:", round(p_value, 3), ")"))
 } else {
-  message(paste(test_stat, "is greater than", t_alpha, "so accept the null hypothesis (p-value:", p_value, ")"))
+  message(paste(round(z, 3), "is not less than", z_score_for_confidence_level, "so do not reject the null hypothesis (p-value:", round(p_value, 3), ")"))
 }
 ```
 
 (b) Calculate a 90% confidence interval for the average IQ of mothers of gifted children.
 
 ```{r}
-error <- qt(1-alpha, df=n-1) * se_x_bar
+p <- 1 - confidence_level
+x1 <- x_bar + sigma * zinv(p)
+p2 <- p / 2
+x1 <- zinv(.5 - p2)
+
+error <- sigma * -x1
 ci_low <- x_bar - error
 ci_high <- x_bar + error
 ```
 
 **Confidence interval: (`r ci_low`, `r ci_high`) or `r x_bar` $\pm$ `r error`**
 
-(c) Do your results from the hypothesis test and the confidence interval agree? Explain.
+(c) Do your results from the hypothesis test and the confidence interval agree? Explain. **No. 100 lies outside the CI which would suggest that we should reject the null hypothesis, but the hypothesis test disagrees.  Again it would appear there is something wrong with my understanding as both should lead you to the same conclusion.**
 
 ## 4.34 CLT
 
