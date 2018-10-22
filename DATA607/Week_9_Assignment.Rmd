@@ -1,0 +1,47 @@
+---
+title: "CUNY SPS DATA-607 Week 9 Assignment"
+author: "Mike Silva"
+date: "22 October 2018"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+---
+
+## Description
+
+The assignment is to choose one of the New York Times APIs, construct an interface in R to read in the JSON data, and transform it to an R dataframe.
+
+## Data Acquisition
+
+I have chosen to pull the top stories from the upshot section of the paper.  I will request the data from the API
+
+```{r}
+library(httr)
+# Load my API key into api_key
+source('hidden/NYT API.R')
+url <- paste0('https://api.nytimes.com/svc/topstories/v2/upshot.json?api-key=', api_key)
+response <- GET(url)
+```
+
+## Data Transformation
+
+Now the JSON response needs to be transformed into a data frame:
+
+```{r, message=FALSE}
+library(jsonlite)
+json <- fromJSON(content(response, as = "text"))
+df <- data.frame(json$results)
+```
+
+## Results
+
+The following is the data pulled from the New York Times API:
+
+##### Table 1. Response from the API
+```{r, echo=FALSE, message=FALSE}
+library(kableExtra)
+library(dplyr)
+df %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive"))
+```
