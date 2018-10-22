@@ -17,9 +17,9 @@ I have chosen to pull the top stories from the upshot section of the paper.  I w
 
 ```{r}
 library(httr)
-# Load my API key into api_key
-source('hidden/NYT API.R')
-url <- paste0('https://api.nytimes.com/svc/topstories/v2/upshot.json?api-key=', api_key)
+source("hidden/NYT API.R") # Load my API key into api_key
+base_url <- "https://api.nytimes.com/svc/topstories/v2/upshot.json"
+url <- paste0(base_url, "?api-key=", api_key)
 response <- GET(url)
 ```
 
@@ -30,7 +30,7 @@ Now the JSON response needs to be transformed into a data frame:
 ```{r, message=FALSE}
 library(jsonlite)
 json <- fromJSON(content(response, as = "text"))
-df <- data.frame(json$results)
+df <- data.frame( json$results )
 ```
 
 ## Results
