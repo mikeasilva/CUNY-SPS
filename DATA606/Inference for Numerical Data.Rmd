@@ -1,0 +1,73 @@
+---
+title: "Inference for Numerical Data"
+author: "Mike Silva"
+date: "October 22, 2018"
+output:
+  html_document:
+    theme: yeti
+    highlight: tango
+    toc: true
+    toc_depth: 2
+    toc_float: true
+---
+
+## 5.6 Working backwards, Part II
+
+A 90% confidence interval for a population mean is (65, 77).  The population distribution is approximately normal and the population standard deviation is unknown.  This confidence interval is based on a simple random sample of 25 observations.  Calculate the sample mean, the margin of error, and the sample standard deviation.
+
+## 5.14 SAT scores
+
+SAT scores of students at an Ivy League college are distributed with a standard deviation of 250 points. Two statistics students, Raina and Luke, want to estimate the
+average SAT score of students at this college as part of a class project. They want their margin of error to be no more than 25 points.
+
+(a) Raina wants to use a 90% confidence interval. How large a sample should she collect?
+
+(b) Luke wants to use a 99% confidence interval. Without calculating the actual sample size, determine whether his sample should be larger or smaller than Raina’s, and explain your reasoning.
+
+(c) Calculate the minimum required sample size for Luke.
+
+## 5.20 High School and Beyond, Part I
+
+The National Center of Education Statistics conducted a survey of high school seniors, collecting test data on reading, writing, and several other subjects.  Here we examine a simple random sample of 200 students from this survey.  Side-by-side box plots of reading and writing scores as well as a histogram of the differences in scores are shown below.
+
+![ ](https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA606/Figures/5_20.png)
+
+(a) Is there a clear difference in the average reading and writing scores?
+
+(b) Are the reading and writing scores of each student independent of each other?
+
+(c) Create hypotheses appropriate for the following research question: is there an evident difference in the average scores of students in the reading and writing exam?
+
+(d) Check the conditions required to complete this test.
+
+(e) The average observed difference in scores is $\bar{x}_{read−write}$ = −0.545, and the standard deviation of the differences is 8.887 points.  Do these data provide convincing evidence of a difference between the average scores on the two exams?
+
+(f) What type of error might we have made? Explain what the error means in the context of the application.
+
+(g) Based on the results of this hypothesis test, would you expect a confidence interval for the average difference between the reading and writing scores to include 0? Explain your reasoning.
+
+## 5.32 Fuel efficiency of manual and automatic cars, Part I 
+
+Each year the US Environmental Protection Agency (EPA) releases fuel economy data on cars manufactured in that year.  Below are summary statistics on fuel efficiency (in miles/gallon) from random samples of cars with manual and automatic transmissions manufactured in 2012.  Do these data provide strong evidence of a difference between the average fuel efficiency of cars with manual and automatic transmissions in terms of their average city mileage?  Assume that conditions for inference are satisfied.
+
+![ ](https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA606/Figures/5_32.png)
+
+## 5.48 Work hours and education
+
+The General Social Survey collects data on demographics, education, and work, among many other characteristics of US residents.  Using ANOVA, we can consider educational attainment levels for all 1,172 respondents at once.  Below are the distributions
+of hours worked by educational attainment and relevant summary statistics that will be helpful in carrying out this analysis.
+
+(a) Write hypotheses for evaluating whether the average number of hours worked varies across the five groups.
+
+(b) Check conditions and describe any assumptions you must make to proceed with the test.
+
+(c) Below is part of the output associated with this test. Fill in the empty cells.
+
+
+|           |  Df | Sum Sq  | Mean Sq | F value | Pr(>F) |
+|-----------|-----|---------|---------|---------|--------|
+| degree    |** **| ** **   | 501.54  | ** **   | 0.0682 |
+| Residuals |** **| 267,382 | ** **   |         |        |
+| Total     |** **| ** **   |         |         |        |
+
+(d) What is the conclusion of the test?
