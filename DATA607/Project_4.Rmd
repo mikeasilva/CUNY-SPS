@@ -42,14 +42,51 @@ if(!dir.exists("data/easy_ham_2")){
 }
 ```
 
-## Approach
+## Processing Pipeline
+
+### Train/Test Split
+
+First we are going to split the data into training and testing sets using an 80:20 split. 
 
 ```{r}
-spam_docs <- list.files("data/spam_2")
-ham_docs <- list.files("data/easy_ham_2")
+set.seed(12345)
+training_percent <- 0.8
+
+train_test_split <- function(data, training_percent){
+  n <- round(length(data)*training_percent, digits = 0)
+  train <- sort(sample(data, n, replace = FALSE))
+  test <- data[!data %in% train]
+  return(list(test=test, train=train))
+}
+
+spam <- train_test_split(list.files("data/spam_2"), training_percent)
+ham <- train_test_split(list.files("data/easy_ham_2"), training_percent)
 ```
 
-## Processing Pipeline
+The following table summarizes the number of messages included in each set:
+
+##### Table 1. Spam and Ham Message Counts by Data Set
+|      |       Training       |        Testing      |
+|------|----------------------|---------------------|
+| Spam |`r length(spam$train)`|`r length(spam$test)`|
+| Ham  |`r length(ham$train)` |`r length(ham$test)` |
+
+### Pull out Email Contents
+
+This model will classify only on the basis of the content.  The header information will not be taken into consideration.  In order to illustrate the process I will take the first message in the spam training set as an example.
+
+```{r}
+example_file <- spam$train[1]
+
+get_email_contents <- function(file_name, path){
+ full_path = paste0(path, file_name)
+ con <- file(full_path)
+ readLines(con)
+}
+
+
+
+```
 
 ### Split up Sentance
 
