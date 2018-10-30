@@ -15,16 +15,63 @@ output:
 
 A 90% confidence interval for a population mean is (65, 77).  The population distribution is approximately normal and the population standard deviation is unknown.  This confidence interval is based on a simple random sample of 25 observations.  Calculate the sample mean, the margin of error, and the sample standard deviation.
 
+```{r}
+# Sample mean is midpoint of the confidence interval endpoints
+x_bar <- mean(c(65,77))
+
+# Margin of error is the difference between the midpoint and the CI endpoints
+moe <- 77 - x_bar
+```
+
+$`r x_bar` \pm `r moe` = \bar{x} \pm Z \frac{s}{\sqrt{n}}$
+
+Given z = 1.645 and n = 25
+
+$`r moe` = 1.645 \frac{s}{\sqrt{25}} \rightarrow `r moe` = 1.645 \frac{s}{5} \rightarrow `r 5*moe` = 8.225 \times s \rightarrow s = \frac{`r 5*moe`}{8.225} \rightarrow s = `r (5*moe)/8.225`$
+
+```{r}
+# Given
+z <- 1.645 # 90% confidence interval z-score
+n <- 25
+
+# Sample standard deviation (s)
+s <- (sqrt(n) * moe) / (sqrt(n) * z)
+```
+
+**Sample mean: `r x_bar`;  Margin of Error: `r moe`; Sample Standard Deviation: `r s`;**
+
 ## 5.14 SAT scores
 
 SAT scores of students at an Ivy League college are distributed with a standard deviation of 250 points. Two statistics students, Raina and Luke, want to estimate the
 average SAT score of students at this college as part of a class project. They want their margin of error to be no more than 25 points.
 
-(a) Raina wants to use a 90% confidence interval. How large a sample should she collect?
+(a) Raina wants to use a 90% confidence interval. How large a sample should she collect? 
+```{r 90_ci_sample_size_Q5_14}
+z <- 1.645 # 90% confidence interval z-score
+sigma <- 250
+moe <- 25
 
-(b) Luke wants to use a 99% confidence interval. Without calculating the actual sample size, determine whether his sample should be larger or smaller than Raina’s, and explain your reasoning.
+n <- ((z*sigma)/moe)^2
+```
+
+**Sample Size: `r n`**
+
+$25 = 1.645 \frac{250}{\sqrt{n}} \rightarrow 25 = \frac{411.25}{\sqrt{n}} \rightarrow 1 = \frac{16.45}{\sqrt{n}} \rightarrow \sqrt{n} = 16.45 \rightarrow n = \pm 270.6025$
+
+(b) Luke wants to use a 99% confidence interval. Without calculating the actual sample size, determine whether his sample should be larger or smaller than Raina’s, and explain your reasoning. **Larger.  In order to have a higher confidence we would need a larger sample size.**
 
 (c) Calculate the minimum required sample size for Luke.
+collect? 
+
+```{r 99_ci_sample_size_Q5_14}
+z <- 2.58 # 99% confidence interval z-score
+sigma <- 250
+moe <- 25
+
+n <- ((z*sigma)/moe)^2
+```
+
+**Sample Size: `r n`**
 
 ## 5.20 High School and Beyond, Part I
 
@@ -32,19 +79,33 @@ The National Center of Education Statistics conducted a survey of high school se
 
 ![ ](https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA606/Figures/5_20.png)
 
-(a) Is there a clear difference in the average reading and writing scores?
+(a) Is there a clear difference in the average reading and writing scores? **Yes the reading score appears to be lower with more variation than the writing score.**
 
-(b) Are the reading and writing scores of each student independent of each other?
+(b) Are the reading and writing scores of each student independent of each other? **No because the same student takes both tests.**
 
-(c) Create hypotheses appropriate for the following research question: is there an evident difference in the average scores of students in the reading and writing exam?
+(c) Create hypotheses appropriate for the following research question: is there an evident difference in the average scores of students in the reading and writing exam? **$H_0 = \bar{x}_\text{read} - \bar{x}_\text{write} = 0$  and $H_A = \bar{x}_\text{read} - \bar{x}_\text{write} != 0$**
 
-(d) Check the conditions required to complete this test.
+(d) Check the conditions required to complete this test. **Both distributions appear to be normally distributed and centered around zero.  The number of observations is larger than 30.**
 
-(e) The average observed difference in scores is $\bar{x}_{read−write}$ = −0.545, and the standard deviation of the differences is 8.887 points.  Do these data provide convincing evidence of a difference between the average scores on the two exams?
+(e) The average observed difference in scores is $\bar{x}_{read−write}$ = −0.545, and the standard deviation of the differences is 8.887 points.  Do these data provide convincing evidence of a difference between the average scores on the two exams? **The p-value suggests we should not reject the null hypothesis**
 
-(f) What type of error might we have made? Explain what the error means in the context of the application.
+```{r}
+x_bar <- -0.545
+sigma <- 8.887
+n <- 200
+z <- (x_bar)/(sigma/sqrt(n))
+1.96 * pnorm(-abs(z))
+```
+
+(f) What type of error might we have made? Explain what the error means in the context of the application.**A type II error.  We beleive there isn't a difference when there is.**
 
 (g) Based on the results of this hypothesis test, would you expect a confidence interval for the average difference between the reading and writing scores to include 0? Explain your reasoning.
+
+**Yes.  Using an confidence level of 95%, the margin of error is:**
+
+$MOE = Z\frac{s}{\sqrt{n}} \rightarrow MOE = 1.96\frac{8.887}{\sqrt{200}} \rightarrow MOE = 1.231675$
+
+**Therefore the confidence interval is `r -0.545 - 1.231675` to `r -0.545 + 1.231675` which contains zero, so we cannot reject the null hypothesis.**
 
 ## 5.32 Fuel efficiency of manual and automatic cars, Part I 
 
@@ -52,22 +113,42 @@ Each year the US Environmental Protection Agency (EPA) releases fuel economy dat
 
 ![ ](https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA606/Figures/5_32.png)
 
+```{r}
+x_bar_automatic <- 16.12
+s_automatic <- 3.58
+n_automatic <- 26
+x_bar_manual <- 19.85
+s_manual <- 4.51
+n_manual <- 26
+point_estimate <- x_bar_automatic - x_bar_manual
+df <- n_automatic - 1
+se <- sqrt(((s_automatic^2)/n_automatic) + ((s_manual^2)/n_manual))
+t_value <- point_estimate/se
+critical_t <- pt(t_value, df)
+
+c(point_estimate + (critical_t * 1.95), point_estimate - (critical_t * 1.95)) 
+```
+
+**The difference is roughly -3.727 and -3.733 mpg.**
+
 ## 5.48 Work hours and education
 
 The General Social Survey collects data on demographics, education, and work, among many other characteristics of US residents.  Using ANOVA, we can consider educational attainment levels for all 1,172 respondents at once.  Below are the distributions
 of hours worked by educational attainment and relevant summary statistics that will be helpful in carrying out this analysis.
 
-(a) Write hypotheses for evaluating whether the average number of hours worked varies across the five groups.
+![ ](https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA606/Figures/5_48.png)
 
-(b) Check conditions and describe any assumptions you must make to proceed with the test.
+(a) Write hypotheses for evaluating whether the average number of hours worked varies across the five groups. **H0: $\mu$1 = $\mu$2 = $\mu$3 = $\mu$4 = $\mu$5 and HA: The average varies across some or all groups.**
+
+(b) Check conditions and describe any assumptions you must make to proceed with the test. **Independent, normaly distributed observations across groups.**
 
 (c) Below is part of the output associated with this test. Fill in the empty cells.
 
 
-|           |  Df | Sum Sq  | Mean Sq | F value | Pr(>F) |
-|-----------|-----|---------|---------|---------|--------|
-| degree    |** **| ** **   | 501.54  | ** **   | 0.0682 |
-| Residuals |** **| 267,382 | ** **   |         |        |
-| Total     |** **| ** **   |         |         |        |
+|           |    Df   | Sum Sq  | Mean Sq | F value | Pr(>F) |
+|-----------|---------|---------|---------|---------|--------|
+| degree    |**     **| ** **   | 501.54  | ** **   | 0.0682 |
+| Residuals |**     **| 267,382 | ** **   |         |        |
+| Total     |**1,172**| ** **   |         |         |        |
 
-(d) What is the conclusion of the test?
+(d) What is the conclusion of the test? **We cannot reject the null hypothesis.**
