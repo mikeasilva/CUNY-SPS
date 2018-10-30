@@ -138,7 +138,7 @@ of hours worked by educational attainment and relevant summary statistics that w
 
 ![ ](https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA606/Figures/5_48.png)
 
-(a) Write hypotheses for evaluating whether the average number of hours worked varies across the five groups. **H0: $\mu$1 = $\mu$2 = $\mu$3 = $\mu$4 = $\mu$5 and HA: The average varies across some or all groups.**
+(a) Write hypotheses for evaluating whether the average number of hours worked varies across the five groups. **H0: $\mu_1$ = $\mu_2$ = $\mu_3$ = $\mu_4$ = $\mu_5$ and HA: The average varies across some or all groups.**
 
 (b) Check conditions and describe any assumptions you must make to proceed with the test. **Independent, normaly distributed observations across groups.**
 
@@ -147,8 +147,8 @@ of hours worked by educational attainment and relevant summary statistics that w
 
 |           |    Df   | Sum Sq  | Mean Sq | F value | Pr(>F) |
 |-----------|---------|---------|---------|---------|--------|
-| degree    |**     **| ** **   | 501.54  | ** **   | 0.0682 |
-| Residuals |**     **| 267,382 | ** **   |         |        |
-| Total     |**1,172**| ** **   |         |         |        |
+| degree    |         |         | 501.54  |         | 0.0682 |
+| Residuals |         | 267,382 |         |         |        |
+| Total     |**1,172**|         |         |         |        |
 
 (d) What is the conclusion of the test? **We cannot reject the null hypothesis.**
