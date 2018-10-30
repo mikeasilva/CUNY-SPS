@@ -143,12 +143,27 @@ of hours worked by educational attainment and relevant summary statistics that w
 (b) Check conditions and describe any assumptions you must make to proceed with the test. **Independent, normaly distributed observations across groups.**
 
 (c) Below is part of the output associated with this test. Fill in the empty cells.
+```{r}
+mu <- c(38.67, 39.6, 41.39, 42.55, 40.85)
+sd <- c(15.81, 14.97, 18.1, 13.62, 15.51)
+n <- c(121, 546, 97, 253, 155)
+
+n <- 1172
+k <- 5
+Prf <- 0.0682
+f_value <- qf( 1 - Prf, k-1 , n-k)
+
+# Get missing values
+sum_sq <- 501.54 * (k-1)
+mean_sq <- 267382 / (n-k)
+total <- sum_sq + 267382
+```
 
 
-|           |    Df   | Sum Sq  | Mean Sq | F value | Pr(>F) |
-|-----------|---------|---------|---------|---------|--------|
-| degree    |         |         | 501.54  |         | 0.0682 |
-| Residuals |         | 267,382 |         |         |        |
-| Total     |**1,172**|         |         |         |        |
+|           |      Df     |    Sum Sq    |    Mean Sq    |    F value     | Pr(>F) |
+|-----------|-------------|--------------|---------------|----------------|--------|
+| degree    |**`r k-1 ` **|**`r sum_sq`**|    501.54     | **`r f_value`**| 0.0682 |
+| Residuals |**`r n-k` ** |    267,382   |**`r mean_sq`**|                |        |
+| Total     |  **1,172**  |**269388.16** |               |                |        |
 
 (d) What is the conclusion of the test? **We cannot reject the null hypothesis.**
