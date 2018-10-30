@@ -1,0 +1,59 @@
+---
+title: "Document Classification"
+date: "29 October 2018"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+---
+
+## Description
+
+This project seeks to build a classifier that can predict if an email is spam or ham.  It will be using the Apache Spam Assassin public corpus as the dataset.
+
+### Data Aquisition
+
+The first step is to download the files.  I am selecting the most recent releases of spam and easy ham.
+
+```{r file_download}
+if(!file.exists("data/20050311_spam_2.tar.bz2") && !file.exists("data/20050311_spam_2.tar")){
+  download.file("https://spamassassin.apache.org/old/publiccorpus/20050311_spam_2.tar.bz2", "data/20050311_spam_2.tar.bz2")
+}
+
+if(!file.exists("data/20030228_easy_ham_2.tar.bz2") & !file.exists("data/20030228_easy_ham_2.tar")){
+  download.file("https://spamassassin.apache.org/old/publiccorpus/20030228_easy_ham_2.tar.bz2", "data/20030228_easy_ham_2.tar.bz2")
+}
+```
+
+Now that the files have been aquired, they need to be decompressed.
+
+```{r decompress_files}
+if(!dir.exists("data/spam_2")){
+  R.utils::bunzip2("data/20050311_spam_2.tar.bz2", "data/20050311_spam_2.tar")
+  untar("data/20050311_spam_2.tar", exdir = "data")
+  # Delete the cmds file
+  unlink("data/spam_2/cmds")
+}
+
+if(!dir.exists("data/easy_ham_2")){
+  R.utils::bunzip2("data/20030228_easy_ham_2.tar.bz2", "data/20030228_easy_ham_2.tar")
+  untar("data/20030228_easy_ham_2.tar", exdir = "data")
+  # Delete the cmds file
+  unlink("data/easy_ham_2/cmds")
+}
+```
+
+## Approach
+
+```{r}
+spam_docs <- list.files("data/spam_2")
+ham_docs <- list.files("data/easy_ham_2")
+```
+
+## Processing Pipeline
+
+### Split up Sentance
+
+### Remove Punctuation and Stop Words
+
+### Stemming
+
