@@ -6,11 +6,50 @@ output:
     highlight: kate
 ---
 
+```{r init, echo=FALSE, message=FALSE}
+library(dplyr)
+library(rmdformats)
+library(kableExtra)
+
+# A Prefix nulling hook.
+# Taken from https://stackoverflow.com/questions/22524822/how-can-i-remove-the-prefix-index-indicator-1-in-knitr-output
+
+# Make sure to keep the default for normal processing.
+default_output_hook <- knitr::knit_hooks$get("output")
+
+# Output hooks handle normal R console output.
+knitr::knit_hooks$set(output = function(x, options) {
+
+  comment <- knitr::opts_current$get("comment")
+  if (is.na(comment)) comment <- ""
+  can_null <- grepl( paste0( comment, "\\s*\\[\\d?\\]" ),
+                     x, perl = TRUE)
+  do_null <- isTRUE( knitr::opts_current$get("null_prefix") )
+  if (can_null && do_null) {
+    # By default R print output aligns at the right brace.
+    align_index <- regexpr( "\\]", x )[1] - 1
+    # Two cases: start or newline
+    re <- paste0( "^.{", align_index, "}\\]")
+    rep <- comment
+    x <- gsub( re, rep,  x )
+    re <- paste0( "\\\n.{", align_index, "}\\]")
+    rep <- paste0( "\n", comment )
+    x <- gsub( re, rep,  x )
+    # I added this line
+    x <- gsub( "##", "", x)
+  }
+
+  default_output_hook( x, options )
+})
+
+knitr::opts_template$set("kill_prefix" = list(comment = NA, null_prefix = TRUE))
+```
+
 ## Description
 
 This project seeks to build a classifier that can predict if an email is spam or ham.  It will be using the Apache Spam Assassin public corpus as the dataset.
 
-### Data Aquisition
+### Data Acquisition
 
 The first step is to download the files.  I am selecting the most recent releases of spam and easy ham.
 
@@ -24,7 +63,7 @@ if(!file.exists("data/20030228_easy_ham_2.tar.bz2") & !file.exists("data/2003022
 }
 ```
 
-Now that the files have been aquired, they need to be decompressed.
+Now that the files have been acquired, they need to be decompressed.
 
 ```{r decompress_files}
 if(!dir.exists("data/spam_2")){
@@ -73,24 +112,83 @@ The following table summarizes the number of messages included in each set:
 
 ### Pull out Email Contents
 
-This model will classify only on the basis of the content.  The header information will not be taken into consideration.  In order to illustrate the process I will take the first message in the spam training set as an example.
+This model will classify only on the basis of the content.  The header information will not be taken into consideration.  In order to illustrate the process I will take the first message in the spam training set as an example.  Here's what the file looks like:
 
-```{r}
+##### Table 2. Preview of Spam Email Message
+```{r spam_preview, null_prefix=TRUE, echo=FALSE}
 example_file <- spam$train[1]
-
-get_email_contents <- function(file_name, path){
- full_path = paste0(path, file_name)
- con <- file(full_path)
- readLines(con)
-}
-
-
-
+full_path <- paste0("data/spam_2/", example_file)
+con <- file(full_path)
+print(readLines(con), quote = FALSE)
 ```
 
-### Split up Sentance
+The message is split into two parts: the header and the body of the message.  Since we want to analyze the body of the email one observes it is seperated from the header by a blank line.  This will be how we will determine where the body of the message begins.
 
-### Remove Punctuation and Stop Words
+### Approach
 
-### Stemming
+In order to process a message body I will remove all punctuation
 
+### Remove Punctuation
+
+```{r get_message, message=FALSE}
+library(dplyr)
+library(tidytext)
+
+stem_hunspell <- function(term) {
+  # Taken from https://cran.r-project.org/web/packages/corpus/vignettes/stemmer.html
+  # look up the term in the dictionary
+  stems <- hunspell::hunspell_stem(term)[[1]]
+  if (length(stems) == 0) { # if there are no stems, use the original term
+    stem <- term
+  } else { # if there are multiple stems, use the last one
+    stem <- stems[[length(stems)]]
+  }
+  stem
+}
+
+get_message <- function(full_path){
+  message <- ''
+  header_finished <- FALSE
+  # Open the file
+  con <- file(full_path, blocking = FALSE)
+  # Go line by line
+  for(line in readLines(con)){
+    # Order matters.  I don't want to lead with the blank line between the header
+    if(header_finished){
+      message <- paste(message, line)
+    }
+    # Look for the end of the header
+    if(line == ""){
+      header_finished <- TRUE
+    }
+  }
+  # Close the connection to the file
+  close(con)
+  
+  # Change text to lower case 
+  message <- tolower(message)
+  # Remove all punctuation
+  message <- gsub("[[:punct:][:blank:]]+", " ", message)
+  # Tokenize message
+  words <- scan_tokenizer(message)
+  # Remove stop words
+  stop_words <- tm::stopwords()
+  words <- words[!words %in% stop_words]
+  # Stem words using hunspell
+  words <- unlist(lapply(words, stem_hunspell))
+  
+  return(words)
+}
+
+full_path <- paste0("data/spam_2/", example_file)
+
+bag_of_words <- get_message(full_path)
+df <- data.frame(word = bag_of_words, count = c(1)) %>%
+  group_by(word) %>%
+  summarise(count = sum(count)) %>%
+  ungroup() %>%
+  mutate(file = example_file, type = "spam")
+```
+
+
+## TF-IDF Normalization
