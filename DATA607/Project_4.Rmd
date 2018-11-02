@@ -146,8 +146,9 @@ stem_hunspell <- function(term) {
   stem
 }
 
-get_message <- function(full_path){
+process_message <- function(full_path){
   message <- ''
+  n_lines <- 0
   header_finished <- FALSE
   # Open the file
   con <- file(full_path, blocking = FALSE)
@@ -155,6 +156,7 @@ get_message <- function(full_path){
   for(line in readLines(con)){
     # Order matters.  I don't want to lead with the blank line between the header
     if(header_finished){
+      n_lines <- n_lines + 1
       message <- paste(message, line)
     }
     # Look for the end of the header
@@ -166,28 +168,31 @@ get_message <- function(full_path){
   close(con)
   
   # Change text to lower case 
-  message <- tolower(message)
+  n_characters <- nchar(message)
+  lower_message <- tolower(message)
+  n_capital_letters <- adist(message, lower_message)[[1]]
   # Remove all punctuation
-  message <- gsub("[[:punct:][:blank:]]+", " ", message)
+  clean_message <- gsub("[[:punct:][:blank:]]+", " ", lower_message)
+  n_punctuation_marks <- adist(lower_message, clean_message)[[1]]
   # Tokenize message
-  words <- scan_tokenizer(message)
+  words <- tm::scan_tokenizer(clean_message)
   # Remove stop words
-  stop_words <- tm::stopwords()
-  words <- words[!words %in% stop_words]
+  #stop_words <- tm::stopwords()
+  #words <- words[!words %in% stop_words]
   # Stem words using hunspell
-  words <- unlist(lapply(words, stem_hunspell))
+  #words <- unlist(lapply(words, stem_hunspell))
   
-  return(words)
+  return(list(words = words, characters = n_characters, capital_letters = n_capital_letters, punctuation_marks = n_punctuation_marks, lines = n_lines))
 }
 
 full_path <- paste0("data/spam_2/", example_file)
 
-bag_of_words <- get_message(full_path)
-df <- data.frame(word = bag_of_words, count = c(1)) %>%
-  group_by(word) %>%
-  summarise(count = sum(count)) %>%
-  ungroup() %>%
-  mutate(file = example_file, type = "spam")
+results <- process_message(full_path)
+#df <- data.frame(word = bag_of_words, count = c(1)) %>%
+#  group_by(word) %>%
+#  summarise(count = sum(count)) %>%
+#  ungroup() %>%
+#  mutate(file = example_file, type = "spam")
 ```
 
 
