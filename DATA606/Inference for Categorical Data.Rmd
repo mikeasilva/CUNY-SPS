@@ -16,33 +16,51 @@ output:
 On June 28, 2012 the U.S. Supreme Court upheld the much debated 2010 healthcare law, declaring it constitutional. A Gallup poll released the day after this decision
 indicates that 46% of 1,012 Americans agree with this decision. At a 95% confidence level, this sample has a 3% margin of error. Based on this information, determine if the following statements are true or false, and explain your reasoning.
 
-(a) We are 95% confident that between 43% and 49% of Americans in this sample support the decision of the U.S. Supreme Court on the 2010 healthcare law.
+(a) We are 95% confident that between 43% and 49% of Americans in this sample support the decision of the U.S. Supreme Court on the 2010 healthcare law.**False.  The CI applies to the population not the sample.**
 
-(b) We are 95% confident that between 43% and 49% of Americans support the decision of the U.S. Supreme Court on the 2010 healthcare law.
+(b) We are 95% confident that between 43% and 49% of Americans support the decision of the U.S. Supreme Court on the 2010 healthcare law.**True.  We are confident the population parameter falls within the range.**
 
-(c) If we considered many random samples of 1,012 Americans, and we calculated the sample proportions of those who support the decision of the U.S. Supreme Court, 95% of those sample proportions will be between 43% and 49%.
+(c) If we considered many random samples of 1,012 Americans, and we calculated the sample proportions of those who support the decision of the U.S. Supreme Court, 95% of those sample proportions will be between 43% and 49%.**True.  95% of the area under the curve would be between 43% and 49%.**
 
-(d) The margin of error at a 90% confidence level would be higher than 3%.
+(d) The margin of error at a 90% confidence level would be higher than 3%.**False.  A higher confidence level would have a larger margin of error.**
 
 ## 6.12 Legalization of marijuana, Part I
 
 The 2010 General Social Survey asked 1,259 US residents: “Do you think the use of marijuana should be made legal, or not?” 48% of the respondents said it should be made legal.
 
-(a) Is 48% a sample statistic or a population parameter? Explain.
+(a) Is 48% a sample statistic or a population parameter? Explain. **Sample statistics because it is the share of the respondents.**
 
 (b) Construct a 95% confidence interval for the proportion of US residents who think marijuana should be made legal, and interpret it in the context of the data.
+```{r}
+n <- 1259
+p <- 0.48
+z <- 1.96
+se <- sqrt((p*(1-p))/n)
+me <- z * se
+```
+**The 95% confidence interval is (`r p - me`, `r p + me`).  That means that the between 45% and 51% of US residents thing marijuana should be made legal.**
 
-(c) A critic points out that this 95% confidence interval is only accurate if the statistic follows a normal distribution, or if the normal model is a good approximation. Is this true for these data? Explain.
+(c) A critic points out that this 95% confidence interval is only accurate if the statistic follows a normal distribution, or if the normal model is a good approximation. Is this true for these data? Explain.**There are `r round(p * 1259, 0)` people who agree and `r round((1-p) * 1259, 0)` people who disagree.  This is larger than the 10 success/failure rule of thumb.  The observations are probably independent and the sample size is about right to represent the United States.  The critics points are not valid.**
 
-(d) A news piece on this survey’s findings states, “Majority of Americans think marijuana should be legalized.” Based on your confidence interval, is this news piece’s statement justified?
+(d) A news piece on this survey’s findings states, “Majority of Americans think marijuana should be legalized.” Based on your confidence interval, is this news piece’s statement justified? **No.  This is an exageration.**
 
 ## 6.20 Legalize Marijuana, Part II
 
-As discussed in Exercise 6.12, the 2010 General Social Survey reported a sample where about 48% of US residents thought marijuana should be made legal. If we wanted to limit the margin of error of a 95% confidence interval to 2%, about how many Americans would we need to survey ?
+As discussed in Exercise 6.12, the 2010 General Social Survey reported a sample where about 48% of US residents thought marijuana should be made legal. If we wanted to limit the margin of error of a 95% confidence interval to 2%, about how many Americans would we need to survey ? $0.02 = 1.96 \times \sqrt{\frac{0.5 \times 0.5}{n}} \rightarrow 0.02^2 = 1.96^2 \times \frac{0.25}{n} \rightarrow 0.0004 = \frac{3.8416 \times 0.25}{n} \rightarrow n = \frac{0.9604}{0.0004} \rightarrow n = 2401$ **You would need to survey 2,401 people.**
 
 ## 6.28 Sleep deprivation, CA vs. OR, Part I
 
 According to a report on sleep deprivation by the Centers for Disease Control and Prevention, the proportion of California residents who reported insufficient rest or sleep during each of the preceding 30 days is 8.0%, while this proportion is 8.8% for Oregon residents. These data are based on simple random samples of 11,545 California and 4,691 Oregon residents. Calculate a 95% confidence interval for the difference between the proportions of Californians and Oregonians who are sleep deprived and interpret it in context of the data.
+```{r}
+p1 <- 0.08
+p2 <- 0.088
+n1 <- 11545
+n2 <- 4691
+z <- 1.96
+se <- sqrt(((p1*(1-p1))/n1)+((p2*(1-p2))/n2))
+me <- z * se
+```
+**The 95% confidence interval is (`r (p1-p2)-me`, `r (p1-p2)+me`).  This means the difference between CA and OR is between -2% and 0%.**
 
 ## 6.44 Barking deer
 
@@ -54,28 +72,64 @@ Microhabitat factors associated with forage and bed sites of barking deer in Hai
 
 (a) Write the hypotheses for testing if barking deer prefer to forage in certain habitats over others.
 
-(b) What type of test can we use to answer this research question?
+**H$_0$: The proportion between the groups are the same: $p_1$ = $p_2$ = $p_3$ = $p_4$.**
 
-(c) Check if the assumptions and conditions required for this test are satisfied.
+**H$_A$: At least one of the proportions are different from the others.**
+
+(b) What type of test can we use to answer this research question? **Chi-squared Test or goodness of fit test.**
+
+(c) Check if the assumptions and conditions required for this test are satisfied. **Independence: each case only contributes to one cell of the table and are a independent. Sample size: Each cell of expected cases should have at least 5 cases.  We'll have to see if this holds.**
 
 (d) Do these data provide convincing evidence that barking deer prefer to forage in certain habitats over others? Conduct an appropriate hypothesis test to answer this research question.
 
-## 6.48 Coffee and Depression. 
+|          | Woods | Cultivated grassplot | Deciduous forests | Other | Total |
+|----------|-------|----------------------|-------------------|-------|-------|
+| Observed | 4     | 16                   | 61                | 345   | 426   |
+| Expected | 20    | 63                   | 169               | 174   | 426   |
+
+```{r}
+woods <- (4 - 20)^2 / 20
+cult <- (16 - 63)^2 / 63
+deci <- (61 - 169)^2 / 169
+other <- (345 - 174)^2 / 174
+k <- 4
+chi_sq <- woods + cult + deci + other
+df <- k - 1
+pchisq(chi_sq, df, lower.tail = FALSE)
+```
+**The P value is smaller than 0.05 so the evidence suggest we reject the null hypothesis, meaning that the deer do not prefer to forage in all types of terain equally.**
+
+## 6.48 Coffee and Depression
 
 Researchers conducted a study investigating the relationship between caffeinated coffee consumption and risk of depression in women. They collected data on 50,739 women free of depression symptoms at the start of the study in the year 1996, and these women were followed through 2006. The researchers used questionnaires to collect data on caffeinated coffee consumption, asked each individual about physician-diagnosed depression, and also asked about the use of antidepressants. The table below shows the distribution of incidences of depression by amount of caffeinated coffee consumption. 
 
 ![ ](https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA606/Figures/6_48.png)
 
-(a) What type of test is appropriate for evaluating if there is an association between coffee intake and depression?
+(a) What type of test is appropriate for evaluating if there is an association between coffee intake and depression? **A Chi-squared or goodness of fit test.**
 
 (b) Write the hypotheses for the test you identified in part (a).
+**H$_0$: The proportion between the groups are the same: $p_1$ = $p_2$ = $p_3$ = $p_4$ = $p_5.**
 
-(c) Calculate the overall proportion of women who do and do not suffer from depression.
+**H$_A$: At least one of the proportions are different from the others.**
 
-(d) Identify the expected count for the highlighted cell, and calculate the contribution of this cell to the test statistic, i.e. $\frac{(\text{Observed} − \text{Expected})^2}{\text{Expected}}$.
+(c) Calculate the overall proportion of women who do and do not suffer from depression. **`r 48132/50739`**
+
+(d) Identify the expected count for the highlighted cell, and calculate the contribution of this cell to the test statistic, i.e. $\frac{(\text{Observed} − \text{Expected})^2}{\text{Expected}}$ 
+
+**Expected is defined as:** $2607 \times
+\frac{6617}{50739} = 2607 \times 0.1304125 = 340$ 
+
+**so $\frac{(373 − 340)^2}{340} = \frac{1089}{340} = 3.203$.**
 
 (e) The test statistic is $\chi^2$ = 20.93. What is the p-value?
 
-(f) What is the conclusion of the hypothesis test?
+```{r}
+k <- 5
+chi_sq <- 20.93
+df <- k - 1
+pchisq(chi_sq, df, lower.tail = FALSE)
+```
 
-(g) One of the authors of this study was quoted on the NYTimes as saying it was “too early to recommend that women load up on extra coffee” based on just this study.64 Do you agree with this statement? Explain your reasoning.
+(f) What is the conclusion of the hypothesis test? **The p-value is lower than 0.05 therefore you would reject the null hypothesis.**
+
+(g) One of the authors of this study was quoted on the NYTimes as saying it was “too early to recommend that women load up on extra coffee” based on just this study.64 Do you agree with this statement? Explain your reasoning.**Yes.  It's just one study.  There is a chance that it is a fluke and should be confirmed with more research.**
