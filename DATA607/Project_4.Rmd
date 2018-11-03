@@ -6,59 +6,20 @@ output:
     highlight: kate
 ---
 
-```{r init, echo=FALSE, message=FALSE}
-library(dplyr)
-library(rmdformats)
-library(kableExtra)
+## Introduction
 
-# A Prefix nulling hook.
-# Taken from https://stackoverflow.com/questions/22524822/how-can-i-remove-the-prefix-index-indicator-1-in-knitr-output
+This project seeks to build a classifier that can predict if an email is *spam* or *ham*.  It will be using the Apache Spam Assassin public corpus as the dataset.
 
-# Make sure to keep the default for normal processing.
-default_output_hook <- knitr::knit_hooks$get("output")
-
-# Output hooks handle normal R console output.
-knitr::knit_hooks$set(output = function(x, options) {
-
-  comment <- knitr::opts_current$get("comment")
-  if (is.na(comment)) comment <- ""
-  can_null <- grepl( paste0( comment, "\\s*\\[\\d?\\]" ),
-                     x, perl = TRUE)
-  do_null <- isTRUE( knitr::opts_current$get("null_prefix") )
-  if (can_null && do_null) {
-    # By default R print output aligns at the right brace.
-    align_index <- regexpr( "\\]", x )[1] - 1
-    # Two cases: start or newline
-    re <- paste0( "^.{", align_index, "}\\]")
-    rep <- comment
-    x <- gsub( re, rep,  x )
-    re <- paste0( "\\\n.{", align_index, "}\\]")
-    rep <- paste0( "\n", comment )
-    x <- gsub( re, rep,  x )
-    # I added this line
-    x <- gsub( "##", "", x)
-  }
-
-  default_output_hook( x, options )
-})
-
-knitr::opts_template$set("kill_prefix" = list(comment = NA, null_prefix = TRUE))
-```
-
-## Description
-
-This project seeks to build a classifier that can predict if an email is spam or ham.  It will be using the Apache Spam Assassin public corpus as the dataset.
-
-### Data Acquisition
+## Data Acquisition
 
 The first step is to download the files.  I am selecting the most recent releases of spam and easy ham.
 
 ```{r file_download}
-if(!file.exists("data/20050311_spam_2.tar.bz2") && !file.exists("data/20050311_spam_2.tar")){
+if (!file.exists("data/20050311_spam_2.tar.bz2") && !file.exists("data/20050311_spam_2.tar")){
   download.file("https://spamassassin.apache.org/old/publiccorpus/20050311_spam_2.tar.bz2", "data/20050311_spam_2.tar.bz2")
 }
 
-if(!file.exists("data/20030228_easy_ham_2.tar.bz2") & !file.exists("data/20030228_easy_ham_2.tar")){
+if (!file.exists("data/20030228_easy_ham_2.tar.bz2") & !file.exists("data/20030228_easy_ham_2.tar")){
   download.file("https://spamassassin.apache.org/old/publiccorpus/20030228_easy_ham_2.tar.bz2", "data/20030228_easy_ham_2.tar.bz2")
 }
 ```
@@ -66,14 +27,20 @@ if(!file.exists("data/20030228_easy_ham_2.tar.bz2") & !file.exists("data/2003022
 Now that the files have been acquired, they need to be decompressed.
 
 ```{r decompress_files}
-if(!dir.exists("data/spam_2")){
+if (!dir.exists("data/spam_2")){
   R.utils::bunzip2("data/20050311_spam_2.tar.bz2", "data/20050311_spam_2.tar")
   untar("data/20050311_spam_2.tar", exdir = "data")
   # Delete the cmds file
   unlink("data/spam_2/cmds")
+  # Delete these messages b/c it breaks the pipeline
+  unlink("data/spam_2/00706.5116018237368c3633823b2d24f8ac86")
+  unlink("data/spam_2/00708.89f1f9108884517148fdbd744e18ec1e")
+  unlink("data/spam_2/00737.af5f503fe444ae773bfeb4652d122349")
+  unlink("data/spam_2/01125.46ca779f86e1dd0a03c3ffc67b57f55e")
+  unlink("data/spam_2/01217.d5a1734ec521c1bd55270eca3ab4acd8")
 }
 
-if(!dir.exists("data/easy_ham_2")){
+if (!dir.exists("data/easy_ham_2")){
   R.utils::bunzip2("data/20030228_easy_ham_2.tar.bz2", "data/20030228_easy_ham_2.tar")
   untar("data/20030228_easy_ham_2.tar", exdir = "data")
   # Delete the cmds file
@@ -81,119 +48,109 @@ if(!dir.exists("data/easy_ham_2")){
 }
 ```
 
-## Processing Pipeline
+## Build a Corpus 
 
-### Train/Test Split
+Now that we have a dataset we need to construct a corpus.  I will use the *tm* package and *dplyr* to get the job done.
 
-First we are going to split the data into training and testing sets using an 80:20 split. 
-
-```{r}
-set.seed(12345)
-training_percent <- 0.8
-
-train_test_split <- function(data, training_percent){
-  n <- round(length(data)*training_percent, digits = 0)
-  train <- sort(sample(data, n, replace = FALSE))
-  test <- data[!data %in% train]
-  return(list(test=test, train=train))
-}
-
-spam <- train_test_split(list.files("data/spam_2"), training_percent)
-ham <- train_test_split(list.files("data/easy_ham_2"), training_percent)
-```
-
-The following table summarizes the number of messages included in each set:
-
-##### Table 1. Spam and Ham Message Counts by Data Set
-|      |       Training       |        Testing      |
-|------|----------------------|---------------------|
-| Spam |`r length(spam$train)`|`r length(spam$test)`|
-| Ham  |`r length(ham$train)` |`r length(ham$test)` |
-
-### Pull out Email Contents
-
-This model will classify only on the basis of the content.  The header information will not be taken into consideration.  In order to illustrate the process I will take the first message in the spam training set as an example.  Here's what the file looks like:
-
-##### Table 2. Preview of Spam Email Message
-```{r spam_preview, null_prefix=TRUE, echo=FALSE}
-example_file <- spam$train[1]
-full_path <- paste0("data/spam_2/", example_file)
-con <- file(full_path)
-print(readLines(con), quote = FALSE)
-```
-
-The message is split into two parts: the header and the body of the message.  Since we want to analyze the body of the email one observes it is seperated from the header by a blank line.  This will be how we will determine where the body of the message begins.
-
-### Approach
-
-In order to process a message body I will remove all punctuation
-
-### Remove Punctuation
-
-```{r get_message, message=FALSE}
+```{r build_corpus, message=FALSE}
 library(dplyr)
-library(tidytext)
+library(tm)
 
-stem_hunspell <- function(term) {
-  # Taken from https://cran.r-project.org/web/packages/corpus/vignettes/stemmer.html
-  # look up the term in the dictionary
-  stems <- hunspell::hunspell_stem(term)[[1]]
-  if (length(stems) == 0) { # if there are no stems, use the original term
-    stem <- term
-  } else { # if there are multiple stems, use the last one
-    stem <- stems[[length(stems)]]
-  }
-  stem
+get_corpus <- function(dir, label){
+  corpus <- VCorpus(DirSource(dir)) %>%
+    tm_map(PlainTextDocument)  %>% # Create plain text document
+    tm_map(content_transformer(tolower)) %>% # Standardize case
+    tm_map(removeWords, stopwords("SMART")) %>% # Remove stopwords
+    tm_map(removePunctuation) %>% # Remove punctuation marks
+    tm_map(removeNumbers) %>% # Remove numbers
+    tm_map(stripWhitespace) %>% # Remove extra whitespace
+    tm_map(stemDocument) # Stem the documents
+  meta(corpus, "LABEL") <- label
+  return(corpus)
 }
 
-process_message <- function(full_path){
-  message <- ''
-  n_lines <- 0
-  header_finished <- FALSE
-  # Open the file
-  con <- file(full_path, blocking = FALSE)
-  # Go line by line
-  for(line in readLines(con)){
-    # Order matters.  I don't want to lead with the blank line between the header
-    if(header_finished){
-      n_lines <- n_lines + 1
-      message <- paste(message, line)
-    }
-    # Look for the end of the header
-    if(line == ""){
-      header_finished <- TRUE
-    }
-  }
-  # Close the connection to the file
-  close(con)
-  
-  # Change text to lower case 
-  n_characters <- nchar(message)
-  lower_message <- tolower(message)
-  n_capital_letters <- adist(message, lower_message)[[1]]
-  # Remove all punctuation
-  clean_message <- gsub("[[:punct:][:blank:]]+", " ", lower_message)
-  n_punctuation_marks <- adist(lower_message, clean_message)[[1]]
-  # Tokenize message
-  words <- tm::scan_tokenizer(clean_message)
-  # Remove stop words
-  #stop_words <- tm::stopwords()
-  #words <- words[!words %in% stop_words]
-  # Stem words using hunspell
-  #words <- unlist(lapply(words, stem_hunspell))
-  
-  return(list(words = words, characters = n_characters, capital_letters = n_capital_letters, punctuation_marks = n_punctuation_marks, lines = n_lines))
-}
-
-full_path <- paste0("data/spam_2/", example_file)
-
-results <- process_message(full_path)
-#df <- data.frame(word = bag_of_words, count = c(1)) %>%
-#  group_by(word) %>%
-#  summarise(count = sum(count)) %>%
-#  ungroup() %>%
-#  mutate(file = example_file, type = "spam")
+corpus<- c(get_corpus("data/spam_2", "Spam"), get_corpus("data/easy_ham_2", "Ham"))
 ```
 
+## Build a Document-Term Matrix
 
-## TF-IDF Normalization
+The next step is to construct a document term matrix.  
+
+```{r dtm}
+dtm <- DocumentTermMatrix(corpus)
+```
+
+There are `r dtm$nrow` documents and `r dtm$ncol` terms in the document-term matrix.
+
+### Remove Infrequent Terms
+
+There are a lot of terms resulting in a very sparce matrix.  I am going to prune out the less frequent terms from the matrix.  The term must be found in at least 10 documents.
+
+```{r pruning}
+min_docs <- 10
+dtm <- removeSparseTerms(dtm, 1 - (min_docs / length(corpus)))
+```
+
+There are still `r dtm$nrow` documents, but there are `r dtm$ncol` terms in the pruned document-term matrix.
+
+## Normalizing the Data
+
+Some messages have more words than others.  We are going to normalize the data and pull all the data together into a model dataset.
+
+```{r normalize_the_data}
+model_data <- as.matrix(dtm)
+words <- rowSums(model_data)
+model_data <- model_data / words
+model_data <- data.frame(model_data)
+model_data <- cbind(meta(corpus), model_data) %>%
+  mutate(LABEL = as.factor(LABEL))
+```
+
+## Split Data into Training/Test Data Sets
+
+We are now ready to break up the data into training and test sets.  We are going to use a 75%/25% split.  This decision was arbitrary.
+
+```{r train_test_split, message=FALSE}
+library(caret)
+set.seed(12345)
+in_training_set <- createDataPartition(model_data$LABEL, p = 0.75,  list = FALSE)
+training_data <- model_data[in_training_set, ]
+testing_data <- model_data[-in_training_set, ]
+```
+
+## Build a SVM Model
+
+We will take out training data and produce a SVM model that predicts if a message is spam or ham.
+
+```{r build_svm}
+library(e1071)
+model <- svm(LABEL ~ ., data = training_data)
+```
+
+## Test the Model
+
+Now that we have trained a model we can test it out and see how it preforms.
+
+```{r test_model}
+predictions <- testing_data %>%
+  select(-LABEL) %>%
+  predict(model, .)
+```
+
+#### Table 1. Confusion Matrix
+```{r confusion_matrix, echo=FALSE}
+library(kableExtra)
+table(predictions, testing_data$LABEL) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "responsive"))
+```
+
+```{r errors, echo=FALSE}
+errors <- table(predictions, testing_data$LABEL) %>%
+  data.frame(.) %>%
+  mutate(keep = ifelse(predictions == Var2, 0, 1)) %>%
+  filter(keep == 1) %>%
+  summarise(total = sum(Freq))
+```
+
+There were `r errors$total` messages that were misclassified out of `r length(predictions)` for a `r round((1 - (errors$total / length(predictions))) *100, 0)`% accuracy rate.   Not bad!
