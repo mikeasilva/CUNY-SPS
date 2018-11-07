@@ -1,3 +1,10 @@
+---
+title: "LinkedIn Recommender System Analysis"
+author: "Mike Silva"
+date: "November 7, 2018"
+output: html_document
+---
+
 ## Introduction
 
 The following is an analysis of the LinkedIn recommender system. Users can interact with this system once they have set up a profile.  It recommends connections the user should make.  The following is a scenario design analysis from the point of view of the LinkedIn customer.  
