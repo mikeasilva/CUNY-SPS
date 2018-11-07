@@ -1,0 +1,21 @@
+## Introduction
+
+The following is an analysis of the LinkedIn recommender system. Users can interact with this system once they have set up a profile.  It recommends connections the user should make.  The following is a scenario design analysis from the point of view of the LinkedIn customer.  
+
+## Scenario Design Analysis
+
+### Who Are The Target Users?
+
+The target users are individuals who would like to develop a professional network.
+
+### What Are Their Key Goals?
+
+Their goals may vary.  They may have the goal of staying connected with people from school.  They may be networking to find new employment opportunities.  Or they may want to develop business opportunities and think LinkedIn could help.
+
+### How Can LinkedIn Help Them Accomplish Those Goals?
+
+LinkedIn helps by first maintaining a very robust network of individuals.  Being large attracts future users. The recommender system functions as a filter.  It helps the user filter through millions of profiles and find people to connect to.  
+
+The recommender system appears to focus in part on demographic characteristics.  It will recommend people located near by.  It recommends people who attended the same schools or who are members of trade groups.  It looks for people who "look" like the user.  
+
+It also recommends common peers.  For example, suppose Sam is connected with Tonia and James.  They are both connected with Juan.  Sam would get a recommendation to connect with Juan).  This recommendation is a knowledge-based filter.  Users have made their preferences known through the connections they have made. 
