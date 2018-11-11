@@ -45,8 +45,9 @@ work with the newer variables on your own.
     ```{r}
     plot(mlb11$at_bats, mlb11$runs)
     ```
-    Doe the relationship look linear? **Yes it looks somewhat linear.** If you knew a
-    team's `at_bats`, would you be comfortable using a linear model to predict the 
+    
+    Does the relationship look linear? **Yes it looks somewhat linear.** If you knew
+    a team's `at_bats`, would you be comfortable using a linear model to predict the 
     number of runs? **I don't know if I would.** 
 
 If the relationship looks linear, we can quantify the strength of the
@@ -172,8 +173,8 @@ They're also used to compute the residuals.
 5.  If a team manager saw the least squares regression line and not the actual 
     data, how many runs would he or she predict for a team with 5,578 at-bats?
     $\hat{y} = -2789.2429 + 0.6305 * atbats = -2789.2429 + 0.6305 * 5578 = -2789.2429 + 3516.929 = 727.6861$
-    Is this an overestimate or an underestimate, and by how much? In other 
-    words, what is the residual for this prediction?
+    Is this an overestimate or an underestimate, and by how much? In other words, 
+    what is the residual for this prediction? **This was an overestimate.**
     
     
 
