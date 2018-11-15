@@ -174,8 +174,16 @@ They're also used to compute the residuals.
     data, how many runs would he or she predict for a team with 5,578 at-bats?
     $\hat{y} = -2789.2429 + 0.6305 * atbats = -2789.2429 + 0.6305 * 5578 = -2789.2429 + 3516.929 = 727.6861$
     Is this an overestimate or an underestimate, and by how much? In other words, 
-    what is the residual for this prediction? **This was an overestimate.**
-    
+    what is the residual for this prediction? 
+    ```{r message=FALSE, echo=FALSE}
+    library(dplyr)
+    test <- mlb11 %>%
+      mutate(diff = abs(at_bats - 5578)) %>%
+      mutate(closest = min(diff)) %>%
+      filter(closest == diff) %>%
+      select(at_bats, runs) 
+    ```
+    **The closest data we have is `r test$at_bats`.   For this case the model predicts `r round(predict(m1, test), 0)` runs and the actual was `r test$runs`.  The residual is `r round(test$runs - predict(m1, test), 0)` runs which indicates the model was an overestimate.  It would be similar to 5,578 at bats.**
     
 
 ## Model diagnostics
