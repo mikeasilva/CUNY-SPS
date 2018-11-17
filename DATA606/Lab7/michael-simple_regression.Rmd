@@ -202,7 +202,7 @@ abline(h = 0, lty = 3)  # adds a horizontal dashed line at y = 0
 ```
 
 6.  Is there any apparent pattern in the residuals plot? What does this indicate
-    about the linearity of the relationship between runs and at-bats?
+    about the linearity of the relationship between runs and at-bats? **No there is no apparent pattern in the residuals.**
 
 *Nearly normal residuals*: To check this condition, we can look at a histogram
 
@@ -218,12 +218,12 @@ qqline(m1$residuals)  # adds diagonal line to the normal prob plot
 ```
 
 7.  Based on the histogram and the normal probability plot, does the nearly 
-    normal residuals condition appear to be met?
+    normal residuals condition appear to be met?  **Yes it appears to be normal**
 
 *Constant variability*:
 
 8.  Based on the plot in (1), does the constant variability condition appear to 
-    be met?
+    be met? **Yes it does.**
     
 * * *
 
@@ -232,11 +232,25 @@ qqline(m1$residuals)  # adds diagonal line to the normal prob plot
 -   Choose another traditional variable from `mlb11` that you think might be a 
     good predictor of `runs`. Produce a scatterplot of the two variables and fit 
     a linear model. At a glance, does there seem to be a linear relationship?
+    
+    **I think homeruns would be a good predictor because it gets to the skill of the player.  new_obs would probably be better but it is not a traditional variable. **
+    
+    ```{r}
+    plot(mlb11$homeruns, mlb11$runs)
+    ```
+    
+    **Yes this appears to be a positive linear relationship.**
 
 -   How does this relationship compare to the relationship between `runs` and 
     `at_bats`? Use the R$^2$ values from the two model summaries to compare. 
     Does your variable seem to predict `runs` better than `at_bats`? How can you
     tell?
+    
+    ```{r}
+    m3 <- lm(runs ~ homeruns, data = mlb11)
+    summary(m3)
+    ```
+    **The $R^2$ for this model is `r summary(m3)$r.squared` which is higher than `r summary(m1)$r.squared`.  It does a better job of predicting.  You can tell because the $R^2$ is higher and the residual standard error is lower.**
 
 -   Now that you can summarize the linear relationship between two variables, 
     investigate the relationships between `runs` and each of the other five 
@@ -244,6 +258,25 @@ qqline(m1$residuals)  # adds diagonal line to the normal prob plot
     conclusion using the graphical and numerical methods we've discussed (for 
     the sake of conciseness, only include output for the best variable, not all 
     five).
+    
+    ```{r}
+    highest_r_squared <- 0
+    # Loop through all the traditional variables
+    for(v in c('at_bats', 'hits', 'homeruns', 'bat_avg', 'strikeouts', 'stolen_bases', 'wins')){
+      temp <- mlb11[,c('runs', v)]
+      model <- lm(runs ~ ., data = temp)
+      r_squared <- summary(model)$r.squared
+      if(r_squared > highest_r_squared){
+        best_var <- v
+        highest_r_squared <- r_squared
+        best <- temp
+        best_model <- model
+      }
+    }
+    
+    plot(best)
+    summary(best_model)
+    ```
 
 -   Now examine the three newer variables. These are the statistics used by the 
     author of *Moneyball* to predict a teams success. In general, are they more 
@@ -252,9 +285,40 @@ qqline(m1$residuals)  # adds diagonal line to the normal prob plot
     analyzed, which seems to be the best predictor of `runs`? Using the limited 
     (or not so limited) information you know about these baseball statistics, 
     does your result make sense?
+    
+    ```{r}
+    # Loop through all the Moneyball variables
+    best_r_squared <- summary(best_model)$r.squared
+    for(v in c('new_onbase', 'new_slug', 'new_obs')){
+      temp <- mlb11[,c('runs', v)]
+      model <- lm(runs ~ ., data = temp)
+      r_squared <- summary(model)$r.squared
+      if(r_squared > best_r_squared){
+        message(paste(v, "outpreforms", best_var, "(", round(r_squared, 2), " > ", round(best_r_squared, 2), ")"))
+        best_model <- model
+        best_data <- temp
+      }
+    }
+    ```
 
 -   Check the model diagnostics for the regression model with the variable you 
     decided was the best predictor for runs.
+    
+    **Linearity : No pattern to the residuals.** 
+    
+    **Constant variability : Yes Sir!** 
+    
+    ```{r}
+    plot(best_model$residuals ~ mlb11$new_obs)
+    abline(h = 0, lty = 3)
+    ```
+    
+    **Nearly normal residuals : Check**
+    ```{r}
+    qqnorm(best_model$residuals)
+    qqline(best_model$residuals)
+    ```
+    
 
 <div id="license">
 This is a product of OpenIntro that is released under a [Creative Commons 
