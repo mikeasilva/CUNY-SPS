@@ -1,0 +1,124 @@
+---
+title: "CUNY SPS DATA-607 Week 12 Assignment"
+author: "Mike Silva"
+date: "12 November 2018"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+---
+
+## Description
+
+The assignment is to migrate data from a MySQL database to a NoSQL database.  I will be using the flights database used in the Hands on Lab 2-1.
+
+## Hypothetical Scenario
+
+For this assignment I will pretend I am a data scientist at a ThereOnTime.  ThereOnTime is  start-up that evaluates airline performance.  Users enter in their flight route.  ThereOnTime recommends which airline will get the user there on time.  ThereOnTime is growing in popularity and needs to scale up their system.  As their data scientist, I recommend they migrate from MySQL to MongoDB.  For this scenario I will pretend all flights are in the datasets, not only the NYC ones.
+
+### Hypothetical Scenario Design
+
+#### For the End User
+
+ThereOnTime users want a recommendation on which airline that is going to get them from point A to point B on time.  They will have varying exclusion criteria (i.e. they refuse to take on Airline X, they won't fly on puddle jumpers).  The way to help them is through the best system design at ThereOnTime.
+
+#### For the ThereOnTime System
+
+The goal is to provide  quick and relevant recommendations.  They fit the customer's unique preferences and criteria.  ThereOnTime meets these requirement by allowing filtering of evaluations.  The ThereOnTime system looks at weather as a factor to inform their evaluation.  They also have a recommender system for alternative routes.  The airlines are the principle object of evaluation.  The airports, and planes are filtering criteria.  This should inform the NoSQL schema design.
+
+## Extraction from MySQL Database
+
+I will start by connecting to the MySQL database.  I will make use of a MySQL Settings file which hold authentication credentials.  It is not included in the [GitHub repo](https://github.com/mikeasilva/CUNY-SPS/tree/master/DATA607) for obvious reasons.
+
+```{r connect, message=FALSE}
+library(DBI)
+source('hidden/MySQL Settings.R')
+conn <- dbConnect(RMySQL::MySQL(), user=user, password=password, dbname='flights', host=host)
+```
+
+I will extract all the tables into their own data frames.
+
+```{r extract, results="hide"}
+airlines <- dbReadTable(conn, "airlines")
+airports <- dbReadTable(conn, "airports")
+flights <- dbReadTable(conn, "flights")
+planes <- dbReadTable(conn, "planes") 
+
+dbDisconnect(conn)
+```
+
+## Data Transformation
+
+I will create the flights data.  Since I don't want to loose any records I will use dplyr's left_join and right_join in the data pipeline.
+
+```{r transform, message=FALSE}
+library(dplyr)
+
+# Merge together the data frames
+data <- flights %>%
+  mutate(on_time = ifelse(arr_delay > 0, 0 ,1)) %>%
+  merge(airlines) %>%
+  rename(carrier_name = name) %>%
+  rowwise() %>%
+  mutate(carrier_name = gsub("[\r\n]", "", carrier_name)) %>%
+  ungroup() %>%
+  left_join(planes)
+
+# Hat tip to https://stackoverflow.com/questions/33741357/how-do-i-add-a-prefix-to-several-variable-names-using-dplyr for rename all columns
+
+# Add in the origin airport data
+data <- airports %>%
+  rename_(.dots = setNames(names(.), paste0('origin_', names(.)))) %>%
+  rename(origin = origin_faa) %>%
+  right_join(data)
+
+# Add in the destination airport data
+data <- airports %>%
+  rename_(.dots = setNames(names(.), paste0('dest_', names(.)))) %>%
+  rename(dest = dest_faa) %>%
+  right_join(data)
+```
+
+## Load Data into MongoDB
+
+Now to load the data into a MongoDB.  First we need a connection:
+
+```{r mongodb_connect}
+library(mongolite)
+mdb = mongo(collection = "data", db = "flights")
+```
+
+Now we can load the data into the MongoDB.
+
+```{r load}
+mdb$insert(data)
+```
+
+The migration from MySQL to MongoDB is complete.
+
+## Database Test Run
+
+To test out the new database I will run a test.  Let's say the user wants to fly to Rochester NY from the NYC area.  Let's suppose they don't care about which airport they leave from.  Which airline and airport would be most likely to get them there on time?
+
+```{r nyc_to_roc}
+results <- mdb$find('{"dest": "ROC"}') %>%
+  group_by(carrier_name, origin_name) %>%
+  summarise(on_time_flights = sum(on_time, na.rm=TRUE), total_flights = n()) %>%
+  mutate(share_on_time = on_time_flights / total_flights) %>%
+  arrange(-share_on_time)
+```
+
+##### Table 1. Flights from NYC Area to Rochester NY
+```{r table, echo=FALSE}
+library(kableExtra)
+results%>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+It looks like Endeavor Air Inc out of LaGuardia airport is the best bet.  
+
+## NoSQL Advantages and Disadvantages
+
+One major difference between a NoSQL and relational database is the schemaless architecture.  This is an advantage because it gives a lot of flexibility.  It is nice to be able to add or drop data elements as needs change.  
+
+It is also a disadvantage because it is very foreign way of thinking about data bases.  Determining if you should embed or reference a document is something I don't have a handle on yet.
