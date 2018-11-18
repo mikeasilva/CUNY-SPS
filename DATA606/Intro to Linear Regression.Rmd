@@ -17,13 +17,13 @@ The scatterplot below shows the relationship between the number of calories and 
 
 ![ ](https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA606/Figures/7_24.png)
 
-(a) Describe the relationship between number of calories and amount of carbohydrates (in grams) that Starbucks food menu items contain.
+(a) Describe the relationship between number of calories and amount of carbohydrates (in grams) that Starbucks food menu items contain. **Positive and fairly linear.**
 
-(b) In this scenario, what are the explanatory and response variables?
+(b) In this scenario, what are the explanatory and response variables? **The response variable is calories.  The explanatory variable is the grams of carbohydrates.**
 
-(c) Why might we want to fit a regression line to these data?
+(c) Why might we want to fit a regression line to these data? **The data seem like they could be summarized well with a regression line.**
 
-(d) Do these data meet the conditions required for fitting a least squares line?
+(d) Do these data meet the conditions required for fitting a least squares line? **Yes.  The residuals are normally distributed.  There is no pattern aparent in the residuals plot.  And the relationship looks linear as previously stated.**
 
 ## 7.26 Body measurements, Part III
 
@@ -31,15 +31,28 @@ Exercise 7.15 introduces data on shoulder girth and height of a group of individ
 
 (a) Write the equation of the regression line for predicting height.
 
-(b) Interpret the slope and the intercept in this context.
+$\widehat{\text{height}}=\beta_0 + \beta_1\times\text{girth}$
 
-(c) Calculate $R^2$ of the regression line for predicting height from shoulder girth, and interpret it in the context of the application.
+$\beta_1 = \frac{s_\text{height}}{s_\text{girth}}R = \frac{9.41}{10.37}0.67 = 0.6079749$
 
-(d) A randomly selected student from your class has a shoulder girth of 100 cm.  Predict the height of this student using the model.
+$y - y_0 = \beta_1(x-x_0) \rightarrow y - 171.14 = 0.6079749 (x-107.20)$
 
-(e) The student from part (d) is 160 cm tall. Calculate the residual, and explain what this residual means.
+$\beta_0 = 171.14 - (-107.2 \times 0.6079749) \rightarrow \beta_0 = 171.14 - 65.17491 \beta_0 = 105.9651$
 
-(f) A one year old has a shoulder girth of 56 cm. Would it be appropriate to use this linear model to predict the height of this child?
+$\widehat{\text{height}}=\beta_0 + \beta_1\times\text{girth} = 105.9651 + 0.6079749 \times \text{girth}$
+
+(b) Interpret the slope and the intercept in this context. **The intercept (average height) is roughly 106 centimeters.  For every centimeter in sholder girth there is about 0.61 centimeters of height.**
+
+(c) Calculate $R^2$ of the regression line for predicting height from shoulder girth, and interpret it in the context of the application.  $R^2 = 0.67 \times0.67 = 0.4489$
+**This means that about 45% of the variability in height is explained by the sholder girth.**
+
+(d) A randomly selected student from your class has a shoulder girth of 100 cm.  Predict the height of this student using the model. $\widehat{\text{height}}= 105.9651 + 0.6079749 \times 100 = 105.9651 + 60.79749 = 166.7626$
+
+(e) The student from part (d) is 160 cm tall. Calculate the residual, and explain what this residual means. **The residual is -6.7626 cm which is the amount overestimated by the model.**
+
+$\text{Residual} = \text{Observed} - \text{Expected} = 160 - 166.7626 = 6.7626$
+
+(f) A one year old has a shoulder girth of 56 cm. Would it be appropriate to use this linear model to predict the height of this child? **I don't think so.  The model worked well for a student in part d that is 160 cm tall which is over 5 feet.  The model works for adults.  The relationship between these two variables is not likely to hold at such a young age.**
 
 ## 7.30 Cats, Part I
 
@@ -54,15 +67,15 @@ The following regression output is for predicting the heart weight (in g) of cat
 
 s = 1.452 $R^2$ = 64.66% $R^2$ adj = 64.41%
 
-(a) Write out the linear model.
+(a) Write out the linear model. $\widehat{\text{heart}} = -0.357 + 4.034 \times \text{body}$
 
-(b) Interpret the intercept.
+(b) Interpret the intercept. **The weight of the cat's heart if it weighed nothing.**
 
-(c) Interpret the slope.
+(c) Interpret the slope. **For every one kg of body weight there will be 4.034 grams of heart weight.** 
 
-(d) Interpret $R^2$.
+(d) Interpret $R^2$. **Roughly 64% of the variation is explained by the cat's body weight.**
 
-(e) Calculate the correlation coefficient.
+(e) Calculate the correlation coefficient. $R = \sqrt{R^2} = \sqrt{0.6466} = 0.8041144$
 
 ## 7.40 Rate my professor
 
