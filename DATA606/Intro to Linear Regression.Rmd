@@ -88,10 +88,18 @@ Many college courses conclude by giving students the opportunity to evaluate the
 | (Intercept) | 4.010    | 0.0255     | 157.21  | 0.0000   |
 | beauty      |          | 0.0322     | 4.13    | 0.0000   |
 
-(a) Given that the average standardized beauty score is -0.0883 and average teaching evaluation score is 3.9983, calculate the slope. Alternatively, the slope may be computed using just the information provided in the model summary table.
+(a) Given that the average standardized beauty score is -0.0883 and average teaching evaluation score is 3.9983, calculate the slope. Alternatively, the slope may be computed using just the information provided in the model summary table. **0.1325028**
 
-(b) Do these data provide convincing evidence that the slope of the relationship between teaching evaluation and beauty is positive? Explain your reasoning.
+$y - y_0 = \text{slope} \times (x - x_0)$
 
-(c) List the conditions required for linear regression and check if each one is satisfied for this model based on the following diagnostic plots.
+$4.010 - 3.9983 = \text{slope} \times (0 - -0.0883)$
+
+$0.0117 =0.0883 \times \text{slope}$
+
+$\text{slope}=\frac{0.0117}{0.0883} = 0.1325028$
+
+(b) Do these data provide convincing evidence that the slope of the relationship between teaching evaluation and beauty is positive? Explain your reasoning. **There is a positive slope however it is not very strong.**
+
+(c) List the conditions required for linear regression and check if each one is satisfied for this model based on the following diagnostic plots. **Linearity: Scatterplot indicates a positive relationship but it is weak.  The slope is consistant with this.  Nomally Distributed Residuals: The Q-Q Plot indicates it.  Constant variability: The residuals scatterplot indicates this condition is met.  Independent Observations: The evaluations is independant of the other.**
 
 ![ ](https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA606/Figures/7_40b.png)
