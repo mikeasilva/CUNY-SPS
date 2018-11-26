@@ -30,7 +30,7 @@ into a positive professor evaluation.
 
 The data were gathered from end of semester student evaluations for a large 
 sample of professors from the University of Texas at Austin. In addition, six 
-students rated the professors' physical appearance. (This is aslightly modified 
+students rated the professors' physical appearance. (This is a slightly modified 
 version of the original data set that was released as part of the replication 
 data for *Data Analysis Using Regression and Multilevel/Hierarchical Models* 
 (Gelman and Hill, 2007).) The result is a data frame where each row contains a 
@@ -66,18 +66,32 @@ variable         | description
 
 ## Exploring the data
 
-1.  Is this an observational study or an experiment? The original research
+1.  Is this an observational study or an experiment? **This is an observational study** The original research
     question posed in the paper is whether beauty leads directly to the
     differences in course evaluations. Given the study design, is it possible to
-    answer this question as it is phrased? If not, rephrase the question.
+    answer this question as it is phrased? If not, rephrase the question. **No it is not possible.  The question should be phrased to what extent beauty explains the differences in course evaluations.  It is a question of correlation not causation.**
 
 2.  Describe the distribution of `score`. Is the distribution skewed? What does 
     that tell you about how students rate courses? Is this what you expected to 
-    see? Why, or why not?
+    see? Why, or why not? **The distribution is left skewed.  This tells me that students are generally very positive of their professors.  I would expect the skill of the professors to be normally distributed.  I am not suprized that the students perception of the professor's skill not be match it because perception is not always reality.**
+    ```{r}
+    hist(evals$score)
+    ```
 
 3.  Excluding `score`, select two other variables and describe their relationship 
     using an appropriate visualization (scatterplot, side-by-side boxplots, or 
     mosaic plot).
+    ```{r}
+    plot(evals$gender, evals$bty_avg)
+    ```
+    
+    **Academia attracts people with below average beauty.  The median beauty score on a scale of 1 to 10 is a 4.  Males are less attractive than females.**
+    
+    ```{r}
+    plot(evals$age, evals$bty_avg)
+    ```
+    
+    **There really isn't much of a relationship between the average beauty rating and the age of the student.  If you look at the scatterplot minus the couple of 70 year old observations, the image portrays little relationship between the two variables.**
 
 ## Simple linear regression
 
@@ -92,11 +106,17 @@ plot(evals$score ~ evals$bty_avg)
 
 Before we draw conclusions about the trend, compare the number of observations 
 in the data frame with the approximate number of points on the scatterplot. 
-Is anything awry?
+Is anything awry? **There are `r nrow(evals)` observations in the data frame.  There are not that many points in the graph.  There must be overlapping points.**
 
 4.  Replot the scatterplot, but this time use the function `jitter()` on the
     $y$- or the $x$-coordinate. (Use `?jitter` to learn more.) What was
-    misleading about the initial scatterplot?
+    misleading about the initial scatterplot? 
+    
+    **The original scatterplot is misleading because of the overlap**
+    
+    ```{r}
+    plot(evals$score ~ jitter(evals$bty_avg))
+    ```
 
 5.  Let's see if the apparent trend in the plot is something more than
     natural variation. Fit a linear model called `m_bty` to predict average
@@ -104,10 +124,39 @@ Is anything awry?
     using `abline(m_bty)`. Write out the equation for the linear model and
     interpret the slope. Is average beauty score a statistically significant
     predictor? Does it appear to be a practically significant predictor?
+    
+    **The formula is:** 
+    
+    $\text{AvgProfScore} = 3.88034 + 0.06664 \times \text{AvgBeautyRating}$
+    
+    **The slope indicates for every additional average beauty rating points there is a 0.07 increase in the professor's score.  The coeeficient is statistically significant predictor.  I would argue that there is no practical significance to this finding.**
+    
+    ```{r}
+    m_bty <- lm(evals$score ~ evals$bty_avg)
+    summary(m_bty)
+    plot(evals$score ~ jitter(evals$bty_avg))
+    abline(m_bty, col="red")
+    ```
 
 6.  Use residual plots to evaluate whether the conditions of least squares
     regression are reasonable. Provide plots and comments for each one (see
     the Simple Regression Lab for a reminder of how to make these).
+    
+    **Linear relationship.  The previous plot indicates the weak quasi-linear relationship.**
+    
+    ```{r}
+    plot(m_bty$residuals ~ evals$bty_avg)
+    abline(h = 0, lty = 3)
+    ```
+    
+    **Nearly normal residuals: The plot below shows the Q to Q plot but it doesn't hold to the line the best.**
+    
+    ```{r}    
+    qqnorm(m_bty$residuals)
+    qqline(m_bty$residuals) 
+```
+
+    
 
 ## Multiple linear regression
 
