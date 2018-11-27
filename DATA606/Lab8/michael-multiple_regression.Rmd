@@ -85,7 +85,7 @@ variable         | description
     plot(evals$gender, evals$bty_avg)
     ```
     
-    **Academia attracts people with below average beauty.  The median beauty score on a scale of 1 to 10 is a 4.  Males are less attractive than females.**
+    **The median beauty score is a 4 on a scale of 1 to 10.  Males are less attractive than females.**
     
     ```{r}
     plot(evals$age, evals$bty_avg)
@@ -144,19 +144,20 @@ Is anything awry? **There are `r nrow(evals)` observations in the data frame.  T
     
     **Linear relationship.  The previous plot indicates the weak quasi-linear relationship.**
     
+
+    ```{r}    
+    qqnorm(m_bty$residuals)
+    qqline(m_bty$residuals) 
+    ```
+
+    **Nearly normal residuals: The plot abovew shows the Q to Q plot which is mostly normal, but the skew in the data is apparent in the figure.**
+    
     ```{r}
     plot(m_bty$residuals ~ evals$bty_avg)
     abline(h = 0, lty = 3)
     ```
     
-    **Nearly normal residuals: The plot below shows the Q to Q plot but it doesn't hold to the line the best.**
-    
-    ```{r}    
-    qqnorm(m_bty$residuals)
-    qqline(m_bty$residuals) 
-```
-
-    
+    **Constant variability: The preceeding plot shows no apparent pattern in the residuals.**
 
 ## Multiple linear regression
 
@@ -189,7 +190,7 @@ In order to see if beauty is still a significant predictor of professor score
 after we've accounted for the gender of the professor, we can add the gender 
 term into the model.
 
-```{r scatter-score-bty_avg_gender, eval = FALSE}
+```{r scatter-score-bty_avg_gender}
 m_bty_gen <- lm(score ~ bty_avg + gender, data = evals)
 summary(m_bty_gen)
 ```
@@ -197,9 +198,22 @@ summary(m_bty_gen)
 7.  P-values and parameter estimates should only be trusted if the
     conditions for the regression are reasonable. Verify that the conditions
     for this model are reasonable using diagnostic plots.
+    
+    ```{r}
+    plot(m_bty_gen$residuals ~ evals$bty_avg)
+    abline(h = 0, lty = 3)
+    ```
+    
+    **The residuals have a constant variability.**
+    
+    ```{r}
+    qqnorm(m_bty_gen$residuals)
+    qqline(m_bty_gen$residuals) 
+    ```
+    
+    **The Q-Q plot is more linear than the previous one.**
 
-8.  Is `bty_avg` still a significant predictor of `score`? Has the addition
-    of `gender` to the model changed the parameter estimate for `bty_avg`?
+8.  Is `bty_avg` still a significant predictor of `score`? **The predictor is statistically significant.** Has the addition of `gender` to the model changed the parameter estimate for `bty_avg`? **Yes.  It is now 0.07416 up from 0.06664.**
 
 Note that the estimate for `gender` is now called `gendermale`. You'll see this 
 name change whenever you introduce a categorical variable. The reason is that R 
@@ -227,7 +241,9 @@ multiLines(m_bty_gen)
 9.  What is the equation of the line corresponding to males? (*Hint:* For
     males, the parameter estimate is multiplied by 1.) For two professors
     who received the same beauty rating, which gender tends to have the
-    higher course evaluation score?
+    higher course evaluation score? 
+    
+    **All esle equal the male professor would have a higher course evaluation score.**
 
 The decision to call the indicator variable `gendermale` instead of`genderfemale`
 has no deeper meaning. R simply codes the category that comes first 
@@ -239,6 +255,11 @@ Use `?relevel` to learn more.)
     added in. How does R appear to handle categorical variables that have more 
     than two levels? Note that the rank variable has three levels: `teaching`, 
     `tenure track`, `tenured`.
+    
+    ```{r}
+    m_bty_rank <- lm(score ~ bty_avg + rank, data = evals)
+    summary(m_bty_rank)
+    ```
 
 The interpretation of the coefficients in multiple regression is slightly 
 different from that of simple regression. The estimate for `bty_avg` reflects
