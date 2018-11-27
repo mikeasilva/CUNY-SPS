@@ -99,7 +99,7 @@ The fundamental phenomenon suggested by the study is that better looking teacher
 are evaluated more favorably. Let's create a scatterplot to see if this appears 
 to be the case:
 
-```{r scatter-score-bty_avg, eval = FALSE}
+```{r scatter-score-bty_avg}
 plot(evals$score ~ evals$bty_avg)
 ```
 
@@ -127,7 +127,7 @@ Is anything awry? **There are `r nrow(evals)` observations in the data frame.  T
     
     **The formula is:** 
     
-    $\text{AvgProfScore} = 3.88034 + 0.06664 \times \text{AvgBeautyRating}$
+    $\widehat{score} = 3.88034 + 0.06664 \times \text{bty_avg}$
     
     **The slope indicates for every additional average beauty rating points there is a 0.07 increase in the professor's score.  The coeeficient is statistically significant predictor.  I would argue that there is no practical significance to this finding.**
     
@@ -167,7 +167,7 @@ physical appearance of the professors and the average of these six scores. Let's
 take a look at the relationship between one of these scores and the average 
 beauty score.
 
-```{r bty-rel, eval = FALSE}
+```{r bty-rel}
 plot(evals$bty_avg ~ evals$bty_f1lower)
 cor(evals$bty_avg, evals$bty_f1lower)
 ```
@@ -177,7 +177,7 @@ calculated using the individual scores. We can actually take a look at the
 relationships between all beauty variables (columns 13 through 19) using the 
 following command:
 
-```{r bty-rels, eval = FALSE}
+```{r bty-rels}
 plot(evals[,13:19])
 ```
 
@@ -234,7 +234,7 @@ the intercept and slope form familiar from simple regression.
 We can plot this line and the line corresponding to males with the following 
 custom function.
 
-```{r twoLines, eval = FALSE}
+```{r twoLines}
 multiLines(m_bty_gen)
 ```
 
@@ -278,11 +278,11 @@ picture color.
 
 11. Which variable would you expect to have the highest p-value in this model? 
     Why? *Hint:* Think about which variable would you expect to not have any 
-    association with the professor score.
+    association with the professor score. **cls_profs.  The number of professors teaching a course should have little to no bearing on their score.**
 
 Let's run the model...
 
-```{r m_full, eval = FALSE, tidy = FALSE}
+```{r m_full}
 m_full <- lm(score ~ rank + ethnicity + gender + language + age + cls_perc_eval 
              + cls_students + cls_level + cls_profs + cls_credits + bty_avg 
              + pic_outfit + pic_color, data = evals)
@@ -290,9 +290,11 @@ summary(m_full)
 ```
 
 12. Check your suspicions from the previous exercise. Include the model output
-    in your response.
+    in your response. 
+    **cls_profs has the highest P value 0.77806 meaning this is not a statistically significant variable.**
 
-13. Interpret the coefficient associated with the ethnicity variable.
+13. Interpret the coefficient associated with the ethnicity variable. 
+    **The students found professors that are not a minority get a higher score than those who are.  This finding is not statistically significant.**
 
 14. Drop the variable with the highest p-value and re-fit the model. Did the
     coefficients and significance of the other explanatory variables change?
@@ -300,27 +302,56 @@ summary(m_full)
     coefficient estimates depend on the other variables that are included in
     the model.) If not, what does this say about whether or not the dropped
     variable was collinear with the other explanatory variables?
+    **Yes the coefficients and significances changed slightly.  For example the ethnicity variable is now statistically significant.**
+    ```{r}
+    m_nearly_full <- lm(score ~ rank + ethnicity + gender + language + age + cls_perc_eval + cls_students + cls_level + cls_credits + bty_avg 
+             + pic_outfit + pic_color, data = evals)
+summary(m_nearly_full)
+    ```
 
 15. Using backward-selection and p-value as the selection criterion,
     determine the best model. You do not need to show all steps in your
     answer, just the output for the final model. Also, write out the linear
     model for predicting score based on the final model you settle on.
+    **The formula is:**
+    $\widehat{score} = 3.69 + 0.22 ethnicity + 0.20 gender - 0.01 age + 0.005 \text{cls_perc_eval} + \\0.53 \text{cls_credits} + 0.05 \text{bty_avg} - 0.17  \text{pic_color}$
+    
+    ```{r}
+    m_best <- lm(score ~ ethnicity + gender + age + cls_perc_eval + cls_credits + bty_avg + pic_color, data=evals)
+    summary(m_best)
+    ```
 
 16. Verify that the conditions for this model are reasonable using diagnostic 
     plots.
+    
+    ```{r}
+    plot(m_best)
+    ```
+    
+    **Linearity: Red line in Residuals vs Fitted somewhat flat so condition is met.**
+    
+    **Constant variation: Points in Residuals vs Fitted plot show no apparant pattern generally therefore the condition is met.***
+    
+    **Nearly normal residuals: Points on Q to Q plot fairly linear so this condition is met.  There is some issues at the tails though.**
 
 17. The original paper describes how these data were gathered by taking a
     sample of professors from the University of Texas at Austin and including 
     all courses that they have taught. Considering that each row represents a 
     course, could this new information have an impact on any of the conditions 
     of linear regression?
+    
+    **No because the responses are from the student's point-of-view so they are still  independent.**
 
 18. Based on your final model, describe the characteristics of a professor and 
     course at University of Texas at Austin that would be associated with a high
     evaluation score.
+    
+    **An attractive young white male who teaches a one credit class and gets most of the students to complete an evaluation featured on a black and white head shot.**
 
 19. Would you be comfortable generalizing your conclusions to apply to professors
-    generally (at any university)? Why or why not?
+    generally (at any university)? Why or why not?  
+    
+    **No.  Only 6 people rated the beauty of the professors.  This is not a large enough sample size to generalize the model.**
 
 <div id="license">
 This is a product of OpenIntro that is released under a [Creative Commons Attribution-ShareAlike 3.0 Unported](http://creativecommons.org/licenses/by-sa/3.0). This lab was written by 
