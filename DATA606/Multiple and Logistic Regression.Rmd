@@ -21,11 +21,11 @@ The summary table below shows the results of a linear regression model for predi
 | (Intercept) | 120.07   | 0.60       | 199.94  | 0.000         |
 | parity      | -1.93    | 1.19       | -1.62   | 0.1052        |
 
-(a) Write the equation of the regression line.
+(a) Write the equation of the regression line. $\widehat{weight}=120.07 - 1.93 \times parity$
 
-(b) Interpret the slope in this context, and calculate the predicted birth weight of first borns and others.
+(b) Interpret the slope in this context, and calculate the predicted birth weight of first borns and others. **All else being equal, the average birth weight is 120 ounces.  If the child is not the first born the birth weight decreases by two ounces, to 118 ounces.**
 
-(c) Is there a statistically significant relationship between the average birth weight and parity?
+(c) Is there a statistically significant relationship between the average birth weight and parity? **No because the P value is > 0.05**
 
 ## 8.4 Absenteeism, Part I. 
 
@@ -40,7 +40,7 @@ Researchers interested in the relationship between absenteeism from school and c
 | .   |  .  |  .  |  .  |  .  |
 | 146 |  1  |  0  |  0  |  37 |
 
-The summary table below shows the results of a linear regression model for predicting the average number of days absent based on ethnic background (eth: 0 - aboriginal, 1 - not aboriginal), sex (sex: 0 - female, 1 - male), and learner status (lrn: 0 - average learner, 1 - slow learner).1
+The summary table below shows the results of a linear regression model for predicting the average number of days absent based on ethnic background (eth: 0 - aboriginal, 1 - not aboriginal), sex (sex: 0 - female, 1 - male), and learner status (lrn: 0 - average learner, 1 - slow learner).
 
 |             | Estimate | Std. Error | t value | Pr(>$abs(t)$) |
 |-------------|----------|------------|---------|---------------|
@@ -49,13 +49,21 @@ The summary table below shows the results of a linear regression model for predi
 | sex         | 3.10     | 2.64       | 1.18    | 0.2411        |
 | lrn         | 2.15     | 2.65       | 0.81    | 0.4177        |
 
-(a) Write the equation of the regression line.
+(a) Write the equation of the regression line. $\widehat{day} = 18.93 -9.11eth + 3.1sex + 2.15lrn$
 
-(b) Interpret each one of the slopes in this context.
+(b) Interpret each one of the slopes in this context. **On average a student misses about 19 days of school.  If they are aboriginal they miss an additional 9 days.  If they are female they miss 3 more days.  If they are not a slow learner they miss 2 additional days.**
 
-(c) Calculate the residual for the first observation in the data set: a student who is aboriginal, male, a slow learner, and missed 2 days of school.
+(c) Calculate the residual for the first observation in the data set: a student who is aboriginal, male, a slow learner, and missed 2 days of school. 
+
+$\widehat{day} = 18.93 -9.11(0) + 3.1(1) + 2.15(1) = 24.18$
+
+$e_i = day_1 - \widehat{day}_1 = 2 - 24.18 = -22.18$
 
 (d) The variance of the residuals is 240.57, and the variance of the number of absent days for all students in the data set is 264.17. Calculate the $R^2$ and the adjusted $R^2$. Note that there are 146 observations in the data set.
+
+$R^2 = 1 - \frac{Var(e_1)}{Var(y_1)} = 1 - \frac{240.57}{264.17} = 0.0893364$
+
+$R^2_\text{adj} = 1 - \frac{Var(e_1)}{Var(y_1)} \times \frac{(n-1)}{(n-k-1)} = 1- \frac{240.57}{264.17} \times \frac{(146-1)}{(146 - 3 - 1)} = 1 - 0.9106636 \times 1.021127 = 0.07009681$
 
 ## 8.8 Absenteeism, Part II. 
 
@@ -68,12 +76,11 @@ Exercise 8.4 considers a model that predicts the number of days absent using thr
 | 3 | No sex            | 0.0676         |
 | 4 | No learner status | 0.0723         |
 
-Which, if any, variable should be removed from the model first?
+Which, if any, variable should be removed from the model first? **lrn because the adjusted** $R^2$ **increases from 0.0701 to 0.0723**
 
 ## 8.16 Challenger disaster, Part I. 
 
-On January 28, 1986, a routine launch was anticipated for the Challenger space shuttle. Seventy-three seconds into the flight, disaster happened: the shuttle broke apart, killing all seven crew members on board. An investigation into the cause of the
-disaster focused on a critical seal called an O-ring, and it is believed that damage to these O-rings during a shuttle launch may be related to the ambient temperature during the launch. The table below summarizes observational data on O-rings for 23 shuttle missions, where the mission order is based on the temperature at the time of the launch. Temp gives the temperature in Fahrenheit, Damaged represents the number of damaged O-rings, and Undamaged represents the number of O-rings that were not damaged.
+On January 28, 1986, a routine launch was anticipated for the Challenger space shuttle. Seventy-three seconds into the flight, disaster happened: the shuttle broke apart, killing all seven crew members on board. An investigation into the cause of the disaster focused on a critical seal called an O-ring, and it is believed that damage to these O-rings during a shuttle launch may be related to the ambient temperature during the launch. The table below summarizes observational data on O-rings for 23 shuttle missions, where the mission order is based on the temperature at the time of the launch. Temp gives the temperature in Fahrenheit, Damaged represents the number of damaged O-rings, and Undamaged represents the number of O-rings that were not damaged.
 
 | Shuttle Mission | 1  | 2  | 3  | 4  | 5  | 6  | 7  | 8  | 9  | 10 | 11 | 12 |
 |-----------------|----|----|----|----|----|----|----|----|----|----|----|----|
@@ -87,7 +94,7 @@ disaster focused on a critical seal called an O-ring, and it is believed that da
 | Damaged         | 1  | 0  | 0  | 0  | 0  | 1  | 0  | 0  | 0  | 0  | 0  |
 | Undamaged       | 5  | 6  | 6  | 6  | 6  | 5  | 6  | 6  | 6  | 6  | 6  |
 
-(a) Each column of the table above represents a different shuttle mission. Examine these data and describe what you observe with respect to the relationship between temperatures and damaged O-rings.
+(a) Each column of the table above represents a different shuttle mission. Examine these data and describe what you observe with respect to the relationship between temperatures and damaged O-rings. **At 53 to 57 degrees Fahrenheit, the ratio of damaged to undamaged O-rings flip.**
 
 (b) Failures have been coded as 1 for a damaged O-ring and 0 for an undamaged O-ring, and a logistic regression model was fit to these data. A summary of this model is given below. Describe the key components of this summary table in words.
 
@@ -96,25 +103,77 @@ disaster focused on a critical seal called an O-ring, and it is believed that da
 | (Intercept) | 11.6630  | 3.2963     | 3.54    | 0.0004        |
 | Temperature | -0.2162  | 0.0532     | -4.07   | 0.0000        |
 
+**The model is the probability of failure given the ambient air temperature at launch time.**
+
 (c) Write out the logistic model using the point estimates of the model parameters.
 
-(d) Based on the model, do you think concerns regarding O-rings are justified? Explain
+$log(\frac{p}{1-p}) = 11.6630 - 0.2162 \times \text{Temperature}$
+
+(d) Based on the model, do you think concerns regarding O-rings are justified? Explain.  
+
+**Yes.  Temperature is a statistically significant variable.  To see this effect consider the following:  What is the probability of failure when the launch temperature is 81 degrees?  What is the probability of failure at 53?**
+
+$P = \frac{e^L}{1 + e^L}$ **where**
+$L = 11.6630 - 0.2162 \times \text{Temperature}$
+
+```{r}
+probability_of_failure <- function(temperature){
+  l <- 11.6630 - 0.2162 * temperature
+  round(exp(l) / (1 + exp(l)), 3)
+}
+
+probability_of_failure(81)
+probability_of_failure(53)
+```
+
+**The probability of failure increases from 0 to 0.6 within the observed extreme temperatures.**
 
 ## 8.18 Challenger disaster, Part II. 
 
-Exercise 8.16 introduced us to O-rings that were identified as a plausible explanation for the breakup of the Challenger space shuttle 73 seconds into takeoff
-in 1986. The investigation found that the ambient temperature at the time of the shuttle launch was closely related to the damage of O-rings, which are a critical component of the shuttle. See this earlier exercise if you would like to browse the original data.
+Exercise 8.16 introduced us to O-rings that were identified as a plausible explanation for the breakup of the Challenger space shuttle 73 seconds into takeoff in 1986. The investigation found that the ambient temperature at the time of the shuttle launch was closely related to the damage of O-rings, which are a critical component of the shuttle. See this earlier exercise if you would like to browse the original data.
 
 ![ ](https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA606/Figures/8_18.png)
 
 (a) The data provided in the previous exercise are shown in the plot. The logistic model fit to these data may be written as
 
-$log(\frac{\hat{P}}{1- \hat{P}}) = 11.6630 − 0.2162 \times \text{Temperature}$
+$log(\frac{\hat{p}}{1- \hat{p}}) = 11.6630 − 0.2162 \times \text{Temperature}$
 
-where $\hat{p}$ is the model-estimated probability that an O-ring will become damaged. Use the model to calculate the probability that an O-ring will become damaged at each of the following ambient temperatures: 51, 53, and 55 degrees Fahrenheit. The model-estimated probabilities for several additional ambient temperatures are provided below, where subscripts indicate the temperature:
-$\hat{p}_\text{57}$ = 0.341 $\hat{p}_\text{59}$ = 0.251 $\hat{p}_\text{61}$ = 0.179 $\hat{p}_\text{63}$ = 0.124
-$\hat{p}_\text{65}$ = 0.084 $\hat{p}_\text{67}$ = 0.056 $\hat{p}_\text{69}$ = 0.037 $\hat{p}_\text{71}$ = 0.024
+where $\hat{p}$ is the model-estimated probability that an O-ring will become damaged. Use the model to calculate the probability that an O-ring will become damaged at each of the following ambient temperatures: 51, 53, and 55 degrees Fahrenheit. 
+
+* $\hat{p}_\text{51}$ = `r probability_of_failure(51)`
+* $\hat{p}_\text{53}$ = `r probability_of_failure(53)`
+* $\hat{p}_\text{55}$ = `r probability_of_failure(55)`
+
+The model-estimated probabilities for several additional ambient temperatures are provided below, where subscripts indicate the temperature:
+
+* $\hat{p}_\text{57}$ = 0.341 
+* $\hat{p}_\text{59}$ = 0.251 
+* $\hat{p}_\text{61}$ = 0.179 
+* $\hat{p}_\text{63}$ = 0.124
+* $\hat{p}_\text{65}$ = 0.084 
+* $\hat{p}_\text{67}$ = 0.056 
+* $\hat{p}_\text{69}$ = 0.037 
+* $\hat{p}_\text{71}$ = 0.024
 
 (b) Add the model-estimated probabilities from part (a) on the plot, then connect these dots using a smooth curve to represent the model-estimated probabilities.
 
+```{r}
+library(ggplot2)
+temp <- seq( 51, 71, 2)
+p <- probability_of_failure(temp)
+df <- data.frame(temperature = temp, probability_of_failure = p)
+
+spline_int <- as.data.frame(spline(df$temp, df$probability_of_failure))
+
+ggplot(df) + 
+  geom_point(aes(x = temp, y = probability_of_failure), size = 3) +
+  geom_line(data = spline_int, aes(x = x, y = y)) +
+  labs(x = "Temperature (degrees Fahrenheit)", y = "Probability of Failure")
+```
+
 (c) Describe any concerns you may have regarding applying logistic regression in this application, and note any assumptions that are required to accept the model’s validity
+
+**This model may underestimate the risk at the higher temperatures.  From the observational data we see 2 of 3 cases at 70 degrees had a failure.  The model would predict `r probability_of_failure(70)`.  Since we are dealing with human lives an abundance of caution should be exercised.**
+
+**There are two assumptions required to accept the model's validity: Each outcome is independent of the other outcomes and each predictor is linearly related if all other predictors are held constant.  The outcomes might not be independent as different manufacturing processes might be employed in response to a previous shuttle launch.  It also doesn't appear that the risk of failure and the temperature are linearly related.**
+
