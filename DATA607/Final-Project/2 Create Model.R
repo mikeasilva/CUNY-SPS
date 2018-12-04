@@ -128,6 +128,7 @@ rm(in_training)
 rm(outcome)
 rm(predictors)
 rm(results)
+rm(training)
 
 ## Save the environment
 save.image(file = "model.RData")
