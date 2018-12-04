@@ -8,8 +8,8 @@ library(ranger)
 ## Final Data Wrangling
 
 # Get the SQLite database
-if(!file.exists("Monroe Real Property Data.db")){
-  if(!file.exists("Monroe Real Property Data.db.tar.gz")){
+if (!file.exists("Monroe Real Property Data.db")){
+  if (!file.exists("Monroe Real Property Data.db.tar.gz")){
     # Download this specific commit from my GitHub repo
     download.file("https://github.com/mikeasilva/CUNY-SPS/raw/9a2023b57a466550646c9190076a53d51ef09ef2/data/Monroe%20Real%20Property%20Data.db.tar.gz", "Monroe Real Property Data.db.tar.gz")
   }
@@ -24,7 +24,7 @@ con <- dbConnect(RSQLite::SQLite(), "Monroe Real Property Data.db")
 
 # Get the latest unduplicated sales price data
 results <- dbSendQuery(con, "SELECT MAX(sale_date) AS sale_date, SWIS, SBL FROM sales_data GROUP BY SWIS, SBL HAVING sale_date > '2015-12-31'")
-df <- dbFetch(results) 
+df <- dbFetch(results)
 
 dbClearResult(results)
 
@@ -33,7 +33,7 @@ df <- dbReadTable(con, "sales_data") %>% # Pull all the records
   merge(df) # Merge with the targeted sales observations
 
 df <- df %>%
-  group_by(SWIS, SBL) %>% 
+  group_by(SWIS, SBL) %>%
   summarise(count = n()) %>% # Get the number of records
   ungroup() %>%
   filter(count == 1) %>% # Only keep the observations with one price
@@ -69,21 +69,22 @@ set.seed(1234)
 
 # Split the data into training and test sets
 in_training <- createDataPartition(df$price, p = 0.8, list = FALSE)
-training <- df[ in_training,]
-testing  <- df[-in_training,]
+training <- df[ in_training, ]
+testing  <- df[-in_training, ]
 
 # Simplify the model using recursive feature elimination
-outcome <- 'price'
+outcome <- "price"
 predictors <- names(training)[!names(training) %in% outcome]
 
-#Sys.time()
-#results <- rfe(training[, predictors], training[, outcome], rfeControl = rfeControl(rfFuncs, method = "repeatedcv", repeats = 3))
-#Sys.time()
+# This takes a long time to run so you may want to comment out the next 3 lines
+Sys.time()
+results <- rfe(training[, predictors], training[, outcome], rfeControl = rfeControl(rfFuncs, method = "repeatedcv", repeats = 3))
+Sys.time()
 
 results
 
 # Pick the top five predictors and the outcome variable as the model features
-features <- c(outcome, 'SQFT_LIV', 'YR_BLT', 'CALC_ACRES', 'BLDG_DESC', 'NBR_F_BATH')
+features <- c(outcome, "SQFT_LIV", "YR_BLT", "CALC_ACRES", "BLDG_DESC", "NBR_F_BATH")
 
 training <- training[, features]
 testing <- testing[, features]
