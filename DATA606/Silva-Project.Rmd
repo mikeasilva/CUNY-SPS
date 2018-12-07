@@ -10,15 +10,15 @@ bibliography: Silva-Project.bib
 
 ## 1. Introduction
 
-Finding affordable housing is a real challenge throughout the country.  The Rochester, New York metro is acclaimed as a place with affordable housing. Recent data show 81% of the housing in the Rochester Metro is affordable [@nahb_hoi].  The median sales price for a home in Rochester is $146,000.  This is about half as much as the national average ($268,000).  With the high family income, housing proves to be affordable.
+Finding affordable housing is a real challenge throughout the country.  The Rochester, New York metro is acclaimed as a place with affordable housing. Recent data shows 81% of home in the Rochester Metro are affordable [@nahb_hoi].  The median sales price for a home in Rochester is $146,000.  This is about half as much as the national average ($268,000).  With the high family income, housing proves to be affordable.
 
-There is considerable variety in the type of housing offered in Rochester. There are picturesque village homes built in the late 1800s.  There are also suburban homes that are larger and newer. Can the square footage and age of a home reliabily estimate the sale price?
+There is considerable variety in the type of housing offered in Rochester. There are picturesque village homes built in the late 1800s. There are also suburban homes that are larger and newer. Can the square footage and age of a home estimate the sale price reliably?
 
 ## 2. Data
 
 ### Data Collection
 
-The NYS Office of Real Property Services (NYS RPS) collects sales price data from adminstrative records.  The data for this study were scrapped using a [web scrapper](https://github.com/mikeasilva/CUNY-SPS/blob/21abb87c5a28204e75ba2944c574889e07289345/data/Build%20Monroe%20Real%20Property%20Data.py) in early November of 2018 [@mcrpp].  At that time the data was synced with NYS RPS on 22 October 2018.
+The NYS Office of Real Property Services (NYS RPS) collects sales price data from administrative records.  The data for this study were scrapped using a [web scrapper](https://github.com/mikeasilva/CUNY-SPS/blob/21abb87c5a28204e75ba2944c574889e07289345/data/Build%20Monroe%20Real%20Property%20Data.py) in early November of 2018 [@mcrpp].  At that time the data was synced with NYS RPS on 22 October 2018.
 
 The NYS GIS clearinghouse compiled data on housing attributes [@nysgis]. The 2017 data is used in this study.  The square footage of living space is the measurement of size in this study.  It is a quantitative measure.  
 
@@ -28,9 +28,7 @@ Data on the age of the home are transformed into eras (a categorical variable). 
 2. Post-War Boom (1940 to 1979)
 3. Last 30+ Years (1980+)
 
-This study is purely observational in nature.  It does not assert that these variables have a causal relationship nor should it be interpreted that way.
-
-Scope of inference - generalizability: Identify the population of interest, and whether the findings from this analysis can be generalized to that population, or, if not, a subsection of that population. Explain why or why not. Also discuss any potential sources of bias that might prevent generalizability.
+This study is purely observational in nature.  It does not assert these variables have a causal relationship.
 
 ### Data Preparation
 
@@ -100,7 +98,7 @@ df <- dbReadTable(con, "property_info") %>% # Pull all the records
 dbDisconnect(con)
 ```
 
-There are `r prettyNum(nrow(df), big.mark = ",", scientific = FALSE)` observations in the data set. This indicates the merging process did not introduce any dupplication. Now that the housing attributes are added in, some odd observations need to be filtered out.
+There are `r prettyNum(nrow(df), big.mark = ",", scientific = FALSE)` observations in the data set. This indicates the merging process did not introduce any duplication. Now that the housing attributes are added in, some odd observations need to be filtered out.
 
 ```{r filter_out_crap}
 df <- df %>% # First filter out some obviously weird data
@@ -110,9 +108,9 @@ df <- df %>% # First filter out some obviously weird data
   filter(NBR_BEDRM > 0)
 ```
 
-After filtering there are `r prettyNum(nrow(df), big.mark = ",", scientific = FALSE)` observations.  This is the final count of cases for the study.  The last data preperation step is to change the year built quantitative variable into a categorical variable and only keep the variables of interest.
+After filtering there are `r prettyNum(nrow(df), big.mark = ",", scientific = FALSE)` observations.  This is the final count of cases for the study.  The next step is to create the categorical variable from the construction year.
 
-```{r finalize_df}
+```{r era}
 get_era <- function(year){
   if(year < 1940){
     return("1. Before 1940s")
@@ -127,14 +125,20 @@ df <- df %>%
   rowwise() %>%
   mutate(Era = get_era(YR_BLT)) %>%
   ungroup() %>%
-  mutate(Era = as.factor(Era)) %>%
+  mutate(Era = as.factor(Era))
+```
+
+The last data preparation step is renaming and selecting the variables of interest.
+
+```{r finalize_df}
+df <- df %>%
   rename(Size = SQFT_LIV) %>%
   select(Price, Size, Era)
 ```
 
 ### Sanity Check
 
-The American Community survey asks respondents about their home value.  If we assume that the sale price is equivalent to the home value, how well does the study data represent the housing stock?  The following figure takes the study data and compares with with Monroe County's housing stock [@acs].
+The American Community survey asks respondents about their home value. Assuming the sale price is comparable to the home value, how well does the study data represent the housing stock? The following figure takes the study data and compares with with Monroe County’s housing stock [@acs].
 
 ##### Figure 1. Percent of Homes by Price Groups and Data Set
 ```{r sanity_check, echo=FALSE}
@@ -193,9 +197,9 @@ ggplot(check, aes(x = reorder(Value, desc(Value)), Share, color=Dataset, fill=Da
   theme_fivethirtyeight(base_size = 12, base_family = "sans") 
 ```
 
-The study data under represents the two highest and two lowest categories.  It also overrepresents the $100,000 to $149,999 price range.  This could indicate that different segments of the housing stock "moved" faster/more than other segements.
+The study data under represents the two highest and two lowest categories. It also over represents the $100,000 to $149,999 price range. This could indicate different segments of the housing stock “moved” faster/more than other segments.
 
-This data above raise some concern.  The data appears to be skewed.  The following density plot illustrates the skew.  The x-axis is stopped at half a million even though the largest sale price in the data set is `r round(max(df$Price) / 1000000, 1)` million dollars.
+This data above raise some concern.  The data appears skewed.  The following density plot illustrates the skew.  The x-axis is stopped at half a million even though the largest sale price in the data set is `r round(max(df$Price) / 1000000, 1)` million dollars.
 
 ##### Figure 2: Sale Price Distribution
 ```{r price_hist, echo=FALSE, warning=FALSE}
@@ -219,7 +223,7 @@ summary(df$Price) %>%
   kable_styling()
 ```
 
-There are extreme housing prices in the data set.  The data is also not normal.  In order to correct this the price will be on a log scale and the outliers will be removed.  
+There are extreme housing prices in the data set.  The data is also not normal.  To correct this, the price will be on a log scale and outliers will be removed.  
 
 ```{r log_transform}
 # Log transformation
@@ -263,7 +267,7 @@ As previously stated there are `r prettyNum(nrow(df), big.mark = ",", scientific
 
 As mentioned in the introduction, the median sale price for a home in the Rochester Metro is $146,000 [@nahb_hoi].  The median sale price in the study dataset is `r paste0("$", prettyNum(median(df$Price), big.mark = ",", scientific = FALSE))` which is pretty comparable.
 
-This study posits the size and era a home was built are reliable predictors of the price (on a log scale).  The following scatterplot illustrates the relationship observed in the data. 
+This study posits the size and era a home was built are reliable predictors of the price (on a log scale).  The following scatter plot illustrates the relationship observed in the data. 
 
 ##### Figure 4: Log Sales Price and Size by Era
 ```{r fig.height=10, echo=FALSE}
@@ -274,7 +278,7 @@ ggplot(df, aes(Log_Price, Size, color = Era)) +
   facet_grid(Era ~ .)
 ```
 
-It is clear to see that price and size are related.  The relationship between price and era is not as apparent.  The following visualization and summary table examines this relationship:
+It is clear to see that price and size are related.  The relationship between price and era is not as clear  The following visualization and summary table examines this relationship:
 
 ##### Figure 5: Log Sales Price by Era
 ```{r era_by_price_boxplot, echo=FALSE}
@@ -297,7 +301,7 @@ The older houses tend to fetch less in the market than the newer houses.  There 
 
 ### Checking for Multicollinearity
 
-The two explanatory variables might be related.  It is reasonable to believe that home increased in size over time.  The plot below will check to see if the size and era are related.
+The two explanatory variables might be related.  It is reasonable to believe that home increased in size over time.  The plot below will display how the size and era are related.
 
 ##### Figure 6: Size by Era
 ```{r size_by_era_boxplot, echo=FALSE}
@@ -342,26 +346,25 @@ This is the summary of the model:
 summary(fit)
 ```
 
-This model's coefficients are a little hard to interpret given that they are on a log scale.  However one observes that all of the coefficients are statistically significant.  The square footage of living space (size) is positively correlated with the home price.  Also the later the home is built is positively correlated with the price.  60% of the variability in the log of the sales price is explained by these two variables.
+This model's coefficients are a little hard to interpret given that they are on a log scale.  Yet one observes that all the coefficients are statistically significant.  The square footage of living space (size) is positively correlated with the home price.  Also the later the home is built is positively correlated with the price.  60% of the variability in the log of the sales price is explained by these two variables.
 
 ```{r, echo=FALSE, eval=FALSE}
 exp(coef(fit))
 ```
 
-### Model Examination
+### Residual Examination
 
-
-
-##### Figure X: Residuals Scatterplot
+##### Figure 7: Residuals Scatterplot
 ```{r residual_plot, echo=FALSE}
 ggplot(fit, aes(x = c(1:length(resid(fit))), y = resid(fit))) + 
   geom_point(color = "red") + 
   theme_fivethirtyeight(base_size = 12, base_family = "sans")
 ```
 
-ADD TEXT ABOUT THE PLOT
+The above figure is the residuals ordered by their index.  There is no clear pattern in this figure.
 
-```{r qqplot_residuals}
+##### Figure 7: Residuals Q to Q
+```{r qqplot_residuals,echo=FALSE}
 ggplot(fit, aes(sample=resid(fit)))+
   stat_qq(color="red") +
   geom_qq_line() + 
@@ -370,49 +373,53 @@ ggplot(fit, aes(sample=resid(fit)))+
   
 ```
 
-The Q to Q plot above indicates that the residuals are more linear near the middle of the distribution but there are some major problems in the tails.
+The Q to Q plot above indicates that the residuals are more linear near the middle of the distribution.  But there are some major problems in the tails.
 
 ### Generalization
 
 In order to assess how well this model generalizes, predictions for the testing data set will be made and compared to the actual.
 
 ```{r test_predictions}
-testing$Log_Price_hat <- predict(fit, testing)
+predictions <- predict(fit, testing, interval = "confidence")
+testing$Log_Price_hat <- predictions[, 1]
 testing$Price_hat <- exp(testing$Log_Price_hat)
+testing$Log_Price_hat_lower <- predictions[, 2]
+testing$Price_hat_lower <- exp(testing$Log_Price_hat_lower)
+testing$Log_Price_hat_upper <- predictions[, 3]
+testing$Price_hat_upper <- exp(testing$Log_Price_hat_upper)
 ```
 
-Let's visualize the predictions vs the actual sales prices.  In the following plot the sales price is on the x-axis and the prediction is on the y-axis.  Values are per one thousand.  The black dashed line represents where the prediction and the actual values are the same.
+Let's visualize the predictions vs the actual sales prices.  In the following plot the sales price is on the x-axis and the prediction is on the y-axis.  Values are per one thousand.  The black dashed line represents where the prediction and the actual values are the same.  The blue are under estimates, red are over estimates, and the green points have a price that falls within the confidence interval.
 
-##### Figure X: Test Set Actual vs Model Prediction (in thousands)
+##### Figure 8: Test Set Actual vs Model Prediction (in thousands)
 ```{r prediction_plot, echo=FALSE, message=FALSE, warning=FALSE}
-over_under_equal <- function(price, price_hat){
-  if(price == price_hat){"Equal"}
-  else if(price > price_hat){"Under"}
-  else {"Over"}
+over_under_equal <- function(price, lower, upper){
+  if(price > upper){"Over Estimate"}
+  else if(price < lower){"Under Estimate"}
+  else {"Within CI"}
 }
 testing <- testing %>%
   rowwise() %>%
-  mutate(Accuracy = over_under_equal(Price, Price_hat)) %>%
+  mutate(Accuracy = over_under_equal(Price, Price_hat_lower, Price_hat_upper)) %>%
   ungroup
 
-ggplot(testing, aes(Price / 1000, Price_hat / 1000, color = Accuracy)) + 
+ggplot(testing, aes(Price_hat / 1000, Price / 1000, color = Accuracy)) + 
   geom_point() + 
   scale_color_fivethirtyeight() +
   xlim(0, max(testing$Price) / 1000) +
   ylim(0, max(testing$Price) / 1000) +
   geom_abline(intercept = 0, slope = 1, color = "black", linetype = 2) +
-  theme_fivethirtyeight(base_size = 12, base_family = "sans") +
-  guides(fill = FALSE, color = FALSE)
+  theme_fivethirtyeight(base_size = 12, base_family = "sans") 
 ```
 
-There are `r nrow(testing[testing$Accuracy=="Over", ])` cases where the model over estimates and `r nrow(testing[testing$Accuracy=="Under", ])` where it under estimates the home price. Let's examine to what degree it over/under estimates.
+There are `r nrow(testing[testing$Accuracy=="Over Estimate", ])` cases where the model over estimates and `r nrow(testing[testing$Accuracy=="Under Estimate", ])` where it under estimates the home price. `r nrow(testing[testing$Accuracy=="Within CI", ])` are in within the confidence interval.  Let's examine to what degree it over/under estimates.
 
 ```{r test_error}
 testing <- testing %>%
   mutate(Error = Price_hat - Price)
 ```
 
-##### Figure X: Prediction Error Distribution
+##### Figure 9: Prediction Error Distribution
 ```{r prediction_error_distribution, echo=FALSE}
 testing %>%
   ggplot(aes(Error / 1000)) +
@@ -422,7 +429,7 @@ testing %>%
   guides(fill = FALSE, color = FALSE)
 ```
 
-##### Table 4?: Prediction Error Summary
+##### Table 4: Prediction Error Summary
 ```{r error_table, echo=FALSE}
 summary(testing$Error) %>%
   as.array() %>%
@@ -433,24 +440,27 @@ summary(testing$Error) %>%
   kable_styling()
 ```
 
-There is a wide variety in the errors.  It appears that the model tends to be really good or really bad.
+There is a wide variety in the errors.  Let's look at the distribution of the error in absolute terms as a share of the total price.  It would be nice to see errors in the 5% range
 
-```{r echo=F, eval=F}
-If your data fails some conditions and you can’t use a theoretical method, then you should use simulation. If you can use both methods, then you should use both methods. It is your responsibility to figure out the appropriate methodology.
-
-
-
-Check conditions
-
-Theoretical inference (if possible) - hypothesis test and confidence interval
-
-Simulation based inference - hypothesis test and confidence interval
-
-Brief description of methodology that reflects your conceptual understanding
+```{r error_share}
+testing <- testing %>%
+  mutate(Error_Share = (abs(Error) / Price) * 100)
 ```
+
+##### Figure 10. Cumulative Distribution of Error Share (5% cutoff in red)
+```{r error_share_plot, echo=FALSE}
+testing %>%
+  ggplot(aes(Error_Share)) + 
+  stat_ecdf() + 
+  geom_vline(xintercept = 5, color = "Red", linetype = "dashed") +
+  scale_fill_fivethirtyeight() + 
+  theme_fivethirtyeight(base_size = 12, base_family = "sans") +
+  guides(fill = FALSE, color = FALSE)
+```
+
+Only `r round((nrow(testing[testing$Error_Share < 5, ]) / nrow(testing)) * 100, 0)`% of the testing set observations have an error which is +/-5% of the estimate.
 
 ## 5. Conclusion
 
-This study set out to see if the size of a home and the era in which it was built could be used to get an estimate of the sale price.  While these variables do seem to be relavant in predicting the home value, it appears that it is more complicated than just that.  Future research could include extending the model to capture a location variable, or employ a different modeling approach as  it appears that the relationship may be non-linear.
-
+This study set out to see if the size of a home and the era in which it was built could be used to get an estimate of the sale price. While these variables seem to be relevant, it appears that it is more complicated. Future research could expand the model.  A location variable would be a next step.  A different modeling approach may be employed as the relationship appears to be non-linear.
 ## 6. References
