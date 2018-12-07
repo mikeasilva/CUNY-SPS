@@ -10,7 +10,7 @@ bibliography: Silva-Project.bib
 
 ## 1. Introduction
 
-Finding affordable housing is a real challenge throughout the country.  The Rochester, New York metro is acclaimed as a place with affordable housing. Recent data shows 81% of home in the Rochester Metro are affordable [@nahb_hoi].  The median sales price for a home in Rochester is $146,000.  This is about half as much as the national average ($268,000).  With the high family income, housing proves to be affordable.
+Finding affordable housing is a real challenge throughout the country.  The Rochester, New York metro is acclaimed fit its affordable housing. Recent data shows 81% of homes in the Rochester Metro are affordable [@nahb_hoi].  The median sales price in Rochester is $146,000, or half of the national average ($268,000).  With the relatively high family income, Rochester housing proves to be affordable.
 
 There is considerable variety in the type of housing offered in Rochester. There are picturesque village homes built in the late 1800s. There are also suburban homes that are larger and newer. Can the square footage and age of a home estimate the sale price reliably?
 
@@ -18,11 +18,11 @@ There is considerable variety in the type of housing offered in Rochester. There
 
 ### Data Collection
 
-The NYS Office of Real Property Services (NYS RPS) collects sales price data from administrative records.  The data for this study were scrapped using a [web scrapper](https://github.com/mikeasilva/CUNY-SPS/blob/21abb87c5a28204e75ba2944c574889e07289345/data/Build%20Monroe%20Real%20Property%20Data.py) in early November of 2018 [@mcrpp].  At that time the data was synced with NYS RPS on 22 October 2018.
+The NYS Office of Real Property Services (NYS RPS) collects sales price data.  This administrative record data was scrapped using a [web scrapper](https://github.com/mikeasilva/CUNY-SPS/blob/21abb87c5a28204e75ba2944c574889e07289345/data/Build%20Monroe%20Real%20Property%20Data.py) in early November of 2018 [@mcrpp].  At that time, the data was as of 22 October 2018.
 
-The NYS GIS clearinghouse compiled data on housing attributes [@nysgis]. The 2017 data is used in this study.  The square footage of living space is the measurement of size in this study.  It is a quantitative measure.  
+The NYS GIS clearinghouse compiles data on housing attributes [@nysgis]. This data originates from local assessors.  The 2017 data (latest available) was used.  The square footage of living space is the measurement of size in this study.  It is a quantitative measure.  
 
-Data on the age of the home are transformed into eras (a categorical variable).  These eras come from an [article](https://www.forbes.com/sites/trulia/2013/05/02/american-homes-by-decade/#16c559821045) from the Trulia's Chief Economist.  They are:
+Data on the age of the home are transformed into eras (a categorical variable).  These eras come from an [article](https://www.forbes.com/sites/trulia/2013/05/02/american-homes-by-decade/#16c559821045) authored by Trulia's Chief Economist.  They are:
 
 1. Before 1940s
 2. Post-War Boom (1940 to 1979)
@@ -32,7 +32,7 @@ This study is purely observational in nature.  It does not assert these variable
 
 ### Data Preparation
 
-The scrapped data is in a SQLite database stored in GitHub.  The first step is to download and extract this database.
+The scrapped data is in a SQLite database stored on GitHub.  The first step is to download and extract this database locally.
 
 ```{r get_the_database, message=FALSE}
 library(DBI)
@@ -51,7 +51,7 @@ if(!file.exists("Monroe Real Property Data.db")){
 }
 ```
 
-Now that the data is downloaded it is time to pull the sales price.  Each parcel is identified by a SWIS (Statewide Information System) and SBL (Section, Block, Lot) code.  Using this identifier, the next step is to find the latest sale date.  
+Now that the data is downloaded it is time to pull the sales price.  Each parcel is identified by a SWIS (Statewide Information System) and SBL (Section, Block, Lot) code.  Using this identifier, the next step is to find the latest sale date.
 
 ```{r read_db}
 # Connect to the database
@@ -108,7 +108,7 @@ df <- df %>% # First filter out some obviously weird data
   filter(NBR_BEDRM > 0)
 ```
 
-After filtering there are `r prettyNum(nrow(df), big.mark = ",", scientific = FALSE)` observations.  This is the final count of cases for the study.  The next step is to create the categorical variable from the construction year.
+After filtering there are `r prettyNum(nrow(df), big.mark = ",", scientific = FALSE)` observations.  This is the final count of cases for the study.  The next step is to translate the year of construction into an era.
 
 ```{r era}
 get_era <- function(year){
@@ -197,9 +197,9 @@ ggplot(check, aes(x = reorder(Value, desc(Value)), Share, color=Dataset, fill=Da
   theme_fivethirtyeight(base_size = 12, base_family = "sans") 
 ```
 
-The study data under represents the two highest and two lowest categories. It also over represents the $100,000 to $149,999 price range. This could indicate different segments of the housing stock “moved” faster/more than other segments.
+The study data is generally fairly representative.  It under represent the two highest and two lowest categories. It also over represent home in the $100,000 to $149,999 price range. This could be due to different segments of the housing stock “moving” faster/more than other segments.
 
-This data above raise some concern.  The data appears skewed.  The following density plot illustrates the skew.  The x-axis is stopped at half a million even though the largest sale price in the data set is `r round(max(df$Price) / 1000000, 1)` million dollars.
+This data distribution depicted above raises some concern.  The data appear skewed.  The following density plot illustrates the skew.  The x-axis is stopped at half a million for readability, even though the largest sale price in the data set is `r round(max(df$Price) / 1000000, 1)` million dollars.
 
 ##### Figure 2: Sale Price Distribution
 ```{r price_hist, echo=FALSE, warning=FALSE}
@@ -223,7 +223,7 @@ summary(df$Price) %>%
   kable_styling()
 ```
 
-There are extreme housing prices in the data set.  The data is also not normal.  To correct this, the price will be on a log scale and outliers will be removed.  
+This confirms there are extreme housing prices in the data set.  The data is also not normal.  To correct this, the price will be put on a log scale and outliers will be removed.  
 
 ```{r log_transform}
 # Log transformation
@@ -261,11 +261,11 @@ ggplot(df, aes(Log_Price)) +
 
 ### Study Data
 
-As previously stated there are `r prettyNum(nrow(df), big.mark = ",", scientific = FALSE)` observations in this data set.  Each case represents the most recent sale price for a residential property occuring in 2017, ranging in price from `r paste0("$", prettyNum(min(df$Price), big.mark = ",", scientific = FALSE))` to  `r paste0("$", prettyNum(max(df$Price), big.mark = ",", scientific = FALSE))`.  On a log scale these prices are ranging in price from `r paste0("$", prettyNum(min(df$Log_Price), big.mark = ",", scientific = FALSE))` to  `r paste0("$", prettyNum(max(df$Log_Price), big.mark = ",", scientific = FALSE))`. 
+As previously stated there are `r prettyNum(nrow(df), big.mark = ",", scientific = FALSE)` observations in this data set.  Each case represents the most recent sale price for a residential property occuring in 2017, ranging in price from `r paste0("$", prettyNum(min(df$Price), big.mark = ",", scientific = FALSE))` to  `r paste0("$", prettyNum(max(df$Price), big.mark = ",", scientific = FALSE))`.  On a log scale these prices range from `r paste0("$", prettyNum(min(df$Log_Price), big.mark = ",", scientific = FALSE))` to  `r paste0("$", prettyNum(max(df$Log_Price), big.mark = ",", scientific = FALSE))`. 
 
 ## 3. Exploratory Data Analysis
 
-As mentioned in the introduction, the median sale price for a home in the Rochester Metro is $146,000 [@nahb_hoi].  The median sale price in the study dataset is `r paste0("$", prettyNum(median(df$Price), big.mark = ",", scientific = FALSE))` which is pretty comparable.
+As mentioned in the introduction, the median sale price for a home in the Rochester Metro is $146,000 [@nahb_hoi].  The median sale price in the study dataset is `r paste0("$", prettyNum(median(df$Price), big.mark = ",", scientific = FALSE))` which is comparable.
 
 This study posits the size and era a home was built are reliable predictors of the price (on a log scale).  The following scatter plot illustrates the relationship observed in the data. 
 
@@ -278,7 +278,7 @@ ggplot(df, aes(Log_Price, Size, color = Era)) +
   facet_grid(Era ~ .)
 ```
 
-It is clear to see that price and size are related.  The relationship between price and era is not as clear  The following visualization and summary table examines this relationship:
+It is clear that price and size are related.  The relationship between price and era is not as clear  The following visualization and summary table examines this relationship further:
 
 ##### Figure 5: Log Sales Price by Era
 ```{r era_by_price_boxplot, echo=FALSE}
@@ -297,11 +297,11 @@ df %>%
   kable_styling()
 ```
 
-The older houses tend to fetch less in the market than the newer houses.  There doesn't seem to be much difference between the pre and post-war housing.
+The older houses tend to fetch less in the market than the newer houses.  There also does not seem to be much difference between the pre and post-war housing.
 
 ### Checking for Multicollinearity
 
-The two explanatory variables might be related.  It is reasonable to believe that home increased in size over time.  The plot below will display how the size and era are related.
+The two explanatory variables might be related.  It is reasonable to believe that homes increased in size over time.  The plot below will display how the size and era are related.
 
 ##### Figure 6: Size by Era
 ```{r size_by_era_boxplot, echo=FALSE}
@@ -346,7 +346,7 @@ This is the summary of the model:
 summary(fit)
 ```
 
-This model's coefficients are a little hard to interpret given that they are on a log scale.  Yet one observes that all the coefficients are statistically significant.  The square footage of living space (size) is positively correlated with the home price.  Also the later the home is built is positively correlated with the price.  60% of the variability in the log of the sales price is explained by these two variables.
+This model's coefficients are a little hard to interpret given that they are on a log scale.  Yet one observes that all the coefficients are statistically significant.  The square footage of living space (size) is positively correlated with the home price.  Also the later the home is built is positively correlated with the price.  Only 60% of the variability in the log of the sales price is explained by these two variables.
 
 ```{r, echo=FALSE, eval=FALSE}
 exp(coef(fit))
@@ -389,7 +389,7 @@ testing$Log_Price_hat_upper <- predictions[, 3]
 testing$Price_hat_upper <- exp(testing$Log_Price_hat_upper)
 ```
 
-Let's visualize the predictions vs the actual sales prices.  In the following plot the sales price is on the x-axis and the prediction is on the y-axis.  Values are per one thousand.  The black dashed line represents where the prediction and the actual values are the same.  The blue are under estimates, red are over estimates, and the green points have a price that falls within the confidence interval.
+Let's visualize the predictions vs the actual sales prices.  In the following plot the sales price is on the x-axis and the prediction is on the y-axis.  Values are per one thousand.  The black dashed line represents where the prediction and the actual values are the same.  The blue are under estimates, red are over estimates, and the green points have a price that falls within the prediction's confidence interval.
 
 ##### Figure 8: Test Set Actual vs Model Prediction (in thousands)
 ```{r prediction_plot, echo=FALSE, message=FALSE, warning=FALSE}
@@ -412,7 +412,7 @@ ggplot(testing, aes(Price_hat / 1000, Price / 1000, color = Accuracy)) +
   theme_fivethirtyeight(base_size = 12, base_family = "sans") 
 ```
 
-There are `r nrow(testing[testing$Accuracy=="Over Estimate", ])` cases where the model over estimates and `r nrow(testing[testing$Accuracy=="Under Estimate", ])` where it under estimates the home price. `r nrow(testing[testing$Accuracy=="Within CI", ])` are in within the confidence interval.  Let's examine to what degree it over/under estimates.
+There are `r nrow(testing[testing$Accuracy=="Over Estimate", ])` cases where the model over estimates the home price, and `r nrow(testing[testing$Accuracy=="Under Estimate", ])` where it under estimates the home price. `r nrow(testing[testing$Accuracy=="Within CI", ])` are in within the confidence interval.  Let's examine to what degree it over/under estimates.  The model does not seem to accurately depict reality.
 
 ```{r test_error}
 testing <- testing %>%
@@ -440,7 +440,7 @@ summary(testing$Error) %>%
   kable_styling()
 ```
 
-There is a wide variety in the errors.  Let's look at the distribution of the error in absolute terms as a share of the total price.  It would be nice to see errors in the 5% range
+There is a wide variety in the errors.  Let's look at the distribution of the error in absolute terms expressed as a share of the total price.  It would be nice to see errors in the 5% range
 
 ```{r error_share}
 testing <- testing %>%
@@ -458,9 +458,10 @@ testing %>%
   guides(fill = FALSE, color = FALSE)
 ```
 
-Only `r round((nrow(testing[testing$Error_Share < 5, ]) / nrow(testing)) * 100, 0)`% of the testing set observations have an error which is +/-5% of the estimate.
+Only `r round((nrow(testing[testing$Error_Share < 5, ]) / nrow(testing)) * 100, 0)`% of the testing set observations have an error which is +/-5% of the estimate.  Once again the model seems to be a poor predictor.
 
 ## 5. Conclusion
 
-This study set out to see if the size of a home and the era in which it was built could be used to get an estimate of the sale price. While these variables seem to be relevant, it appears that it is more complicated. Future research could expand the model.  A location variable would be a next step.  A different modeling approach may be employed as the relationship appears to be non-linear.
+This study set out to see if the size of a home and the era in which it was built could be used to get an estimate of the sale price. While these variables seem to be relevant, predictions made only using the variables are largely inaccurate.  It appears that the relationship is more complicated. Future research could expand the model.  A location variable would be a next step along with the size of the plot.  A different modeling approach should be employed as the relationship appears to be non-linear.
+
 ## 6. References
