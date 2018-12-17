@@ -1,6 +1,6 @@
 ![](https://sps.cuny.edu/sites/all/themes/cuny/assets/img/header_logo.png)
 
-Mike Silva's Masters in Data Science Course Work for [DATA 607 - Data Aquisition and Management](https://github.com/mikeasilva/CUNY-SPS/tree/master/DATA607).  This course focused on practical projects.
+Mike Silva's Masters in Data Science Course Work for [DATA 607 - Data Aquisition and Management](https://github.com/mikeasilva/CUNY-SPS/tree/master/DATA607).  This course focused on practical projects, capstoned with a final project.
 
 ## Course Work
 
