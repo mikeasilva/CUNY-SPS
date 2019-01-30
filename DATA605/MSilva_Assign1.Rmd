@@ -1,0 +1,183 @@
+---
+title: "DATA 605 Assignment 1"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+## Problem Set 1
+
+You can think of vectors representing many dimensions of related information. For
+instance, Netflix might store all the ratings a user gives to movies in a vector. This is clearly a vector of very large dimensions (in the millions) and very sparse as the user might have rated only a few movies. Similarly, Amazon might store the items purchased by a user in a vector, with each slot or dimension representing a unique product and the value of the slot, the number of such items the user bought. One task that is frequently done in these settings is to find similarities between users. And, we can use dot-product between vectors to do just that. As you know, the dot-product is proportional to the length of two vectors and to the angle between them. In fact, the dot-product between two vectors, normalized by their lengths is called as the cosine distance and is frequently used in recommendation engines.
+
+(1) Calculate the dot product u.v where u = [0.5; 0.5] and v = [3; −4]
+
+$u \cdot v= u_1 \times v_1 + u_2 \times v_2 = 0.5 \times 3 + 0.5 \times 4 = 1.5 + 2 = 3.5$
+
+```{r, warning=FALSE}
+u <- c(0.5, 0.5)
+v <- c(3, 4)
+
+dot_product_u_times_v <- u %*% v
+dot_product_u_times_v
+```
+
+(2) What are the lengths of u and v? Please note that the mathematical notion of the length of a vector is not the same as a computer science definition.
+
+$||u|| = \sqrt{(u_1)^2 + (u_2)^2} = \sqrt{0.5^2 + 0.5^2} = \sqrt{0.25 + 0.25} = \sqrt{0.5} = 0.7071068$
+
+```{r}
+magnitude_of_u <- sqrt(u[1] ^ 2 + u[2] ^ 2)
+magnitude_of_u
+```
+
+$||v|| = \sqrt{(v_1)^2 + (v_2)^2} = \sqrt{3^2 + 4^2} = \sqrt{9 + 16} = \sqrt{25} = 5$
+```{r}
+magnitude_of_v <- sqrt(v[1] ^ 2 + v[2] ^ 2)
+magnitude_of_v
+```
+
+(3) What is the linear combination: 3u − 2v?
+
+$3u - 2v = [1.5, 1.5] - [6, 8] = [-4.5, -6.5]$
+
+```{r}
+3 * u - 2 * v
+```
+
+(4) What is the angle between u and v
+
+$\text{cos } \theta = \frac{u \cdot v}{||u||\times||v||} = \frac{3.5}{0.7071068 \times 5} = \frac{3.5}{3.535534} = 0.9899495$
+
+```{r}
+cosine <- dot_product_u_times_v / (magnitude_of_u * magnitude_of_v)
+cosine
+```
+
+## Problem Set 2
+
+Set up a system of equations with 3 variables and 3 constraints and solve for x. Please write a function in R that will take two variables (matrix A & constraint vector b) and solve using elimination. Your function should produce the right answer for the system of equations for any 3-variable, 3-equation system. You don’t have to worry about degenerate cases and can safely assume that the function will only be tested with a system of equations that has a solution. Please note that you do have to worry about zero pivots, though. Please note that you should not use the built-in function solve to solve this system or use matrix inverses. The approach that you should employ is to construct an Upper Triangular Matrix and then back-substitute to get the solution. Alternatively, you can augment the matrix A with vector b and jointly apply the Gauss Jordan elimination procedure.
+
+Please test it with the system below and it should produce a solution x = [−1.55, −0.32, 0.95]
+
+ \[ \begin{bmatrix}
+    1 & 1 & 3 \\
+    2 & -1 & 5 \\
+    -1 & -2 & 4
+  \end{bmatrix}
+  \begin{bmatrix}
+    x_1 \\
+    x_2 \\
+    x_3 
+  \end{bmatrix} = 
+  \begin{bmatrix}
+    1 \\
+    2 \\
+    6 
+  \end{bmatrix}
+\]
+
+```{r, echo=FALSE, eval=FALSE}
+my_solve <- function(A, b){
+  # Find the largest coefficient of the first column (x)
+  i <- which.max(A[, 1])
+  # Swap the first row with the largest row
+  if (i != 1){
+    temp <- A[i, ]
+    bi <- b[i]
+    A[i, ] <- A[1, ]
+    A[1, ] <- temp
+    b[i] <- b[1]
+    b[1] <- bi
+  }
+  # Divide the first row by A[1,1] so we have a one in the first pivot position
+  b[1] <- b[1] / A[1, 1]
+  A[1, ] <- A[1, ] / A[1, 1]
+  # Multiply the first row with A[2, 1] and subtract it from the second row to eliminate A[2, 1]
+  b[2] <- b[2] - (b[1] * A[2, 1])
+  A[2, ] <- A[2, ] - (A[1, ] * A[2, 1])
+  # Eliminate A[3,1] using the same method
+  b[3] <- b[3] - (b[1] * A[3, 1])
+  A[3, ] <- A[3, ] - (A[1, ] * A[3, 1])
+  # Check to see if A[2,2] is not zero
+  if (A[2, 2] == 0){
+    # Swap the second and the third row
+    temp <- A[3, ]
+    b3 <- b[3]
+    A[3, ] <- A[2, ]
+    A[2, ] <- temp
+    b[3] <- b[2]
+    b[2] <- b3
+  }
+  # Divide the second row by A[2, 2] so we have a one in the second pivot position
+  b[2] <- b[2] / A[2, 2]
+  A[2, ] <- A[2, ] / A[2, 2]
+  # Eliminate A[3,2] using the second row
+  b[3] <- b[3] - (b[2] * A[3, 2])
+  A[3, ] <- A[3, ] - (A[2, ] * A[3, 2])
+  # Get a one in the third pivot position
+  b[3] <- b[3] / A[3, 3]
+  A[3, ] <- A[3, ] / A[3, 3]
+  # I have an upper triangular matrix.  Now for the back substitution.
+  x3 <- b[3]
+  x2 <- b[2] - (A[2, 3] * x3)
+  x1 <- b[1] - (A[1, 3] * x3) - (A[1, 2] * x2)
+  # Return the results
+  return(c(x1, x2, x3))
+}
+
+A <- matrix(c(1, 2, -1, 1, -1, -2, 3, 5, 4), 3, 3)
+b <- c(1, 2, 6)
+my_solve(A, b)
+```
+
+```{r}
+my_solve <- function(A, b){
+  n <- nrow(A)
+  A <- cbind(A,  b)
+
+  for (pivot_position in c(1:n)){
+    row_with_largest_coefficient <- pivot_position - 1 + which.max(A[c(pivot_position:n), pivot_position])
+    # Ensure the pivot is the largest value of the remaining rows
+    # This protects against having a zero in the pivot position
+    if (pivot_position != row_with_largest_coefficient){
+      temp <- A[pivot_position, ]
+      A[pivot_position, ] <- A[row_with_largest_coefficient, ]
+      A[row_with_largest_coefficient, ] <- temp
+    }
+    # Get a 1 in the pivot position by dividing the row by the element in the pivot position
+    A[pivot_position, ] <- A[pivot_position, ] / A[pivot_position, pivot_position]
+    # Eliminate all other rows
+    for (i in c(pivot_position:n)){
+      if (i != pivot_position){
+        # Subtract the scaled pivot position row from the row we want to eliminate
+        A[i, ] <- A[i, ] - (A[pivot_position, ] * A[i, pivot_position])
+      }
+    }
+  }
+  # Now solve using back substituiton
+  for (i in c( (n - 1):1)){
+    for (j in c(n:2)){
+      if (j > i){
+        A[i, "b"] <- A[i, "b"] - (A[i, j] * A[j, "b"])
+      }
+    }
+  }
+  return(A[, "b"])
+}
+
+A <- matrix(c(1, 2, -1, 1, -1, -2, 3, 5, 4), 3, 3)
+b <- c(1, 2, 6)
+
+my_solve(A, b)
+```
+
+#### Further Verification
+
+I want to run a couple more examples through the function to ensure it is working properly.  The first is taken from page 29 of the text book.  It should return [-3, 5, 2]
+```{r}
+A <- matrix(c(-7, 5, 1, -6, 5, 0, -12, 7, 4), 3, 3)
+b <- c(-33, 24, 5)
+
+my_solve(A, b)
+```
