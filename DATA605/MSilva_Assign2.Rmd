@@ -1,8 +1,10 @@
 ---
-title: "Assignment 2 Problem Set 1"
+title: "DATA 605 Assignment 2"
 author: "by Michael Silva"
 output: html_document
 ---
+
+## Problem Set 1
 
 **(1) Show that $A^TA \neq AA^T$ in general.**
 
@@ -132,3 +134,55 @@ Any matrix where all elements are the same value.  For example the zero matrix:
   0 & 0
   \end{bmatrix} 
 \]
+
+## Problem Set 2
+
+**Matrix factorization is a very important problem. There are supercomputers built just to do matrix factorizations. Every second you are on an airplane, matrices are being factorized. Radars that track flights use a technique called Kalman filtering. At the heart of Kalman Filtering is a Matrix Factorization operation. Kalman Filters are solving linear systems of equations when they track your flight using radars.**
+
+**Write an R function to factorize a square matrix A into LU or LDU, whichever you prefer. Please submit your response in an R Markdown document using our class naming convention.**
+
+**You don’t have to worry about permuting rows of A and you can assume that A is less than 5x5, if you need to hard-code any variables in your code. If you doing the entire assignment in R, then please submit only one markdown document for both the problems. **
+
+```{r}
+factorize <- function(A){
+  n <- nrow(A)
+  L <- diag(n)
+
+  for (j in c(1:n)){
+    for(i in c(2:n)){
+      
+    }
+  }
+  return(list(L=L, U=A))
+}
+```
+
+I will test this on the example worked through on [this video](https://www.youtube.com/watch?v=UlWcofkUDDU&feature=youtu.be)
+
+$ A = LU \text$ or
+
+\[ \begin{bmatrix}
+  2 & 4 & -4 \\
+  1 & -4 & 3\\
+  -6 & -9 & 5
+  \end{bmatrix} = 
+  \begin{bmatrix}
+  1 & 0 & 0 \\
+  \frac{1}{2} & 1 & 0\\
+  -3 & -\frac{1}{2} & 1
+  \end{bmatrix} \times
+  \begin{bmatrix}
+  2 & 4 & -4 \\
+  0 & -6 & 5\\
+  0 & 0 & -\frac{9}{2}
+  \end{bmatrix}
+\]
+
+```
+A <- matrix(c(2, 1, -6, 4, -4, -9, -4, 3, 5), 3, 3)
+
+factors <- factorize(A)
+factors$L
+
+factors$U
+```
