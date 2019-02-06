@@ -1,0 +1,134 @@
+---
+title: "Assignment 2 Problem Set 1"
+author: "by Michael Silva"
+output: html_document
+---
+
+**(1) Show that $A^TA \neq AA^T$ in general.**
+
+\[ A=\begin{bmatrix}
+  a & b \\
+  c & d
+  \end{bmatrix}
+\]
+
+\[ A^T=\begin{bmatrix}
+  a & c \\
+  b & d
+  \end{bmatrix}
+\]
+
+\[ A^TA=
+  \begin{bmatrix}
+  a & c \\
+  b & d
+  \end{bmatrix} \times
+  \begin{bmatrix}
+  a & b \\
+  c & d
+  \end{bmatrix} = \begin{bmatrix}
+  a \times a + c \times c & c \times a + c \times c \\
+  b \times b + d \times d & b \times d + d \times d
+  \end{bmatrix} = \begin{bmatrix}
+  a^2 + c^2 & ac + c^2 \\
+  b^2 + d^2 & bd + d^2
+  \end{bmatrix} 
+\]
+
+\[ AA^T=\begin{bmatrix}
+  a & b \\
+  c & d
+  \end{bmatrix} \times
+  \begin{bmatrix}
+  a & c \\
+  b & d
+  \end{bmatrix} = \begin{bmatrix}
+  a \times a + b \times b & a \times c + b \times d \\
+  c \times a + d \times d & c \times c + d \times d
+  \end{bmatrix} = \begin{bmatrix}
+  a^2 + b^2 & ac + bd \\
+  ac + d^2 & c^2 + d^2
+  \end{bmatrix} 
+\]
+
+\[
+\begin{bmatrix}
+  a^2 + c^2 & ac + c^2 \\
+  b^2 + d^2 & bd + d^2
+  \end{bmatrix} 
+  \neq
+  \begin{bmatrix}
+  a^2 + b^2 & ac + bd \\
+  ac + d^2 & c^2 + d^2
+  \end{bmatrix} 
+\]
+
+**(2) For a special type of square matrix A, we get $A^TA = AA^T$. Under what conditions could this be true?**
+
+Any matrix where all elements are the same value.  For example the zero matrix:
+
+\[ A=\begin{bmatrix}
+  0 & 0 \\
+  0 & 0
+  \end{bmatrix}
+\]
+
+\[ A^T=\begin{bmatrix}
+  0 & 0 \\
+  0 & 0
+  \end{bmatrix}
+\]
+
+\[ A^TA=
+  \begin{bmatrix}
+  0 & 0 \\
+  0 & 0
+  \end{bmatrix} \times
+  \begin{bmatrix}
+  0 & 0 \\
+  0 & 0
+  \end{bmatrix} = \begin{bmatrix}
+  0 \times 0 + 0 \times 0 & 0 \times 0 + 0 \times 0 \\
+  0 \times 0 + 0 \times 0 & 0 \times 0 + 0 \times 0
+  \end{bmatrix} = \begin{bmatrix}
+  0 + 0 & 0 + 0 \\
+  0 + 0 & 0 + 0
+  \end{bmatrix} 
+  = \begin{bmatrix}
+  0 & 0 \\
+  0 & 0
+  \end{bmatrix} 
+\]
+
+\[ AA^T=
+  \begin{bmatrix}
+  0 & 0 \\
+  0 & 0
+  \end{bmatrix} \times
+  \begin{bmatrix}
+  0 & 0 \\
+  0 & 0
+  \end{bmatrix} = \begin{bmatrix}
+  0 \times 0 + 0 \times 0 & 0 \times 0 + 0 \times 0 \\
+  0 \times 0 + 0 \times 0 & 0 \times 0 + 0 \times 0
+  \end{bmatrix} = \begin{bmatrix}
+  0 + 0 & 0 + 0 \\
+  0 + 0 & 0 + 0
+  \end{bmatrix} 
+  = \begin{bmatrix}
+  0 & 0 \\
+  0 & 0
+  \end{bmatrix} 
+\]
+
+\[
+\begin{bmatrix}
+  0 & 0 \\
+  0 & 0
+  \end{bmatrix} 
+  =
+  \begin{bmatrix}
+  0 & 0 \\
+  0 & 0
+  \end{bmatrix} 
+\]
