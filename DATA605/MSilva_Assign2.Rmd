@@ -146,20 +146,27 @@ Any matrix where all elements are the same value.  For example the zero matrix:
 ```{r}
 factorize <- function(A){
   n <- nrow(A)
+  U <- A
   L <- diag(n)
 
   for (j in c(1:n)){
     for(i in c(2:n)){
-      
+      if(i > j){
+        the_row <- U[j,]
+        multiplier <- U[i, j] / the_row[j]
+        U[i,] <- U[i,] - (multiplier * the_row)
+        L[i,j] <- multiplier
+      }
     }
   }
-  return(list(L=L, U=A))
+  
+  return(list(L=L, U=U))
 }
 ```
 
 I will test this on the example worked through on [this video](https://www.youtube.com/watch?v=UlWcofkUDDU&feature=youtu.be)
 
-$ A = LU \text$ or
+$ A = LU $ or
 
 \[ \begin{bmatrix}
   2 & 4 & -4 \\
@@ -178,11 +185,10 @@ $ A = LU \text$ or
   \end{bmatrix}
 \]
 
-```
+```{r}
 A <- matrix(c(2, 1, -6, 4, -4, -9, -4, 3, 5), 3, 3)
 
 factors <- factorize(A)
 factors$L
-
 factors$U
 ```
