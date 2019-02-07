@@ -166,7 +166,7 @@ factorize <- function(A){
 
 I will test this on the example worked through on [this video](https://www.youtube.com/watch?v=UlWcofkUDDU&feature=youtu.be)
 
-$ A = LU $ or
+$A = LU$ or
 
 \[ \begin{bmatrix}
   2 & 4 & -4 \\
