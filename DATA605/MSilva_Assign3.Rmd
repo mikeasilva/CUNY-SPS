@@ -1,0 +1,149 @@
+---
+title: "DATA 605 Assignment 3"
+author: "by Michael Silva"
+output: html_document
+---
+
+## Problem Set 1
+
+**(1) What is the rank of the matrix A?**
+
+\[ A=\begin{bmatrix}
+  1 & 2 & 3 & 4 \\
+  -1 & 0 &1 & 3 \\
+  0 & 1 & -2 & 1 \\
+  5 & 4 & -2 & -3
+  \end{bmatrix}
+\]
+
+Four
+
+**(2) Given an mxn matrix where m > n, what can be the maximum rank? The minimum rank, assuming that the matrix is non-zero?**
+
+Maximum: n
+
+Minimum: 1
+
+**(3) What is the rank of matrix B?**
+
+\[ B=\begin{bmatrix}
+  1 & 2 & 1 \\
+  3 & 6 & 3 \\
+  2 & 4 & 2 
+  \end{bmatrix}
+\]
+
+Three
+
+## Problem Set 2
+
+**Compute the eigenvalues and eigenvectors of the matrix A.  You'll need to show your work.  You'll need to write out the characteristic polynomial and show your solution.***
+
+\[ A=\begin{bmatrix}
+  1 & 2 & 3 \\
+  0 & 4 & 5 \\
+  0 & 0 & 6 
+  \end{bmatrix}
+\]
+
+Solve
+
+\[ det \Bigg(\begin{bmatrix}
+  1 & 2 & 3 \\
+  0 & 4 & 5 \\
+  0 & 0 & 6 
+  \end{bmatrix} - 
+  \begin{bmatrix}
+  \lambda & 0 & 0 \\
+  0 & \lambda & 0 \\
+  0 & 0 & \lambda
+  \end{bmatrix} \Bigg) = 0
+\]
+
+Simplified to 
+
+\[ det \Bigg(\begin{bmatrix}
+  1 - \lambda & 2 & 3 \\
+  0 & 4 - \lambda & 5 \\
+  0 & 0 & 6 - \lambda 
+  \end{bmatrix}  \Bigg) = 0
+\]
+
+The determinant of an upper triangular matrix is the product of the diagonal therefore
+
+$(1 - \lambda)(4 - \lambda)(6 - \lambda) = 0$
+
+$(\lambda^2 -5\lambda + 4)(6-\lambda) = 0$
+
+$6\lambda^2 - 30\lambda + 24 - \lambda^3 + 5\lambda^2 -4\lambda = 0$
+
+Simplified to 
+
+$-\lambda^3 + 11\lambda^2 - 34\lambda + 24 = 0$
+
+This is the characteristic polynomial.  Which factorizes to
+
+$-(\lambda-6)(\lambda-4)(\lambda-1) = 0$
+
+So the eigenvalues are $\lambda_1 = 6$, $\lambda_2 = 4$ and $\lambda_3 = 1$  
+
+Substituting $\lambda_1$ into $(A-\lambda I)v = 0$
+
+\[ \Bigg(\begin{bmatrix}
+  1 & 2 & 3 \\
+  0 & 4 & 5 \\
+  0 & 0 & 6 
+  \end{bmatrix} - 
+  \begin{bmatrix}
+  6 & 0 & 0 \\
+  0 & 6 & 0 \\
+  0 & 0 & 6
+  \end{bmatrix} \Bigg)
+  \begin{bmatrix}
+  v_1\\
+  v_2\\
+  v_3
+  \end{bmatrix}
+  = 0
+\] or
+
+\[ \begin{bmatrix}
+  -5 & 2 & 3 \\
+  0 & -2 & 5 \\
+  0 & 0 & 0 
+  \end{bmatrix}  
+  \begin{bmatrix}
+  v_1\\
+  v_2\\
+  v_3
+  \end{bmatrix}= 0
+\]
+
+Adding row 2 to row 1
+
+\[ \begin{bmatrix}
+  -5 & 0 & 8 \\
+  0 & -2 & 5 \\
+  0 & 0 & 0 
+  \end{bmatrix}  
+  \begin{bmatrix}
+  v_1\\
+  v_2\\
+  v_3
+  \end{bmatrix}= 0
+\]
+
+Therefore
+$-5v_1 + 8v_3 =0$ and $-2v_2 + 5v_3=0$  Solving for $v_1$
+
+$-5v_1 = -8v_3 \Rightarrow v_1 = \frac{8}{5}v_3$
+
+Solving for $v_2$
+
+$-2v_2 = -5v_3 \Rightarrow v_2=\frac{5}{2}v_3$
+
+So the vector $\begin{bmatrix}
+  \frac{8}{5}\\
+  \frac{2}{5}\\
+  1
+  \end{bmatrix}$ is the eigenvector for the eigenvalue 6
