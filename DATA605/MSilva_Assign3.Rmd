@@ -87,6 +87,8 @@ $-(\lambda-6)(\lambda-4)(\lambda-1) = 0$
 
 So the eigenvalues are $\lambda_1 = 6$, $\lambda_2 = 4$ and $\lambda_3 = 1$  
 
+### First Eigenvector
+
 Substituting $\lambda_1$ into $(A-\lambda I)v = 0$
 
 \[ \Bigg(\begin{bmatrix}
@@ -133,8 +135,7 @@ Adding row 2 to row 1
   \end{bmatrix}= 0
 \]
 
-Therefore
-$-5v_1 + 8v_3 =0$ and $-2v_2 + 5v_3=0$  Solving for $v_1$
+Therefore $-5v_1 + 8v_3 =0$ and $-2v_2 + 5v_3=0$  Solving for $v_1$
 
 $-5v_1 = -8v_3 \Rightarrow v_1 = \frac{8}{5}v_3$
 
@@ -147,3 +148,103 @@ So the vector $\begin{bmatrix}
   \frac{2}{5}\\
   1
   \end{bmatrix}$ is the eigenvector for the eigenvalue 6
+
+### Second Eigenvector
+
+Substituting $\lambda_2$ into $(A-\lambda I)v = 0$
+
+\[ \Bigg(\begin{bmatrix}
+  1 & 2 & 3 \\
+  0 & 4 & 5 \\
+  0 & 0 & 6 
+  \end{bmatrix} - 
+  \begin{bmatrix}
+  4 & 0 & 0 \\
+  0 & 4 & 0 \\
+  0 & 0 & 4
+  \end{bmatrix} \Bigg)
+  \begin{bmatrix}
+  v_1\\
+  v_2\\
+  v_3
+  \end{bmatrix}
+  = 0
+\] or
+
+\[ \begin{bmatrix}
+  -3 & 2 & 3 \\
+  0 & 0 & 5 \\
+  0 & 0 & 2 
+  \end{bmatrix}  
+  \begin{bmatrix}
+  v_1\\
+  v_2\\
+  v_3
+  \end{bmatrix}= 0
+\]
+
+The only way for $0_v1 + 0v_2 + 2v_3=0$ and $0_v1 + 0v_2 + 5v_3=0$ is that $v_3=0$.  It also means that $v_2 = 1$.  Substituting this information into the first equation and solving for $v_1$
+
+$-3v_1 + 2v_2 + 3v_3 = 0 \Rightarrow -3v_1 + 2(1) + 3(0) = 0 \Rightarrow -3v_1 + 2 = 0 \Rightarrow -3v_1 = -2 \Rightarrow v_1 = \frac{2}{3}$
+
+So the vector $\begin{bmatrix}
+  \frac{2}{3}\\
+  1\\
+  0
+  \end{bmatrix}$ is the eigenvector for the eigenvalue 4
+  
+### Third Eigenvector
+  
+Substituting $\lambda_3$ into $(A-\lambda I)v = 0$
+
+\[ \Bigg(\begin{bmatrix}
+  1 & 2 & 3 \\
+  0 & 4 & 5 \\
+  0 & 0 & 6 
+  \end{bmatrix} - 
+  \begin{bmatrix}
+  1 & 0 & 0 \\
+  0 & 1 & 0 \\
+  0 & 0 & 1
+  \end{bmatrix} \Bigg)
+  \begin{bmatrix}
+  v_1\\
+  v_2\\
+  v_3
+  \end{bmatrix}
+  = 0
+\] or
+
+\[ \begin{bmatrix}
+  0 & 2 & 3 \\
+  0 & 3 & 5 \\
+  0 & 0 & 5 
+  \end{bmatrix}  
+  \begin{bmatrix}
+  v_1\\
+  v_2\\
+  v_3
+  \end{bmatrix}= 0
+\]
+
+Subtracting row 3 from row 2
+
+\[ \begin{bmatrix}
+  0 & 2 & 3 \\
+  0 & 3 & 0 \\
+  0 & 0 & 5 
+  \end{bmatrix}  
+  \begin{bmatrix}
+  v_1\\
+  v_2\\
+  v_3
+  \end{bmatrix}= 0
+\]
+
+Otherwise state as $0v_1 + 2v_2 + 3v_3 = 0$, $3v_2=0$ and $5v_3=0$.  It follows that $v_2=0$ and $v_3=0$.  Substituting them into the first equation gives: $0v_1 + 2(0) + 3(0) = 0$ or $v_1=1$ 
+
+So the vector $\begin{bmatrix}
+  1\\
+  0\\
+  0
+  \end{bmatrix}$ is the eigenvector for the eigenvalue 1
