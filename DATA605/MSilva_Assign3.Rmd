@@ -147,7 +147,15 @@ So the vector $\begin{bmatrix}
   \frac{8}{5}\\
   \frac{2}{5}\\
   1
-  \end{bmatrix}$ is the eigenvector for the eigenvalue 6
+  \end{bmatrix}$ is the eigenvector for the eigenvalue 6.  Scaled it would be $\begin{bmatrix}
+  \frac{8}{30}\\
+  \frac{2}{30}\\
+  \frac{1}{6}
+  \end{bmatrix}$ or $\begin{bmatrix}
+  0.2666667\\
+  0.06666667\\
+  0.1666667
+  \end{bmatrix}$
 
 ### Second Eigenvector
 
@@ -191,7 +199,15 @@ So the vector $\begin{bmatrix}
   \frac{2}{3}\\
   1\\
   0
-  \end{bmatrix}$ is the eigenvector for the eigenvalue 4
+  \end{bmatrix}$ is the eigenvector for the eigenvalue 4.  Scaled this would be $\begin{bmatrix}
+  \frac{2}{12}\\
+  \frac{1}{4}\\
+  \frac{0}{4}
+  \end{bmatrix}$ or $\begin{bmatrix}
+  0.1666667\\
+  0.25\\
+  0
+  \end{bmatrix}$ 
   
 ### Third Eigenvector
   
@@ -247,4 +263,4 @@ So the vector $\begin{bmatrix}
   1\\
   0\\
   0
-  \end{bmatrix}$ is the eigenvector for the eigenvalue 1
+  \end{bmatrix}$ is the eigenvector for the eigenvalue 1, which is already scaled.
