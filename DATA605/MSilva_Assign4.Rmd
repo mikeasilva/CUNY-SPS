@@ -3,3 +3,88 @@ title: "DATA 605 Assignment 4"
 author: "by Michael Silva"
 output: html_document
 ---
+
+## Problem Set 1
+
+**Given a 3 × 2 matrix A**
+
+\[ A=\begin{bmatrix}
+  1 & 2 & 3 \\
+  -1 & 0 & 4
+  \end{bmatrix}
+\]
+
+**write code in R to compute $X = AA^T$ and $Y = A^TA$.**
+
+```{r}
+A <- matrix(c(1, -1, 2, 0, 3, 4), 2)
+X <- A %*% t(A)
+Y <- t(A) %*% A
+```
+
+**Then, compute the eigenvalues and eigenvectors of X and Y using the built-in commans in R.**
+
+```{r}
+X_eigen <- eigen(X)
+Y_eigen <- eigen(Y)
+```
+
+**Then, compute the left-singular, singular values, and right-singular vectors of A using the svd command.**
+
+```{r}
+A_svd <- svd(A)
+```
+
+**Examine the two sets of singular vectors and show that they are indeed eigenvectors of X and Y.** 
+
+```{r}
+A_svd$u
+X_eigen$vectors
+```
+
+One might observe a difference in signs.  According to [this post](https://stat.ethz.ch/pipermail/r-help/2003-July/036504.html) on the R help forum by Roger Peng:
+
+>That is true, but using different compilers on the same machine and the 
+>same version of R may give different signs for the eigenvectors.  The 
+>moral is, don't rely on the signs of eigenvectors!  (This *is* on the help 
+>page.)
+
+```{r}
+A_svd$v
+Y_eigen$vectors[, 1:2] # The third value is basically zero
+```
+
+**In addition, the two non-zero eigenvalues (the 3rd value will be very close to zero, if not zero) of both X and Y are the same and are squares of the non-zero singular values of A.**
+
+```{r}
+X_eigen$values
+Y_eigen$values[1:2]
+A_svd$d ^ 2
+```
+
+## Problem Set 2
+
+**Using the procedure outlined in section 1 of the weekly handout, write a function to compute the inverse of a well-conditioned full-rank square matrix using co-factors. In order to compute the co-factors, you may use built-in commands to compute the determinant.**
+
+```{r}
+myinverse <- function(A){
+  # Initialize the cofactors matrix
+  matrix_of_cofactors <- matrix(NA, nrow = nrow(A), ncol = ncol(A))
+  for (i in c(1:nrow(A))){
+    for (j in c(1:ncol(A))){
+      # Get the determinant of the matrix except the current column and row
+      matrix_of_cofactors[i, j] <- det(A[-i, -j]) * (-1) ^ (i + j)
+    }
+  }
+  # Transpose all elements of the previous matrix of cofactors
+  adjugate <- t(matrix_of_cofactors)
+  # Divide the ajugate by the determinant of the original matrix
+  inverse <- adjugate / det(A)
+  return(inverse)
+}
+
+A <- matrix(c(3, 2, 0, 0, 0, 1, 2, -2, 1), 3)
+B <- myinverse(A)
+
+A %*% B
+```
