@@ -1,0 +1,109 @@
+---
+title: "DATA 605 Assignment 5"
+author: "by Michael Silva"
+output: html_document
+---
+
+Choose independently two numbers B and C at random from the interval [0, 1] with uniform density. 
+
+```{r, message=FALSE}
+library(dplyr)
+library(ggplot2)
+set.seed(12345)
+n <- 1000000
+B <- runif(n, min = 0, max = 1)
+C <- runif(n, min = 0, max = 1)
+data <- data.frame(B = B, C = C)
+```
+
+Prove that B and C are proper probability distributions. 
+
+```{r, echo=FALSE}
+hist(data$B, main = "Histogram of B", xlab = "")
+```
+
+
+```{r, echo=FALSE}
+hist(data$C, main = "Histogram of C", xlab = "")
+```
+
+Note that the point (B,C) is then chosen at random in the unit square.
+
+Find the probability that
+
+## (a) B + C < 1/2
+
+```{r, message=FALSE}
+data <- data %>%
+  mutate(a = ifelse(B + C < 1/2, 1, 0))
+sum(data$a) / n
+```
+
+This is represented by the area in blue
+
+```{r echo=FALSE, cache=TRUE}
+ggplot(data, aes(x = B, y = C, color = as.factor(a))) +
+  geom_point() +
+  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) + 
+  theme(legend.position = "none", aspect.ratio=1)
+```
+
+## (b) BC < 1/2
+
+```{r}
+data <- data %>%
+  mutate(b = ifelse(B * C < 1/2, 1, 0))
+sum(data$b) / n
+```
+
+```{r echo=FALSE, cache=TRUE}
+ggplot(data, aes(x = B, y = C, color = as.factor(b))) +
+  geom_point() +
+  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) + 
+  theme(legend.position = "none", aspect.ratio=1)
+```
+
+## (c) |B - C| < 1/2
+
+```{r}
+data <- data %>%
+  mutate(c = ifelse(abs(B - C) < 1/2, 1, 0))
+sum(data$c) / n
+```
+
+```{r echo=FALSE, cache=TRUE}
+ggplot(data, aes(x = B, y = C, color = as.factor(c))) +
+  geom_point() +
+  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) + 
+  theme(legend.position = "none", aspect.ratio=1)
+```
+
+## (d) max(B, C) < 1/2
+
+```{r}
+data <- data %>%
+  mutate(d = ifelse(pmax(B, C) < 1/2, 1, 0))
+sum(data$d) / n
+```
+
+```{r echo=FALSE, cache=TRUE}
+ggplot(data, aes(x = B, y = C, color = as.factor(d))) +
+  geom_point() +
+  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) + 
+  theme(legend.position = "none", aspect.ratio=1)
+```
+
+## (e) min(B, C) < 1/2
+
+```{r}
+data <- data %>%
+  mutate(e = ifelse(pmin(B, C) < 1/2, 1, 0))
+sum(data$e) / n
+```
+
+```{r echo=FALSE, cache=TRUE}
+ggplot(data, aes(x = B, y = C, color = as.factor(e))) +
+  geom_point() +
+  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) + 
+  theme(legend.position = "none", aspect.ratio=1)
+```
