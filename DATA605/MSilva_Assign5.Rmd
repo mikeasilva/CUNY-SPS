@@ -48,6 +48,8 @@ ggplot(data, aes(x = B, y = C, color = as.factor(a))) +
   theme(legend.position = "none", aspect.ratio=1)
 ```
 
+**The probability that B + C < 1/2 is 0.125**
+
 ## (b) BC < 1/2
 
 ```{r}
@@ -62,6 +64,8 @@ ggplot(data, aes(x = B, y = C, color = as.factor(b))) +
   coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) + 
   theme(legend.position = "none", aspect.ratio=1)
 ```
+
+**The probability that BC < 1/2 is 0.85**
 
 ## (c) |B - C| < 1/2
 
@@ -78,6 +82,8 @@ ggplot(data, aes(x = B, y = C, color = as.factor(c))) +
   theme(legend.position = "none", aspect.ratio=1)
 ```
 
+**The probability that |B - C| < 1/2 is 0.75**
+
 ## (d) max(B, C) < 1/2
 
 ```{r}
@@ -93,6 +99,8 @@ ggplot(data, aes(x = B, y = C, color = as.factor(d))) +
   theme(legend.position = "none", aspect.ratio=1)
 ```
 
+**The probability that max(B, C) < 1/2 is 0.25**
+
 ## (e) min(B, C) < 1/2
 
 ```{r}
@@ -107,3 +115,5 @@ ggplot(data, aes(x = B, y = C, color = as.factor(e))) +
   coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) + 
   theme(legend.position = "none", aspect.ratio=1)
 ```
+
+**The probability that min(B, C) < 1/2 is 0.75**
