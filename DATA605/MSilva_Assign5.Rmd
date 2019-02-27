@@ -1,7 +1,9 @@
 ---
 title: "DATA 605 Assignment 5"
 author: "by Michael Silva"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 Choose independently two numbers B and C at random from the interval [0, 1] with uniform density. 
