@@ -1,0 +1,264 @@
+---
+title: "DATA 605 Assignment 6"
+author: "by Michael Silva"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+## Question 1 
+
+A box contains 54 red marbles, 9 white marbles, and 75 blue marbles. If a marble is randomly selected from the box, what is the probability that it is red or blue? Express your answer as a fraction or a decimal number rounded to four decimal places.
+
+**0.9348**
+
+```{r}
+round((54 + 75) / (54 + 9 + 75), 4)
+```
+
+
+
+## Question 2
+
+You are going to play mini golf. A ball machine that contains 19 green golf balls, 20 red golf balls, 24 blue golf balls, and 17 yellow golf balls, randomly gives you your ball. What is the probability that you end up with a red golf ball? Express your answer as a simplified fraction or a decimal rounded to four decimal places.
+
+**0.25**
+
+```{r}
+round(20 / (19 + 20 + 24 + 17), 4)
+```
+
+
+
+## Question 3
+
+A pizza delivery company classifies its customers by gender and location of residence. The research department has gathered data from a random sample of 1399 customers. The data is summarized in the table below.
+
+#### Gender and Residence of Customers
+
+|                           | Males  | Females |
+|---------------------------|--------|---------|
+| Apartment                 | 81     | 282     |
+| Dorm                      | 116    | 79      |
+| With Parent(s)            | 215    | 252     |
+| Sorority/Fraternity House | 130    | 97      |
+| Other                     | 129    | 72      |
+
+What is the probability that a customer is not male or does not live with parents? Write your answer as a fraction or a decimal number rounded to four decimal places.
+
+**0.8463**
+
+```{r}
+round((1399 - 215) / 1399, 4)
+```
+
+
+
+## Question 4
+
+Determine if the following events are independent. Going to the gym. Losing weight. Answer: A) Dependent B) Independent
+
+**Dependent**
+
+
+
+## Question 5
+
+A veggie wrap at City Subs is composed of 3 different vegetables and 3 different condiments wrapped up in a tortilla. If there are 8 vegetables, 7 condiments, and 3 types of tortilla available, how many different veggie wraps can be made?
+
+**5,880**
+
+```{r}
+vegetable_combinations <- (factorial(8) / (factorial(3) * factorial(8 - 3))) 
+condiment_combinations <- (factorial(7) / (factorial(3) * factorial(7 - 3)))
+tortilla_combinations <- (factorial(3) / (factorial(1) * factorial(3 - 1)))
+
+vegetable_combinations * condiment_combinations * tortilla_combinations
+
+
+vegetables <- c('v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8')
+condiments <- c('c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7')
+tortilla <- c('t1', 't2', 't3')
+
+ncol(combn(vegetables, 3)) * ncol(combn(condiments, 3)) * ncol(combn(tortilla, 1))
+```
+
+
+
+## Question 6
+
+Determine if the following events are independent. Jeff runs out of gas on the way to work. Liz watches the evening news. Answer: A) Dependent B) Independent
+
+**Independent**
+
+
+
+## Question 7
+
+The newly elected president needs to decide the remaining 8 spots available in the cabinet he/she is appointing. If there are 14 eligible candidates for these positions (where rank matters), how many different ways can the members of the cabinet be appointed?
+
+**121,080,960**
+
+$P(n, r) = \frac{n!}{(n - r)!}$
+
+so
+
+$P(14, 8) = \frac{14!}{(14 - 8)!}= \frac{14!}{6!} = 121,080,960$
+
+
+```{r}
+factorial(14) / factorial(14 - 8)
+```
+
+
+
+## Question 8
+
+A bag contains 9 red, 4 orange, and 9 green jellybeans. What is the probability of reaching into the bag and randomly withdrawing 4 jellybeans such that the number of red ones is 0, the number of orange ones is 1, and the number of green ones is 3? Write your answer as a fraction or a decimal number rounded to four decimal places.
+
+**0.0124**
+
+```{r, message=FALSE}
+library(dplyr)
+library(tidyr)
+
+jellybeans <- c(rep("red", 9), rep("orange", 4), rep("green", 9))
+combinations <- data.frame(matrix(combn(jellybeans, 4), ncol = 4))
+
+total_combinations <- nrow(combinations)
+
+combinations <- combinations %>%
+  mutate(id = row_number()) %>%
+  gather(col, color, -id) %>%
+  mutate(count = 1) %>%
+  select(-col) %>%
+  group_by(id, color) %>%
+  summarise(count = sum(count)) %>%
+  spread(color, count, fill=0) %>%
+  filter(orange == 1, green == 3)
+
+round(nrow(combinations) / total_combinations, 4)
+```
+
+
+
+## Question 9
+
+Evaluate the following expression.
+
+$\frac{11!}{7!}$
+
+**7,920**
+
+$\frac{11!}{7!} = \frac{1 * 2 * 3* 4 * 5 * 6 * 7 * 8 * 9 * 10 * 11}{1 * 2 * 3* 4 * 5 * 6 * 7} = 8 * 9 * 10 * 11 = 7920$
+
+```{r}
+11 * 10 * 9 * 8
+
+factorial(11) / factorial(7)
+```
+
+
+
+## Question 10
+
+Describe the complement of the given event. 67% of subscribers to a fitness magazine are over the age of 34. 
+
+**33% of subscribers to a fitness magazine are not over the age of 34.** 
+
+
+
+## Question 11
+
+If you throw exactly three heads in four tosses of a coin you win $97. If not, you pay me $30.
+
+Step 1. Find the expected value of the proposition. Round your answer to two decimal places.
+
+**$1.75**
+
+The number of wining combinations is 4 
+
+\[ \begin{bmatrix}
+  T & H & H & H \\
+  H & T & H & H \\
+  H & H & T & H \\
+  H & H & H & T
+  \end{bmatrix}
+\]
+
+The total number of combinations is $2^4 = 16$.
+
+The probability of wining is $\frac{4}{16} = 0.25$ and the probability of loosing is the complement 0.75.
+
+```{r}
+(97 * 0.25) + (-30 * 0.75)
+```
+
+Step 2. If you played this game 559 times how much would you expect to win or lose? (Losses must be entered as negative.)
+
+**$978.25**
+
+```{r}
+1.75 * 559
+```
+
+
+
+## Question 12
+
+Flip a coin 9 times. If you get 4 tails or less, I will pay you $23. Otherwise you pay me $26.
+
+Step 1. Find the expected value of the proposition. Round your answer to two decimal places.
+
+**-$1.60**
+
+```{r, warning=FALSE}
+combinations <- data.frame(event1 = c("heads", "tails"))
+for (i in 2:9){
+  heads <- tails <- combinations
+  heads$v <- 'heads'
+  tails$v <- 'tails'
+  n <- names(combinations)
+  combinations <- rbind(heads, tails)
+  names(combinations) <- c(n, paste0("event", i))
+}
+
+total_combinations <- nrow(combinations)
+
+combinations <- combinations %>%
+  mutate(id = row_number()) %>%
+  gather(col, side, -id) %>%
+  mutate(count = 1) %>%
+  filter(side == "tails") %>%
+  select(-col) %>%
+  group_by(id, side) %>%
+  summarise(count = sum(count)) %>%
+  spread(side, count, fill=0) %>%
+  filter(tails < 5)
+
+p_win <- nrow(combinations) / total_combinations
+p_loss <- 1 - p_win
+
+expected <- (23 * p_win ) + (-26 * p_loss)
+round(expected, 2)
+```
+
+Step 2. If you played this game 994 times how much would you expect to win or lose? (Losses must be entered as negative.)
+
+**-$1,586.13**
+
+```{r}
+round(expected * 994, 2)
+```
+
+
+
+## Question 13
+
+The sensitivity and specificity of the polygraph has been a subject of study and debate for years. A 2001 study of the use of polygraph for screening purposes suggested that the probability of detecting a liar was .59 (sensitivity) and that the probability of detecting a "truth teller" was .90 (specificity). We estimate that about 20% of individuals selected for the screening polygraph will lie.
+
+a. What is the probability that an individual is actually a liar given that the polygraph detected him/her as such? (Show me the table or the formulaic solution or both.)
+
+b. What is the probability that an individual is actually a truth-teller given that the polygraph detected him/her as such? (Show me the table or the formulaic solution or both.)
+
+c. What is the probability that a randomly selected individual is either a liar or was identified as a liar by the polygraph? Be sure to write the probability statement.
