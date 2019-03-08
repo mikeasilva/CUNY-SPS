@@ -259,6 +259,42 @@ The sensitivity and specificity of the polygraph has been a subject of study and
 
 a. What is the probability that an individual is actually a liar given that the polygraph detected him/her as such? (Show me the table or the formulaic solution or both.)
 
+**0.118**
+
+Suppose you have 1,000 people.  Based on the given information, one would expect 200 of them to be liars and 800 to be truth tellers.  We know the formula for sensitivity is:
+
+$Sensitivity = \frac{TP}{TP + FN}$
+
+The denominator in this case would be the 200 liars.  We know when you divide the TP by 200 you get .59, therefore we can figure that 118 of the 200 liars would be acurately predicted by the polygraph.  The remaining 82 would be false negatives.
+
+Specificity is defined as:
+
+$Specificity = \frac{TN}{TN + FP}$
+
+Again we know that the denominator would be equal to the 800 truth tellers in our example and the specificity is 0.9. Therefore 720 individuals were correctly identified as truth tellers and 80 were false positives. 
+
+Expresing this data in terms of probabilities we would have the following table:
+
+|              | Liar  | Truth Teller |
+|--------------|-------|--------------|
+| Liar         | 0.118 | 0.08         |
+| Truth Teller | 0.082 | 0.72         |
+
+
 b. What is the probability that an individual is actually a truth-teller given that the polygraph detected him/her as such? (Show me the table or the formulaic solution or both.)
 
+**0.89787556**
+
+Using the figures from the first exercise:
+
+```{r}
+TN <- 720
+FN <- 82
+TN / (TN + FN)
+```
+
 c. What is the probability that a randomly selected individual is either a liar or was identified as a liar by the polygraph? Be sure to write the probability statement.
+
+**0.28**
+
+This is either the 200 that are liars or the 80 that are detected incorectly as liars (FP) over the 1000 individuals.  That works out to 28%.
