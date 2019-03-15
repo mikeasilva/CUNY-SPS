@@ -1,0 +1,133 @@
+---
+title: "DATA 605 Week 7 Assignment"
+author: "Mike Silva"
+output: html_document
+---
+
+## Question 1
+
+Let X1, X2, . . . , Xn be n mutually independent random variables, each of which is uniformly distributed on the integers from 1 to k. Let Y denote the minimum of the Xi’s. Find the distribution of Y .
+
+## Question 2
+
+Your organization owns a copier (future lawyers, etc.) or MRI (future doctors). This machine has a manufacturer’s expected lifetime of 10 years. This means that we expect one failure every ten years. (Include the probability statements and R Code for each part.)
+
+### Part A
+
+**What is the probability that the machine will fail after 8 years? Provide also the expected value and standard deviation. Model as a geometric.**
+
+The probability the machine will fail within ten years is 1.  The probability that the machine will fail within k years is found using:
+
+$$P(x=k) = (1-p)^{k-1} \times p$$
+where p is the probability of the event happening that year.  We are given that p is 1/10.  The probability it will fail in the first eight years is displayed below
+
+```{r echo=FALSE}
+library(ggplot2)
+n_failures_before_success <- 8
+probability_of_success <- 1/10
+
+p_ns <- c()
+for (n in 1:n_failures_before_success){
+  p_n <- probability_of_success * (1 - probability_of_success)^(n-1)
+  p_ns <- c(p_ns, p_n)
+}
+
+ggplot(data.frame(year = 1:n_failures_before_success, p = p_ns), aes(year,p)) + 
+  geom_bar(stat = "identity", fill = "steelblue", width = 1) +
+  geom_text(aes(label = round(p,3)), vjust = 1.6, color = "white", size = 3.5) +
+  theme_minimal() +
+  ggtitle("Probability of Failure in the First 8 Years")
+```
+
+The probability of failure after the eight years will be one minus the sum of all the probabilities above (the area in blue).  Otherwise stated:
+
+$$P(\text{failure after 8 years}) = 1 - \sum_{k=1}^{8} \frac{1}{10}\times\Big(\frac{9}{10}\Big)^{k-1} = 0.4304672$$
+
+```{r}
+n_failures_before_success <- 8
+probability_of_success <- 1/10
+
+p <- 0
+for (n in 1:n_failures_before_success){
+  p <- p + probability_of_success * (1 - probability_of_success) ^ (n - 1)
+}
+
+p_geometric <- 1 - p
+
+message(paste("Probability that the machine will fail after 8 years:", p_geometric))
+```
+
+The [expected value](https://math.stackexchange.com/questions/2368304/how-do-you-calculate-the-expected-value-of-geometric-distribution-without-diffre) of a geometric distribution is 
+
+$$\text{Expected Value} = \frac{1}{P({success})} = \frac{1}{\frac{1}{10}} = 10$$
+
+```{r}
+expected_value <- 1 / probability_of_success
+
+message(paste("Expected value:", expected_value))
+```
+
+The [standard deviation](https://www.youtube.com/watch?v=kDFiNt8nxSo) is:
+
+$\text{Standard Deviation} = \sqrt{\frac{1-P(success)}{P(success)^2}} = \sqrt{\frac{1-0.1}{0.1^2}} = \sqrt{\frac{0.9}{0.01}} = \sqrt{90} \approx 9.486833$
+
+```{r}
+variance <- (1 - probability_of_success) / (probability_of_success ^ 2)
+
+standard_deviation <- sqrt(variance)
+
+message(paste("Standard deviation:", standard_deviation))
+```
+
+### Part B
+
+**What is the probability that the machine will fail after 8 years? Provide also the expected value and standard deviation. Model as an exponential.** 
+
+The probability the machine fails after 8 years is 
+
+$$P(\text{failure after 8 years}) = e^\frac{-8}{10} = e^{-0.8}=0.449329$$
+
+```{r}
+p_exponential <- exp(1) ^ (-n_failures_before_success /expected_value)
+
+message(paste("Probability that the machine will fail after 8 years:", p_exponential))
+```
+
+The expected value is found using the same formula as above as demonstrated in [this video](https://www.youtube.com/watch?v=GJ2klfD0Q3g). Therefore
+
+$$\text{Expected Value} = \frac{1}{P({success})} = \frac{1}{\frac{1}{10}} = 10$$
+
+```{r}
+expected_value <- 1 / probability_of_success
+
+message(paste("Expected value:", expected_value))
+```
+
+The [standard deviation](https://www.youtube.com/watch?v=GJ2klfD0Q3g) is:
+
+$\text{Standard Deviation} = \frac{1}{P(success)^2} = \frac{1}{0.1^2} = \frac{1}{0.01} = 100$
+
+```{r}
+standard_deviation <- 1 / (probability_of_success ^ 2)
+
+message(paste("Standard deviation:", standard_deviation))
+```
+
+### Part C
+
+**What is the probability that the machine will fail after 8 years? Provide also the expected value and standard deviation. Model as a binomial.**
+
+
+
+## Part D
+
+**What is the probability that the machine will fail after 8 years? Provide also the expected value and standard deviation. Model as a Poisson**
+
+
+## Summary
+
+|        | Probability of Failure After 8 Years | Expected Value | Standard Deviation |
+| Part A | 0.4304672                            | 10             | 9.48683298050514   |
+| Part B | 0.449329                             | 10             | 100                |
+| Part C |
+| Part D |
