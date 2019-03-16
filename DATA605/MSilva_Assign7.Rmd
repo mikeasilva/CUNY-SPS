@@ -6,7 +6,31 @@ output: html_document
 
 ## Question 1
 
-Let X1, X2, . . . , Xn be n mutually independent random variables, each of which is uniformly distributed on the integers from 1 to k. Let Y denote the minimum of the Xi’s. Find the distribution of Y .
+Let X1, X2, . . . , Xn be n mutually independent random variables, each of which is uniformly distributed on the integers from 1 to k. Let Y denote the minimum of the Xi’s. Find the distribution of Y.
+
+```{r}
+set.seed(42)
+n <- 100000
+k <- 50
+draws <- 10
+Y <- c()
+for (i in 1:n){
+  Xn <- sample(1:k, draws, TRUE)
+  Y <- c(Y, min(Xn))
+}
+```
+
+```{r, echo=FALSE}
+library(ggplot2)
+
+ggplot(data.frame(table(Y)), aes(Y, Freq)) + 
+  geom_bar(stat = "identity", fill = "steelblue", width = 1) +
+  theme_minimal() +
+  ylab("Count") + 
+  ggtitle("Distribution of Y's")
+```
+
+It's a long tail distribution like a power law distribution.
 
 ## Question 2
 
@@ -22,7 +46,6 @@ $$P(x=k) = (1-p)^{k-1} \times p$$
 where p is the probability of the event happening that year.  We are given that p is 1/10.  The probability it will fail in the first eight years is displayed below
 
 ```{r echo=FALSE}
-library(ggplot2)
 n_failures_before_success <- 8
 probability_of_success <- 1/10
 
@@ -62,21 +85,21 @@ The [expected value](https://math.stackexchange.com/questions/2368304/how-do-you
 $$\text{Expected Value} = \frac{1}{P({success})} = \frac{1}{\frac{1}{10}} = 10$$
 
 ```{r}
-expected_value <- 1 / probability_of_success
+expected_value_geom <- 1 / probability_of_success
 
-message(paste("Expected value:", expected_value))
+message(paste("Expected value:", expected_value_geom))
 ```
 
 The [standard deviation](https://www.youtube.com/watch?v=kDFiNt8nxSo) is:
 
-$\text{Standard Deviation} = \sqrt{\frac{1-P(success)}{P(success)^2}} = \sqrt{\frac{1-0.1}{0.1^2}} = \sqrt{\frac{0.9}{0.01}} = \sqrt{90} \approx 9.486833$
+$$\text{Standard Deviation} = \sqrt{\frac{1-P(success)}{P(success)^2}} = \sqrt{\frac{1-0.1}{0.1^2}} = \sqrt{\frac{0.9}{0.01}} = \sqrt{90} \approx 9.486833$$
 
 ```{r}
 variance <- (1 - probability_of_success) / (probability_of_success ^ 2)
 
-standard_deviation <- sqrt(variance)
+standard_deviation_geom <- sqrt(variance)
 
-message(paste("Standard deviation:", standard_deviation))
+message(paste("Standard deviation:", standard_deviation_geom))
 ```
 
 ### Part B
@@ -88,7 +111,7 @@ The probability the machine fails after 8 years is
 $$P(\text{failure after 8 years}) = e^\frac{-8}{10} = e^{-0.8}=0.449329$$
 
 ```{r}
-p_exponential <- exp(1) ^ (-n_failures_before_success /expected_value)
+p_exponential <- exp(1) ^ (-n_failures_before_success /expected_value_geom)
 
 message(paste("Probability that the machine will fail after 8 years:", p_exponential))
 ```
@@ -98,36 +121,101 @@ The expected value is found using the same formula as above as demonstrated in [
 $$\text{Expected Value} = \frac{1}{P({success})} = \frac{1}{\frac{1}{10}} = 10$$
 
 ```{r}
-expected_value <- 1 / probability_of_success
+expected_value_exp <- 1 / probability_of_success
 
-message(paste("Expected value:", expected_value))
+message(paste("Expected value:", expected_value_exp))
 ```
 
 The [standard deviation](https://www.youtube.com/watch?v=GJ2klfD0Q3g) is:
 
-$\text{Standard Deviation} = \frac{1}{P(success)^2} = \frac{1}{0.1^2} = \frac{1}{0.01} = 100$
+$$\text{Standard Deviation} = \sqrt{\frac{1}{P(success)^2}} = \sqrt{\frac{1}{0.1^2}} = \sqrt{\frac{1}{0.01}} = \sqrt{100} = 10$$
 
 ```{r}
-standard_deviation <- 1 / (probability_of_success ^ 2)
+standard_deviation_exp <- sqrt(1 / (probability_of_success ^ 2))
 
-message(paste("Standard deviation:", standard_deviation))
+message(paste("Standard deviation:", standard_deviation_exp))
 ```
 
 ### Part C
 
-**What is the probability that the machine will fail after 8 years? Provide also the expected value and standard deviation. Model as a binomial.**
+**What is the probability that the machine will fail after 8 years? Provide also the expected value and standard deviation. Model as a binomial. (Hint: 0 success in 8 years)**
+
+The binomial probability formula is
+
+$$P(x) = \frac{N!}{x!(N-x)!}\pi^x(1-\pi)^{N-x}$$
+
+The probability of the maching failing after eight years is 1 minus the probability it does not fail in the first 8 years.  Otherwise put 0 successes(x) in the first 8 years (N).  The probability of failure is 1/10 therefore:
+
+$$P(0) = \frac{8!}{0!(8-0)!}\frac{1}{10}^0(1-\frac{1}{10})^{8-0} = \frac{40320}{40320}\times 1 \times \frac{9}{10}^8 = 1 \times 1 \times 0.9^8 = 0.4304672$$
 
 
+```{r}
+p_binomial <- pbinom(0, 8, 0.1)
+message(paste("Probability that the machine will fail after 8 years:", p_binomial))
+```
+
+The [expected value](http://onlinestatbook.com/2/probability/binomial.html) is the number of trials times the probability of success per trial.
+
+```{r}
+expected_value_binom <- n_failures_before_success * probability_of_success
+
+message(paste("Expected value:", expected_value_binom))
+```
+
+The [standard deviation](http://onlinestatbook.com/2/probability/binomial.html) is found using:
+
+$$\sigma = \sqrt{N\pi(1-\pi)}$$
+
+```{r}
+standard_deviation_binom <- sqrt(n_failures_before_success * probability_of_success*(1 - probability_of_success))
+
+message(paste("Standard deviation:", standard_deviation_binom))
+```
 
 ## Part D
 
 **What is the probability that the machine will fail after 8 years? Provide also the expected value and standard deviation. Model as a Poisson**
 
+The Poisson formula is:
 
-## Summary
+$$P(x) = \frac{\lambda^xe^{-\lambda}}{x!}= \frac{10^8e^{-10}}{8!} =\frac{4539.993}{40320} = 0.112599$$
 
-|        | Probability of Failure After 8 Years | Expected Value | Standard Deviation |
-| Part A | 0.4304672                            | 10             | 9.48683298050514   |
-| Part B | 0.449329                             | 10             | 100                |
-| Part C |
-| Part D |
+
+```{r}
+x <- 8
+mu <- 10
+p_poisson <- ((mu^x) * (exp(1)^-mu)) / factorial(x)
+message(paste("Probability that the machine will fail after 8 years:", p_poisson))
+```
+
+For the Poisson distribution the mean and standard deviation are the same.
+
+```{r}
+expected_value_poisson <- mu
+
+message(paste("Expected value:", expected_value_poisson))
+```
+
+The variance is equal to mu so
+
+```{r}
+standard_deviation_poisson <- sqrt(mu)
+```
+
+### Summary
+
+The following table summarizes all the information found above
+
+```{r echo=FALSE, message=FALSE}
+library(kableExtra)
+library(dplyr)
+
+data.frame(Model = c("Geometric", "Exponential", "Binomial", "Poisson"),
+           Probability = c(p_geometric, p_exponential, p_binomial, p_poisson),
+           ex = c(expected_value_geom, expected_value_exp, expected_value_binom, expected_value_poisson),
+           sd = c(standard_deviation_geom, standard_deviation_exp, standard_deviation_binom, standard_deviation_poisson)) %>%
+  rename("Expected Value" = ex,
+         "Standard Deviation" = sd) %>%
+  kable() %>%
+  kable_styling()
+```
