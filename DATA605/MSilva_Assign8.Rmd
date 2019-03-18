@@ -1,0 +1,39 @@
+---
+title: "DATA 605 Week 8 Assignment"
+author: "Mike Silva"
+output: html_document
+---
+
+## Question 11 on Pg. 303
+
+A company buys 100 lightbulbs, each of which has an exponential lifetime of
+1000 hours. What is the expected time for the first of these bulbs to burn
+out?
+
+## Question 14 on Pg. 303
+
+Assume that X1 and X2 are independent random variables, each having an
+exponential density with parameter λ. Show that Z = X1 − X2 has density
+
+$$fz(z)=(1/2)\lambda e ^{-\lambda \mid z \mid}$$
+
+## Question 1 Pg. 320-321
+
+ Let X be a continuous random variable with mean µ = 10 and variance
+$\sigma^2 = 100/3$. Using Chebyshev’s Inequality, find an upper bound for the
+following probabilities.
+
+### (a) P(|X − 10| ≥ 2).
+
+
+
+### (b) P(|X − 10| ≥ 5).
+
+
+
+### (c) P(|X − 10| ≥ 9).
+
+
+
+### (d) P(|X − 10| ≥ 20).
+
