@@ -24,9 +24,14 @@ $$100 e ^ {-\frac{1}{1000}t} = 99 \rightarrow e ^ {-\frac{1}{1000}t} = \frac{99}
 
 ## Question 14 on Pg. 303
 
-**Assume that X1 and X2 are independent random variables, each having an exponential density with parameter λ. Show that Z = X1 − X2 has density**
+**Assume that X1 and X2 are independent random variables, each having an exponential density with parameter λ. Show that Z = X1 − X2 has density $fz(z)=\frac{1}{2}\lambda e ^{-\lambda \mid z \mid}$**
 
-$$fz(z)=(1/2)\lambda e ^{-\lambda \mid z \mid}$$
+Using the exponential formula one can express:
+
+$$X_1 = X_2 = \lambda e ^ {-\lambda t}$$
+
+$$Z = X_1 - X_2 = \lambda e ^ {-\lambda t} - \lambda e ^ {-\lambda t}$$
+
 
 ## Question 1 Pg. 320-321
 
