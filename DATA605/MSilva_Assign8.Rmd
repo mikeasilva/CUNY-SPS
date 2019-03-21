@@ -6,22 +6,31 @@ output: html_document
 
 ## Question 11 on Pg. 303
 
-A company buys 100 lightbulbs, each of which has an exponential lifetime of
-1000 hours. What is the expected time for the first of these bulbs to burn
-out?
+**A company buys 100 lightbulbs, each of which has an exponential lifetime of 1000 hours. What is the expected time for the first of these bulbs to burn out?**
+
+The exponential formula is:
+
+$$N(t) = N_0 e ^ {-\lambda t} $$
+
+lambda would be 1 failure every 1000 hours.  Otherwise stated: 
+
+$$\lambda = \frac{1}{1000}$$
+
+Now we need to plug in the variables and solve for t 
+
+$$100 e ^ {-\frac{1}{1000}t} = 99 \rightarrow e ^ {-\frac{1}{1000}t} = \frac{99}{100} \rightarrow -\frac{1}{1000}t = ln\bigg(\frac{99}{100}\bigg) \rightarrow t = ln\bigg(\frac{99}{100}\bigg)\times-1000 \approx 10.05034$$
+
+**Answer: 10.05034 hours**
 
 ## Question 14 on Pg. 303
 
-Assume that X1 and X2 are independent random variables, each having an
-exponential density with parameter λ. Show that Z = X1 − X2 has density
+**Assume that X1 and X2 are independent random variables, each having an exponential density with parameter λ. Show that Z = X1 − X2 has density**
 
 $$fz(z)=(1/2)\lambda e ^{-\lambda \mid z \mid}$$
 
 ## Question 1 Pg. 320-321
 
- Let X be a continuous random variable with mean µ = 10 and variance
-$\sigma^2 = 100/3$. Using Chebyshev’s Inequality, find an upper bound for the
-following probabilities.
+**Let X be a continuous random variable with mean µ = 10 and variance $\sigma^2$ = 100/3. Using Chebyshev’s Inequality, find an upper bound for the following probabilities.**
 
 ### (a) P(|X − 10| ≥ 2).
 
