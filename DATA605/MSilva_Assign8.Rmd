@@ -26,28 +26,62 @@ $$100 e ^ {-\frac{1}{1000}t} = 99 \rightarrow e ^ {-\frac{1}{1000}t} = \frac{99}
 
 **Assume that X1 and X2 are independent random variables, each having an exponential density with parameter λ. Show that Z = X1 − X2 has density $fz(z)=\frac{1}{2}\lambda e ^{-\lambda \mid z \mid}$**
 
-Using the exponential formula one can express:
+*Note: In order to keep this straigth in my head I solved Z = X - Y instead of Z = X1 - X2.  This notation will be used in this solution.*
 
-$$X_1 = X_2 = \lambda e ^ {-\lambda t}$$
+The convolution formula of Z = X + Y is
 
-$$Z = X_1 - X_2 = \lambda e ^ {-\lambda t} - \lambda e ^ {-\lambda t}$$
+$$fx(z) = \int_{-\infty}^{\infty}fx(x)fy(z-x)dx$$
 
+But to do Z = X - Y we need to do Z = X + (-Y).  Pluging it into the convolution formula:
+
+$$fz(z) = \int_{-\infty}^{\infty}fx(x)f{-y}(z-x)dx$$
+Since $f{-y}(z-x) = fy(x-z)$ we can rewrite the convolution as
+
+$$fz(z) = \int_{-\infty}^{\infty}fx(x)fy(x-z)dx$$
+
+Looking at the case where z < 0
+
+$$ \int_{0}^{\infty}\lambda e ^{-\lambda x} \lambda e ^ {-\lambda(x-z)}dx = \lambda e ^ {\lambda z}\int_{0}^{\infty}\lambda e ^{-2\lambda x} dx = \lambda e ^{\lambda z}(-\frac{1}{2}e ^ {-\lambda x}|_0^{\infty}) = \frac{1}{2}\lambda e^{\lambda z}$$
+
+Now looking at the case where z is greater than or equal to zero.  Since the two variables are independent Z = X - Y is the same as -Z = -X + Y.  So the distribution is symetric arround zero thus fz(z) = fz(-z). Sp when z >= 0:
+
+$$fz(-z) = \frac{1}{2}\lambda e^{-\lambda z}$$
+
+This implies that $fz(z)=\frac{1}{2}\lambda e ^{-\lambda \mid z \mid}$
 
 ## Question 1 Pg. 320-321
 
 **Let X be a continuous random variable with mean µ = 10 and variance $\sigma^2$ = 100/3. Using Chebyshev’s Inequality, find an upper bound for the following probabilities.**
 
+```{r}
+mu <- 10
+sigma <- sqrt(100/3)
+```
+
 ### (a) P(|X − 10| ≥ 2).
 
-
+```{r}
+k <- 2 / sigma
+1 / k^2
+```
 
 ### (b) P(|X − 10| ≥ 5).
 
-
+```{r}
+k <- 5 / sigma
+1 / k^2
+```
 
 ### (c) P(|X − 10| ≥ 9).
 
-
+```{r}
+k <- 9 / sigma
+1 / k^2
+```
 
 ### (d) P(|X − 10| ≥ 20).
 
+```{r}
+k <- 20 / sigma
+1 / k^2
+```
