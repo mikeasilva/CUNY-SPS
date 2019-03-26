@@ -1,0 +1,23 @@
+---
+title: "DATA 605 Week 9 Assignment"
+author: "Mike Silva"
+output: html_document
+---
+
+## Problem 1
+
+The price of one share of stock in the Pilsdorff Beer Company (see Exercise 8.2.12) is given by Yn on the nth day of the year. Finn observes that the differences Xn = Yn+1 − Yn appear to be independent random variables with a common distribution having mean µ = 0 and variance σ2 = 1/4. If Y1 = 100, estimate the probability that Y365 is
+
+(a) ≥ 100.
+
+(b) ≥ 110.
+
+(c) ≥ 120.
+
+## Problem 2
+
+Calculate the expected value and variance of the binomial distribution using the moment generating function.
+
+## Problem 3
+
+Calculate the expected value and variance of the exponential distribution using the moment generating function.
