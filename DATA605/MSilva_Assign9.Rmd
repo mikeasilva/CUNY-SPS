@@ -10,9 +10,40 @@ The price of one share of stock in the Pilsdorff Beer Company (see Exercise 8.2.
 
 (a) ≥ 100.
 
+Since we are starting at 100 after day 1 the problem can be restated 
+
+$$P(X_1 + ... + X_{364} \geq 0)$$ 
+
+$$X_1 + ... + X_{364} = N(364 \times 0, \sqrt{364} * \sqrt{\frac{1}{4}}) = N(0, 9.539392)$$
+
+$$P(X_1 + X_2 + ... + X_{364} \geq 0) = Z_0 = \frac{0 - 0}{9.539392} = 0$$
+
+Looking up a Z-Score of 0 gives a *probability of 0.5*
+
+```{r}
+pnorm(0/(sqrt(364)*.5))
+```
+
 (b) ≥ 110.
 
+$$P(X_1 + X_2 + ... + X_{364} \geq 10) = Z_{10} = \frac{10 - 0}{9.539392} = 1.048285$$
+
+*The probability is 0.8527463*
+
+
+```{r}
+pnorm(10/(sqrt(364)*.5))
+```
+
 (c) ≥ 120.
+
+$$P(X_1 + X_2 + ... + X_{364} \geq 20) = Z_{20} = \frac{20 - 0}{9.539392} = 2.09657$$
+
+*The probability is 0.9819842*
+
+```{r}
+pnorm(20/(sqrt(364)*.5))
+```
 
 ## Problem 2
 
