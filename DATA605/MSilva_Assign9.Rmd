@@ -21,7 +21,7 @@ $$P(X_1 + X_2 + ... + X_{364} \geq 0) = Z_0 = \frac{0 - 0}{9.539392} = 0$$
 Looking up a Z-Score of 0 gives a *probability of 0.5*
 
 ```{r}
-pnorm(0/(sqrt(364)*.5))
+pnorm(0/(sqrt(364)*.5), lower.tail = FALSE)
 ```
 
 (b) ≥ 110.
@@ -32,7 +32,7 @@ $$P(X_1 + X_2 + ... + X_{364} \geq 10) = Z_{10} = \frac{10 - 0}{9.539392} = 1.04
 
 
 ```{r}
-pnorm(10/(sqrt(364)*.5))
+pnorm(10/(sqrt(364)*.5), lower.tail = FALSE)
 ```
 
 (c) ≥ 120.
@@ -42,13 +42,47 @@ $$P(X_1 + X_2 + ... + X_{364} \geq 20) = Z_{20} = \frac{20 - 0}{9.539392} = 2.09
 *The probability is 0.9819842*
 
 ```{r}
-pnorm(20/(sqrt(364)*.5))
+pnorm(20/(sqrt(364)*.5), lower.tail = FALSE)
 ```
 
 ## Problem 2
 
 Calculate the expected value and variance of the binomial distribution using the moment generating function.
 
+The binomial function is $b(x, n, p) = \frac{n!}{x!(n-x)!}p^xq^{n-x}$ with $q=1-p$.
+
+The moment generating function is:
+
+$$Mx(t)=\sum_{x=0}^{n} e^{xt} \frac{n!}{x!(n-x)!}p^xq^{n-x} = \sum_{x=0}^{n} (pe^t)^x \frac{n!}{x!(n-x)!}q^{n-x} = (q+pe^t)^n$$
+
+Taking the derivative of the function with respect to t
+
+$$\frac{dM(t)}{dt} = pe^t n(q+pe^t)^{n-1}$$
+
+Evaluating at t=0
+
+$$E(x) = np(q+p)^{n-1} = np$$
+
+To find the variance we need to find E(x2)
+
+$$E(x^2) = np(q + p)^{n−2}(q + np) = np(q + np)$$
+
+We can now find the variance
+
+$$V = E(x^2) - (E(x))^2 = np(q + np) - (np)^2 = np(q+np) - n^2p^2 = npq$$
+
 ## Problem 3
 
 Calculate the expected value and variance of the exponential distribution using the moment generating function.
+
+First we need to get the moment generating function:
+
+$$Mx(t) = \int_{-\infty}^\infty e^{tx}fx(x)dx = \int_0^\infty e^{tx}\lambda e^{-\lambda x}dx = \lambda \int_0^\infty e^{(t - \lambda)x}dx = \frac{\lambda}{t- \lambda}$$
+
+Now that the moment function is found we can find the first and second moments
+
+$$E(x) = \frac{\lambda}{(t- \lambda)^2}|_{t=0} = \frac{1}{\lambda}$$
+
+Here's the variance:
+
+$$V = E(x^2) = \frac{2\lambda}{(t- \lambda)^3}|_{t=0} = \frac{2}{\lambda^2}$$
