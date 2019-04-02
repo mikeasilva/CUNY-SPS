@@ -1,0 +1,74 @@
+---
+title: "DATA 605 Week 10 Assignment"
+author: "Mike Silva"
+output: html_document
+---
+
+Smith is in jail and has 1 dollar; he can get out on bail if he has 8 dollars.  A guard agrees to make a series of bets with him. If Smith bets A dollars, he wins A dollars with probability .4 and loses A dollars with probability .6. Find the probability that he wins 8 dollars before losing all of his money if
+
+(a) he bets 1 dollar each time (timid strategy).
+
+**About 2%**
+
+```{r timid}
+states <- c("0", "1", "2", "3", "4", "5", "6", "7", "8")
+transition_matrix <- matrix(c(1, 0, 0, 0, 0, 0, 0, 0, 0, 
+                              0.6, 0, 0.4, 0, 0, 0, 0, 0, 0,
+                              0, 0.6, 0, 0.4, 0, 0, 0, 0, 0,
+                              0, 0, 0.6, 0, 0.4, 0, 0, 0, 0,
+                              0, 0, 0, 0.6, 0, 0.4, 0, 0, 0,
+                              0, 0, 0, 0, 0.6, 0, 0.4, 0, 0,
+                              0, 0, 0, 0, 0, 0.6, 0, 0.4, 0,
+                              0, 0, 0, 0, 0, 0, 0.6, 0, 0.4,
+                              0, 0, 0, 0, 0, 0, 0, 0, 1), 
+                            nrow = 9, 
+                            byrow = TRUE,
+                            dimnames = list(states, states))
+
+starting_state <- c(0, 1, 0, 0, 0, 0, 0, 0, 0)
+
+n <- 1000
+
+for (i in 1:n){
+  starting_state <- starting_state %*% transition_matrix
+}
+starting_state
+```
+
+```{r, echo = FALSE, eval=FALSE}
+library(markovchain)
+timid <- new("markovchain", states = states, byrow = TRUE, transitionMatrix = transition_matrix, name = "Timid")
+
+c(0, 1, 0, 0, 0, 0, 0, 0, 0) * timid^1000
+```
+
+(b) he bets, each time, as much as possible but not more than necessary to bring his fortune up to 8 dollars (bold strategy).
+
+**About 6.4%**
+
+
+```{r bold}
+transition_matrix <- matrix(c(1, 0, 0, 0, 0, 0, 0, 0, 0, 
+                              0.6, 0, 0.4, 0, 0, 0, 0, 0, 0,
+                              0.6, 0, 0, 0, 0.4, 0, 0, 0, 0,
+                              0.6, 0, 0, 0, 0, 0, 0.4, 0, 0,
+                              0.6, 0, 0, 0, 0, 0, 0, 0, 0.4,
+                              0.6, 0, 0, 0, 0, 0, 0, 0, 0.4,
+                              0.6, 0, 0, 0, 0, 0, 0, 0, 0.4,
+                              0.6, 0, 0, 0, 0, 0, 0, 0, 0.4,
+                              0, 0, 0, 0, 0, 0, 0, 0, 1), 
+                            nrow = 9, 
+                            byrow = TRUE,
+                            dimnames = list(states, states))
+
+starting_state <- c(0, 1, 0, 0, 0, 0, 0, 0, 0)
+
+for (i in 1:n){
+  starting_state <- starting_state %*% transition_matrix
+}
+starting_state
+```
+
+(c) Which strategy gives Smith the better chance of getting out of jail?
+
+**The bold strategy**
