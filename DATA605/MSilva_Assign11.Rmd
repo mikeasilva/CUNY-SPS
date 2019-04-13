@@ -1,0 +1,103 @@
+---
+title: "DATA 605 Week 11 Assignment"
+author: "Mike Silva"
+output: html_document
+---
+
+Using the "cars" dataset in R, build a linear model for stopping distance as a function of speed and replicate the analysis of your textbook chapter 3 (visualization, quality evaluation of the model, and residual analysis.)
+
+## Visualization 
+
+```{r echo=FALSE}
+library(ggplot2)
+library(ggthemes)
+
+ggplot(cars, aes(speed, dist)) +
+  geom_point() +
+  ylab("Stopping Distance (Feet)") +
+  xlab("Speed (MPH)") + 
+  theme_economist_white()
+```
+
+There appears to be a positive linear relationship between the speed of a car and the stopping distance.
+
+## Model Creation & Evaluation
+
+Let's fit a line to the data
+
+```{r}
+model <- lm(dist ~ speed, cars)
+```
+
+And let's visualize it
+
+```{r echo=FALSE}
+lm_eqn <- function(m){
+    eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
+         list(a = unname(coef(m)[1]),
+              b = unname(coef(m)[2]),
+             r2 = format(summary(m)$r.squared, digits = 3)))
+    as.character(as.expression(eq))
+}
+
+ggplot(cars, aes(speed, dist)) +
+  geom_point() +
+  geom_abline(slope = model$coefficients[2], intercept = model$coefficients[1], color="red") +
+  ylab("Stopping Distance (Feet)") +
+  xlab("Speed (MPH)") + 
+  geom_label(x = 10, y = 115, label.size = NA, label = lm_eqn(model), parse = TRUE) +
+  theme_economist_white()
+```
+
+```{r comment=NA}
+summary(model)
+```
+
+Every additional MPH in speed requires about 4 feet of stopping distance.  The standard error on this variable is about 9.5 times smaller than the estimate which is good.  The P-value of this coefficient is very small indicating that it is statistically significant.  This model explains about 65% of the variation.
+
+## Residual Analysis
+
+```{r echo=FALSE}
+ggplot(cars, aes(resid(model))) +
+  geom_density() +
+  ylab("Density") +
+  xlab("Residuals") + 
+  geom_vline(xintercept = 0, linetype="dotted", color = "red") +
+  theme_economist_white()
+```
+
+From the summary above and the chart of the residuals above we can note the residuals range from -29 to 43 with a median at -2.27 and the first and third quartiles are -9.5 and 9.2 respectively.  From that it would seem they are largely normaly distributed with a bit of an outlier on the the positive side.
+
+```{r echo=FALSE}
+ggplot(cars, aes(fitted(model),resid(model))) +
+  geom_point() +
+  ylab("Residuals") +
+  xlab("Fitted Values") + 
+  theme_economist_white()
+```
+
+There are three observations that look like outliers on the positive side of the distribution.  Outside of this the variation is fairly uniformly distributed.  Now for the Q-Q plot.
+
+```{r echo=FALSE}
+gg_qqplot <- function(fitted.lm) {
+   # extract residuals from lm object
+   res = residuals(fitted.lm)
+
+   # calculate slope and interncept for qqline
+   slope = (quantile(res, .75) - quantile(res, .25)) / (qnorm(.75) - qnorm(.25))
+   intercept = quantile(res,.25) - slope*qnorm(.25)
+   qq_line = data.frame(intercept = intercept, slope = slope)
+
+   # generate ggplot for qqplot
+   qq_plot <- ggplot(data = fitted.lm) +
+      stat_qq(aes(sample = res)) +
+      labs(x = "Theoretical Quantile", y = "Standardized Residual") +
+      geom_abline(data = qq_line ,aes(intercept = intercept ,slope = slope), color = "red") +
+    theme_economist_white()   
+   qq_plot
+}
+
+gg_qqplot(model)
+```
+
+Again we see that most of the residuals lay on the line except for three observations which seem to be outliers.
