@@ -1,0 +1,144 @@
+---
+title: "DATA 605 Week 12 Assignment"
+author: "Mike Silva"
+output: html_document
+---
+
+## Part 1 - Original Data
+
+### Data Acquisition/Wrangling
+
+```{r}
+df <- read.csv("who.csv")
+```
+
+Here's the first 5 observations of the data
+
+```{r echo=FALSE, message=FALSE}
+library(dplyr)
+library(kableExtra)
+df %>%
+  head(5) %>%
+  kable() %>%
+  kable_styling()
+```
+
+### Visualization 
+
+```{r echo=FALSE}
+library(ggplot2)
+library(ggthemes)
+
+ggplot(df, aes(TotExp, LifeExp)) +
+  geom_point() +
+  ylab("Avg Life Expectancy (years)") +
+  xlab("Avg Personal and Government Expenditures (US dollars)") + 
+  theme_economist_white()
+```
+
+### Model Building
+
+```{r}
+model <- lm(LifeExp~TotExp, df)
+```
+
+### Model Evaluation
+
+The F statistic is `r summary(model)$fstatistic["value"]`.  It can give a yes-no response to "can I reject $H_0$".  In this case F statistic indicates that there's a relationship that is statistically significant and $R^2$ will indicate the strength of the relationship.
+
+The $R^2$ is `r summary(model)$r.squared`.  It explains how much of the variation in life expectancy is explained by the total expenditures.  Only 25% of the variation is explained which is not a very good fit. 
+
+The standard error for total expenditures is `r summary(model)$coefficients[1,"Std. Error"]`.  It means the total expenditure coefficient is `r summary(model)$coefficients[1,"Estimate"]` +/- `r summary(model)$coefficients[1,"Std. Error"] * 1.96` at the 95% confidence level.
+
+The P-value for total expenditures is `r summary(model)$coefficients[1,"Pr(>|t|)"]` which indicates the beta is statistically significant.
+
+
+## Part 2 - Transformed Data
+
+### Data Acquisition/Wrangling
+
+```{r message=FALSE}
+library(dplyr)
+df <- df %>%
+  mutate(TransformedTotExp = TotExp^.06,
+         TransformedLifeExp = LifeExp^4.6)
+```
+
+### Visualization
+
+```{r echo=FALSE}
+ggplot(df, aes(TransformedTotExp, TransformedLifeExp)) +
+  geom_point() +
+  ylab("Avg Life Expectancy (years) to the 4.6 power") +
+  xlab("Avg Personal and Government Expenditures (US dollars) to the 0.06 power") + 
+  theme_economist_white()
+```
+
+### Model Building
+
+```{r}
+model <- lm(TransformedLifeExp~TransformedTotExp, df)
+```
+
+### Model Evaluation
+
+The F statistic (`r summary(model)$fstatistic["value"]`) is larger than before and indicates that there's a relationship that is statistically significant. The $R^2$ (`r summary(model)$r.squared`) means about 73% of the variation is now explained which is a much better fit. 
+
+The standard error for total expenditures is `r summary(model)$coefficients[1,"Std. Error"]`.  It means the total expenditure coefficient is `r summary(model)$coefficients[1,"Estimate"]` +/- `r summary(model)$coefficients[1,"Std. Error"] * 1.96` at the 95% confidence level.
+
+The P-value for the total expenditures is `r summary(model)$coefficients[1,"Pr(>|t|)"]` now which indicates the estimate is statistically significant.
+
+This model is definately a better fit although the I personally find it harder to explain to less statistically litterate users due to the transformation.
+
+
+## Part 3
+
+```{r, results='asis'}
+forecast_life_expectancy <- function(TransformedTotExp){
+  d <- data.frame(TransformedTotExp = c(TransformedTotExp))
+  prediction <- predict(model, d)
+  cat(paste("Life Expectancy:", round(unname(log(prediction, 4.6)),1), "years"))
+}
+forecast_life_expectancy(1.5)
+```
+
+```{r, results='asis'}
+forecast_life_expectancy(2.5)
+```
+
+
+## Part 4
+
+### Model Building
+
+```{r}
+model <- lm(LifeExp ~ PropMD + TotExp + I(PropMD * TotExp), df)
+```
+
+### Model Evaluation
+
+The F statistic (`r summary(model)$fstatistic["value"]`) is smaller than the model in Part 2.  It still indicates that there's a relationship that is statistically significant. The $R^2$ (`r summary(model)$r.squared`) means about 36% of the variation is explained by this model which is worse than the prvious model. 
+
+The standard error for Prop MD is `r summary(model)$coefficients[1,"Std. Error"]`.  It means the total expenditure coefficient is `r summary(model)$coefficients[1,"Estimate"]` +/- `r summary(model)$coefficients[1,"Std. Error"] * 1.96` at the 95% confidence level.
+
+The standard error for total expenditures is `r summary(model)$coefficients[2,"Std. Error"]`.  It means the total expenditure coefficient is `r summary(model)$coefficients[2,"Estimate"]` +/- `r summary(model)$coefficients[2,"Std. Error"] * 1.96` at the 95% confidence level.
+
+The standard error for the interaction term is `r summary(model)$coefficients[3,"Std. Error"]`.  It means the total expenditure coefficient is `r summary(model)$coefficients[3,"Estimate"]` +/- `r summary(model)$coefficients[3,"Std. Error"] * 1.96` at the 95% confidence level.
+
+
+The P-value for the first term is `r summary(model)$coefficients[1,"Pr(>|t|)"]`  which indicates the estimate is statistically significant.  The second term is `r summary(model)$coefficients[2,"Pr(>|t|)"]`  which indicates the estimate is statistically significant as is the third term (`r summary(model)$coefficients[3,"Pr(>|t|)"]` ).
+
+This model is not as good as the second model.
+
+## Part 5
+
+```{r, results='asis'}
+forecast_life_expectancy <- function(PropMD, TotExp){
+  d <- data.frame(PropMD = c(PropMD), TotExp = c(TotExp))
+  prediction <- predict(model, d)
+  cat(paste("Life Expectancy:", round(unname(prediction),1), "years"))
+}
+forecast_life_expectancy(0.03, 14)
+```
+
+This forecast does not seem realistic because the average live expectancy is not that high.  
