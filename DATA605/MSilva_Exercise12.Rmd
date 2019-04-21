@@ -1,0 +1,94 @@
+---
+title: "DATA 605 Week 12"
+author: "Mike Silva"
+date: "16 April 2019"
+output: 
+  rmdformats::readthedown:
+    highlight: kate
+---
+
+## Introduction
+
+As part of the Fundamentals of Computational Mathematics course work at the CUNY School of Professional Studies, we need to build a multiple regression model.  The model needs at least one quadratic term, one dichotomous term, and one dichotomous vs. quantitative interaction term.  For this exercise I will be using the clasic Iris data set.
+
+## Data Acquisition
+
+I will be predicting the petal length.  I know that there is a strong relationship between the sepal length and the petal length (`r cor(iris$Sepal.Length, iris$Petal.Length)` correlation).  I will be using this in the model as a quadratic term. 
+
+Because of my knowledge of this dataset I know that the setosa species of iris is distinct from the versicolor and virginica species.  I will be using that as the dichotomous term.  
+
+I want to differentiate the versicolor and viginica group and will use the petal width as the quantitative interaction term.
+
+```{r, message=FALSE}
+library(dplyr)
+df <- iris %>%
+  mutate(Sepal.Length.Squared = Sepal.Length ^ 2) %>% # Quadratic term
+  mutate(Not.Setosa = ifelse(Species == "setosa", 0, 1)) %>% # Dichotomous term
+  mutate(Petal.Width.Interaction = Not.Setosa * Petal.Width) %>% # Dichotomous vs. quantitative interaction
+  select(Petal.Length, Sepal.Length.Squared, Not.Setosa, Petal.Width.Interaction) %>%
+  arrange(Petal.Length)
+```
+
+The end result is the following data
+
+```{r echo=FALSE, message=FALSE}
+library(kableExtra)
+df %>%
+  head(10) %>%
+  kable() %>%
+  kable_styling()
+```
+
+
+## Visualization
+
+It's a bit harder to visualize this model because of the number of dimensions but here's the clearest viz I was able to work up:
+
+```{r echo = FALSE}
+library(ggplot2)
+df %>%
+  mutate(Not.Setosa = ifelse(Not.Setosa == 1, "Yes", "No")) %>%
+  mutate(Not.Setosa = as.factor(Not.Setosa)) %>%
+  ggplot(aes(Sepal.Length.Squared, Petal.Length, shape=Not.Setosa, color=Petal.Width.Interaction)) +
+  geom_point() +
+  ylab("Petal Length") +
+  xlab("Sepal Length Squared") +
+  scale_color_distiller(palette = "Spectral")
+```
+
+## Model Creation
+
+Now to create the multivariate model
+
+```{r}
+model <- lm(Petal.Length ~ ., df)
+```
+
+## Model Evaluation
+
+```{r comment=NA}
+summary(model)
+```
+
+This model preformed very well.  The adjusted R-squared is `r summary(model)$adj.r.squared` which is phenominal!  All of the terms are statistically significant.
+
+### Residual Analysis
+
+Let's take a look at the residuals
+
+```{r, comment=NA}
+summary(resid(model))
+```
+
+The mean and median are close to zero which is good.  All of the other data hint that the residuals are fairly normally distributed.  Let's take a look at the plots:
+
+```{r, echo=FALSE}
+library(ggfortify)
+autoplot(model)
+```
+
+There are a couple observations that are outliers but generally everything looks great!
+
+## Conclusion
+
+This model explains almost all of the variablitiy.  The R-squared is about 0.97.  The residual plots do not raise any concern.  The Q-Q is fairly linear.  The coefficients are statistically significant.
