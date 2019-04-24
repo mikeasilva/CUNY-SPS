@@ -71,7 +71,38 @@ integrate(fx, 4.5, 8.5)
 
 **Find the area of the region bounded by the graphs of the given equations **
 
-$$y=x^2-2x-2, y=x+2$$
+$$f(x)=x^2-2x-2, g(x)=x+2$$
+
+First we will visualize the two lines.  The first is blue and the second is red.
+
+```{r, echo=FALSE, warning=FALSE}
+library(ggplot2)
+
+fx <- function(x){x^2 - 2*x - 2}
+gx <- function(x){x + 2}
+
+ggplot(data = data.frame(x = 0), mapping = aes(x = x)) +
+  stat_function(fun = gx, color="red") + 
+  stat_function(fun = fx, color="blue") +
+  geom_hline(yintercept = 0, color="black") +
+  geom_vline(xintercept = 0, color="black") +
+  xlim(-8, 8) +
+  ylim(-8, 8) +
+  theme(aspect.ratio=1)
+```
+
+The two points where the lines intersect are
+
+$$x^2-2x-2 = x+2 \rightarrow x^2-3x -4 = 0\rightarrow(x+1)(x-4) = 0\rightarrow x = -1 \text{ and } 4$$
+
+$$\int_{-1}^4{(x+2)-(x^2-2x-2)} \rightarrow (x^2+2x)-(\frac{x^3}{3}+x^2-2x)|_{-1}^4$$
+
+```{r, comment=NA}
+fx <- function(x){
+  (x+2)-(x^2 - 2*x - 2)
+}
+integrate(fx, -1, 4)
+```
 
 ## Question 5
 
