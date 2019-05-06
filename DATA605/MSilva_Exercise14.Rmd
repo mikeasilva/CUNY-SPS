@@ -1,0 +1,28 @@
+---
+title: "DATA 605 Week 14"
+author: "Mike Silva"
+output: html_document
+---
+
+## Problem 26
+
+In Exercises 25 – 30, use the Taylor series given in Key Idea 8.8.1 to create the Taylor series of the given functions.
+
+$f(x) = e^{−x}$
+
+| Derivative          | Solved at zero  |
+|---------------------|-----------------|
+| $f(x) = e^{-x}$     | $f(0) = 1$      |
+| $f'(x) = -e^{-x}$   | $f'(0) = -1$    |
+| $f''(x) = e^{-x}$   | $f''(0) = 1$    |
+| $f'''(x) = -e^{-x}$ | $f'''(0) = -1$  |
+
+$$1 - \frac{1}{1!} x^1 + \frac{1}{2!} x^2 - \frac{1}{3!}x^3 ... (-1)^n\frac{1}{n!}x^n$$
+
+Which simplies and generalizes to:
+
+$$1 - x + x^2 - x^3 + ... + (-1)^n\frac{1}{n!}x^n$$
+
+Expressed as a summation:
+
+$$\sum_{n=0}^{\infty} (-1)^n\frac{1}{n!}x^n$$
