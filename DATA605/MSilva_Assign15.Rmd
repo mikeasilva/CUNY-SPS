@@ -11,6 +11,48 @@ Find the equation of the regression line for the given points. Round any final v
 
 ( 5.6, 8.8 ), ( 6.3, 12.4 ), ( 7, 14.8 ), ( 7.7, 18.2 ), ( 8.4, 20.8 )
 
+Given the set of (X, Y) points we need to find the best fit line $\hat{Y}= a + bX$ such that the sum of square errors in Y ($\sum{(Y-\hat{Y})^2}$) is minimized.
+
+$$SSE=\sum_{i=1}^{n}{(Y_i-\hat{Y})^2} = \sum_{i=1}^{n}{(Y_i-a - bX_i)^2}$$
+
+SSE will be minimized when $\frac{d{SSE}}{da} = 0$ and $\frac{d{SSE}}{db} = 0$.
+
+
+$$\frac{d{SSE}}{da} = \sum_{i=1}^{n}{-2(Y_i-a - bX_i)}=2\bigg(na+b\sum_{i=1}^{n}{X_i}-\sum_{i=1}^{n}{Y_i}\bigg)=0$$
+
+Dividing by 2 and solving for a
+
+$$a = \bar{Y}-b\bar{X}$$
+
+$$\frac{d{SSE}}{db} = \sum_{i=1}^{n}{-2X_i(Y_i-a - bX_i)}=\sum_{i=1}^{n}{-2(X_iY_i-aX_i-bX_i^2)}=0$$
+
+Substituting in a gives
+
+$$\sum_{i=1}^{n}{(X_iY_i-X_i\bar{Y}-bX_i\bar{X}-bX_i^2)}=0 \rightarrow \sum_{i=1}^{n}{(X_iY_i-X_i\bar{Y})}-b\sum_{i=1}^{n}{(X_i^2-X_i\bar{X})}=0$$
+
+Solving for b gives
+
+$$b=\frac{\sum_{i=1}^{n}{(X_iY_i-X_i\bar{Y})}}{\sum_{i=1}^{n}{(X_i^2-X_i\bar{X})}}$$
+
+```{r}
+X <- c(5.6, 6.3, 7, 7.7, 8.4)
+Y <- c(8.8, 12.4, 14.8, 18.2, 20.8)
+
+X_bar <- mean(X)
+Y_bar <- mean(Y)
+
+b <- sum(X * Y - X * Y_bar) / sum(X ^ 2 - X * X_bar)
+
+a <- Y_bar - b * X_bar
+```
+
+The least squares line is $\hat{Y}$ = `r a` + `r b` $X$
+
+Double checking my work
+```{r}
+lm(Y ~ X)
+```
+
 ## Question 2
 
 Find all local maxima, local minima, and saddle points for the function given below. Write your answer(s) in the form ( x, y, z ). Separate multiple points with a comma.
