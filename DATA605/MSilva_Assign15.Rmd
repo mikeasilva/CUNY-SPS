@@ -49,6 +49,7 @@ a <- Y_bar - b * X_bar
 The least squares line is $\hat{Y}$ = `r a` + `r b` $X$
 
 Double checking my work
+
 ```{r}
 lm(Y ~ X)
 ```
@@ -59,17 +60,89 @@ Find all local maxima, local minima, and saddle points for the function given be
 
 $$f(x,y)=24x-6xy^2-8y^3$$
 
+First we find the first and second partial derivatives
+
+| First Derivative    | Second Derivative     |
+|---------------------|-----------------------|
+|$f_x = 24 - 6y^2$    | $f_{xx} = 0$          |
+|$f_y = -12xy -24y^2$ | $f_{yy} = -12x - 48y$ |
+
+and $f_{xy} = 12y$.  Now we find the critical points
+
+$$f_x(x,y) = 0 \rightarrow 24 - 6y^2=0 \rightarrow -6y^2 = -24 \rightarrow y^2 = 4 \rightarrow y = \pm 2 $$
+
+$$f_y(x,y) = 0 \rightarrow  -12xy - 24y^2 = 0 \rightarrow-12xy = 24y^2 \rightarrow  x = -2y$$
+
+When y = 2 x = -4 and when y = -2 x = 4.  In order to find the z we plug these values into the function.
+
+```{r}
+fxy <- function(x, y){
+  24*x-6*x*y^2-8*y^3
+}
+
+fxy(4, -2)
+fxy(-4, 2)
+```
+
+In order to figure out what type of point it is, we need to plug it into the second derivative test.
+
+```{r}
+second_derivative_test <- function(x,y){
+  #fxx * fyy - fxy^2
+  (0 * (-12*x - 48*y))-((12*y)^2)
+}
+
+second_derivative_test(4, -2)
+second_derivative_test(-4, 2)
+```
+
+| Point (x, y, z) | Second Derivative Test | Conclusion   |
+|-----------------|------------------------|--------------|
+|(4, -2, 64)      | Negative               | Saddle Point |
+|(-4, 2, -64)     | Negative               | Saddle Point |
+
 ## Question 3
 
-A grocery store sells two brands of a product, the "house" brand and a "name" brand. The manager estimates that if she sells the "house" brand for x dollars and the "name" brand for y dollars, she will be able to sell 81  21x + 17y units of the "house" brand and 40 + 11x  23y units of the "name" brand.
+A grocery store sells two brands of a product, the "house" brand and a "name" brand. The manager estimates that if she sells the "house" brand for x dollars and the "name" brand for y dollars, she will be able to sell 81 - 21x + 17y units of the "house" brand and 40 + 11x -23y units of the "name" brand.
 
-**Step 1.** Find the revenue function R ( x, y ).
+**Step 1.** Find the revenue function R (x, y).
+
+$R(x,y) = x(81 - 21x + 17y) + y(40 + 11x - 23y)$
 
 **Step 2.** What is the revenue if she sells the "house" brand for $2.30 and the "name" brand for $4.10?
+
+```{r}
+revenue <- function(x,y){
+  x * (81 - 21 * x + 17 * y) + y * (40 + 11 * x -23 * y)
+}
+
+revenue(2.30, 4.10)
+```
+
+R(x,y) = $116.62
 
 ## Question 4
 
 A company has a plant in Los Angeles and a plant in Denver. The firm is committed to produce a total of 96 units of a product each week. The total weekly cost is given by $C(x,y)=\frac{1}{6}x^2+\frac{1}{6}y^2+7x+25y+700$, where x is the number of units produced in Los Angeles and y is the number of units produced in Denver. How many units should be produced in each plant to minimize the total weekly cost?
+
+Let's express the cost equation as a function of x.  Given $x + y = 96$, $y = 96 - x$.
+
+$$C(x)=\frac{1}{6}x^2+\frac{1}{6}(96-x)^2+7x+25(96-x)+700$$
+
+$$C(x)=\frac{x^2}{6}+\frac{1}{6}(96-x)^2-18x+3100$$
+
+$$C(x)=\frac{x^2}{3}-50x+4636$$
+
+Now minimize it
+
+$$C'(x) =  \frac{2x}{3}-50 \rightarrow 0 = \frac{2x}{3}-50 \rightarrow\frac{2x}{3} = 50 \rightarrow 2x = 150 \rightarrow x = 75$$
+
+$$y = 96 - (75) \rightarrow y = 21$$
+
+| Location    | Units |
+|-------------|-------|
+| Los Angeles | 75    |
+| Denver      | 21    |
 
 ## Question 5
 
