@@ -151,3 +151,9 @@ Evaluate the double integral on the given region.
 $\int{\int{(e^{8x+3y})dA}}$; $R: 2 \leq x \leq 4$ and $2 \leq y \leq 4$
 
 Write your answer in exact form without decimals.
+
+$$A = \int_2^4{\int_2^4{e^{8x+3y}}}$$
+
+$$\int{e^{8x+3y}dx} = \frac{1}{8}e^{8x+3y} + C |_2^4 = \frac{1}{8}e^{8(4)+3y} - \frac{1}{8}e^{8(2)+3y} = \frac{1}{8}e^{32+3y} - \frac{1}{8}e^{16+3y} = \frac{e^{16}-1}{8}e^{3y+16}$$
+
+$$\int{\frac{e^{16}-1}{8}e^{3y+16}dy}=\frac{e^{16}-1}{24}e^{3y+16} + C|_2^4 = \frac{e^{44}-e^{28}}{24} - \frac{e^{38}-e^{22}}{24}$$
