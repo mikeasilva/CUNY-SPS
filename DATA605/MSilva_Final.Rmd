@@ -149,7 +149,15 @@ chisq.test(count_data)
 
 You are to register for Kaggle.com (free) and compete in the House Prices: Advanced Regression Techniques competition. https://www.kaggle.com/c/house-prices-advanced-regression-techniques. I want you to do the following.
 
-*Descriptive and Inferential Statistics.* Provide univariate descriptive statistics and appropriate plots for the training data set. Provide a scatterplot matrix for at least two of the independent variables and the dependent variable. Derive a correlation matrix for any three quantitative variables in the dataset. Test the hypotheses that the correlations between each pairwise set of variables is 0 and provide an 80% confidence interval. Discuss the meaning of your analysis. Would you be worried about familywise error? Why or why not?
+*Descriptive and Inferential Statistics.* Provide univariate descriptive statistics and appropriate plots for the training data set. 
+
+```{r}
+kaggle <- read.csv("Kaggle_House_Prices/train.csv") %>%
+  mutate(MSSubClass = as.factor(MSSubClass))
+summary(kaggle)
+```
+
+Provide a scatterplot matrix for at least two of the independent variables and the dependent variable. Derive a correlation matrix for any three quantitative variables in the dataset. Test the hypotheses that the correlations between each pairwise set of variables is 0 and provide an 80% confidence interval. Discuss the meaning of your analysis. Would you be worried about familywise error? Why or why not?
 
 *Linear Algebra and Correlation.* Invert your correlation matrix from above. (This is known as the precision matrix and contains variance inflation factors on the diagonal.) Multiply the correlation matrix by the precision matrix, and then multiply the precision matrix by the correlation matrix. Conduct LU decomposition on the matrix.
 
