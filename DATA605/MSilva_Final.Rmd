@@ -1,10 +1,20 @@
 ---
-title: "DATA 605 Final"
+title: "CUNY SPS DATA 605 Final"
 author: "Mike Silva"
-output: html_document
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: architect
+    highlight: github
 ---
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#output: html_document
+#output:
+#  rmdformats::html_clean:
+#    highlight: kate
+library(knitr)
+#library(rmdformats)
 library(dplyr)
 library(ggplot2)
 library(tidyr)
@@ -15,7 +25,7 @@ library(kableExtra)
 
 Using R, generate a random variable X that has 10,000 random uniform numbers from 1 to N, where N can be any number of your choosing greater than or equal to 6. Then generate a random variable Y that has 10,000 random normal numbers with a mean of $\mu=\sigma=\frac{N+1}{2}$.
 
-```{r, comment=NA}
+```{r, echo=TRUE, eval=TRUE, comment=NA}
 set.seed(12345)
 N <- 10
 n <- 10000
@@ -26,9 +36,11 @@ summary(df$X)
 summary(df$Y)
 ```
 
-*Probability.* Calculate as a minimum the below probabilities a through c. Assume the small letter "x" is estimated as the median of the X variable, and the small letter "y" is estimated as the 1st quartile of the Y variable. Interpret the meaning of all probabilities.
+### Probability
 
-```{r}
+Calculate as a minimum the below probabilities a through c. Assume the small letter "x" is estimated as the median of the X variable, and the small letter "y" is estimated as the 1st quartile of the Y variable. Interpret the meaning of all probabilities.
+
+```{r echo=TRUE, eval=TRUE}
 x <- median(df$X)
 y <- as.numeric(quantile(df$Y)["25%"])
 ```
@@ -37,7 +49,7 @@ small letter "x" is `r x` and small letter "y" is `r y`.
 
 a. $P(X>x | X>y)$ 
 
-```{r}
+```{r echo=TRUE, eval=TRUE}
 P_a_and_b <- df %>%
   filter(X > x,
          X > y) %>%
@@ -54,7 +66,7 @@ problem_1a <- P_a_and_b / P_b
 
 b. $P(X>x, Y>y)$ 
 
-```{r}
+```{r echo=TRUE, eval=TRUE}
 problem_1b <- df %>%
   filter(X > x,
          Y > y) %>%
@@ -65,7 +77,7 @@ problem_1b <- df %>%
 
 c. $P(X<x | X>y)$
 
-```{r}
+```{r echo=TRUE, eval=TRUE}
 P_a_and_b <- df %>%
   filter(X < x,
          X > y) %>%
@@ -82,7 +94,7 @@ problem_1c <- P_a_and_b / P_b
 
 Investigate whether P(X>x and Y>y)=P(X>x)P(Y>y) by building a table and evaluating the marginal and joint probabilities.
 
-```{r}
+```{r echo=TRUE, eval=TRUE}
 # Create Joint Probabilities
 temp <- df %>%
   mutate(A = ifelse(X > x, " X greater than x", " X not greater than x"),
@@ -121,7 +133,7 @@ temp %>%
 
 Check to see if independence holds by using Fisher's Exact Test and the Chi Square Test. What is the difference between the two? Which is most appropriate?
 
-```{r, comment=NA}
+```{r, echo=TRUE, eval=TRUE, comment=NA}
 count_data <- temp %>%
   filter(A != "Total",
          B != "Total") %>%
@@ -139,7 +151,7 @@ count_data <- count_data %>%
 fisher.test(count_data)
 ```
 
-```{r, comment=NA}
+```{r, echo=TRUE, eval=TRUE, comment=NA}
 chisq.test(count_data)
 ```
 
@@ -149,20 +161,93 @@ chisq.test(count_data)
 
 You are to register for Kaggle.com (free) and compete in the House Prices: Advanced Regression Techniques competition. https://www.kaggle.com/c/house-prices-advanced-regression-techniques. I want you to do the following.
 
-*Descriptive and Inferential Statistics.* Provide univariate descriptive statistics and appropriate plots for the training data set. 
-
-```{r}
+```{r, echo=TRUE, eval=TRUE}
 kaggle <- read.csv("Kaggle_House_Prices/train.csv") %>%
   mutate(MSSubClass = as.factor(MSSubClass))
-summary(kaggle)
 ```
 
-Provide a scatterplot matrix for at least two of the independent variables and the dependent variable. Derive a correlation matrix for any three quantitative variables in the dataset. Test the hypotheses that the correlations between each pairwise set of variables is 0 and provide an 80% confidence interval. Discuss the meaning of your analysis. Would you be worried about familywise error? Why or why not?
+### Descriptive and Inferential Statistics
 
-*Linear Algebra and Correlation.* Invert your correlation matrix from above. (This is known as the precision matrix and contains variance inflation factors on the diagonal.) Multiply the correlation matrix by the precision matrix, and then multiply the precision matrix by the correlation matrix. Conduct LU decomposition on the matrix.
+Provide univariate descriptive statistics and appropriate plots for the training data set. 
 
-*Calculus-Based Probability & Statistics.* Many times, it makes sense to fit a closed form distribution to data. Select a variable in the Kaggle.com training dataset that is skewed to the right, shift it so that the minimum value is absolutely above zero if necessary. Then load the MASS package and run
-fitdistr to fit an exponential probability density function. (See
-https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/fitdistr.html). Find the optimal value of $\lambda$ for this distribution, and then take 1000 samples from this exponential distribution using this value (e.g., rexp(1000, $\lambda$)). Plot a histogram and compare it with a histogram of your original variable. Using the exponential pdf, find the 5th and 95th percentiles using the cumulative distribution function (CDF). Also generate a 95% confidence interval from the empirical data, assuming normality. Finally, provide the empirical 5th percentile and 95th percentile of the data. Discuss.
+```{r echo=FALSE, eval=TRUE, results='asis', warning=FALSE}
+for (variable in  names(kaggle)){
+  cat(paste("<h4>", variable, "</h4>"))
+  
+  d <- kaggle[,names(kaggle) == variable]
+  
+  if(is.factor(d)){
+    p <- ggplot(kaggle, aes_string(variable)) + 
+      geom_bar() + 
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    
+    d_table <- kaggle %>%
+      group_by(.dots = variable) %>%
+      summarise(count = n()) %>%
+      kable() %>%
+      kable_styling()
+  } else {
+    p <- ggplot(kaggle, aes_string(variable)) + 
+      geom_histogram(binwidth = 10)
+    q <- quantile(d, na.rm = TRUE)
+    d_table <- data.frame(Min = min(d, na.rm = TRUE),
+                          First = q[2],
+                          Median = median(d, na.rm = TRUE), 
+                          Mean = mean(d, na.rm = TRUE),
+                          Third = q[4],
+                          Max = max(d, na.rm = TRUE)) %>%
+      rename("First Q" = First,
+             "Third Q" = Third) %>%
+      gather(Measure, Value) %>%
+      kable() %>%
+      kable_styling()
+  }
+  print(p)
+  print(d_table)
+}
+```
 
-*Modeling.* Build some type of multiple regression model and submit your model to the competition board. Provide your complete model summary and results with analysis. Report your Kaggle.com user name and score.
+Provide a scatterplot matrix for at least two of the independent variables and the dependent variable. 
+
+```{r, echo=TRUE}
+kaggle %>%
+  select(TotalBsmtSF, GrLivArea, YearBuilt, SalePrice) %>%
+  pairs()
+```
+
+Derive a correlation matrix for any three quantitative variables in the dataset.
+
+```{r, echo=TRUE}
+kaggle %>%
+  select(TotalBsmtSF, GrLivArea, YearBuilt) %>%
+  cor() %>%
+  kable() %>%
+  kable_styling()
+```
+
+Test the hypothesis that the correlations between each pairwise set of variables is 0 and provide an 80% confidence interval. Discuss the meaning of your analysis. Would you be worried about familywise error? Why or why not?
+
+```{r}
+d_table <- data.frame(Min = min(d, na.rm = TRUE),
+                          "First Qu." = q[2],
+                          Median = median(d, na.rm = TRUE), 
+                          Mean = mean(d, na.rm = TRUE),
+                          "Third Qu." = q[4],
+                          Max = max(d, na.rm = TRUE)) %>%
+  gather(Measure, Value)
+
+```
+
+### Linear Algebra and Correlation
+
+Invert your correlation matrix from above. (This is known as the precision matrix and contains variance inflation factors on the diagonal.) Multiply the correlation matrix by the precision matrix, and then multiply the precision matrix by the correlation matrix. Conduct LU decomposition on the matrix.
+
+### Calculus-Based Probability & Statistics
+
+Many times, it makes sense to fit a closed form distribution to data. Select a variable in the Kaggle.com training dataset that is skewed to the right, shift it so that the minimum value is absolutely above zero if necessary. Then load the MASS package and run fitdistr to fit an exponential probability density function. (See https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/fitdistr.html). Find the optimal value of $\lambda$ for this distribution, and then take 1000 samples from this exponential distribution using this value (e.g., rexp(1000, $\lambda$)). Plot a histogram and compare it with a histogram of your original variable. Using the exponential pdf, find the 5th and 95th percentiles using the cumulative distribution function (CDF). Also generate a 95% confidence interval from the empirical data, assuming normality. Finally, provide the empirical 5th percentile and 95th percentile of the data. Discuss.
+
+### Modeling
+
+Build some type of multiple regression model and submit your model to the competition board. Provide your complete model summary and results with analysis. Report your Kaggle.com user name and score.
+
+(http://jse.amstat.org/v19n3/decock.pdf)
