@@ -9,12 +9,10 @@ output:
 ---
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
-#output: html_document
-#output:
-#  rmdformats::html_clean:
-#    highlight: kate
+library(MASS)
+library(Matrix)
 library(knitr)
-#library(rmdformats)
+library(matlib)
 library(dplyr)
 library(ggplot2)
 library(tidyr)
@@ -163,7 +161,48 @@ You are to register for Kaggle.com (free) and compete in the House Prices: Advan
 
 ```{r, echo=TRUE, eval=TRUE}
 kaggle <- read.csv("Kaggle_House_Prices/train.csv") %>%
-  mutate(MSSubClass = as.factor(MSSubClass))
+  filter(GrLivArea < 4000) %>% # Removing outliers per http://jse.amstat.org/v19n3/decock.pdf
+  # Filling in missing values with zeros where it makes sense
+  mutate(BedroomAbvGr = replace_na(BedroomAbvGr, 0),
+         BsmtFullBath = replace_na(BsmtFullBath, 0),
+         BsmtHalfBath = replace_na(BsmtHalfBath, 0),
+         BsmtUnfSF = replace_na(BsmtUnfSF, 0),
+         EnclosedPorch = replace_na(EnclosedPorch, 0),
+         Fireplaces = replace_na(Fireplaces, 0),
+         GarageArea = replace_na(GarageArea, 0),
+         GarageCars = replace_na(GarageCars, 0),
+         HalfBath = replace_na(HalfBath, 0),
+         KitchenAbvGr = replace_na(KitchenAbvGr, 0),
+         LotFrontage = replace_na(LotFrontage, 0),
+         OpenPorchSF = replace_na(OpenPorchSF, 0),
+         PoolArea = replace_na(PoolArea, 0),
+         ScreenPorch = replace_na(ScreenPorch, 0),
+         TotRmsAbvGrd = replace_na(TotRmsAbvGrd, 0),
+         WoodDeckSF = replace_na(WoodDeckSF, 0))
+```
+
+There are some numerical features that are really categories that will need to be cleaned up
+
+```{r}
+clean_MSSubClass <- function(x){
+  return(paste0("SC", as.character(x)))
+}
+
+clean_MoSold <- function(x){
+  if(x > 9){return(as.character(x))}
+  else{
+    return(paste0("0", as.character(x)))
+  }
+}
+
+kaggle <- kaggle %>%
+  rowwise() %>%
+  mutate(MSSubClass = clean_MSSubClass(MSSubClass)) %>%
+  mutate(MoSold = clean_MoSold(MoSold)) %>%
+  ungroup() %>%
+  mutate(MSSubClass = as.factor(MSSubClass),
+         MoSold = as.factor(MoSold)) %>%
+  as.data.frame()
 ```
 
 ### Descriptive and Inferential Statistics
@@ -188,7 +227,7 @@ for (variable in  names(kaggle)){
       kable_styling()
   } else {
     p <- ggplot(kaggle, aes_string(variable)) + 
-      geom_histogram(binwidth = 10)
+      geom_density()
     q <- quantile(d, na.rm = TRUE)
     d_table <- data.frame(Min = min(d, na.rm = TRUE),
                           First = q[2],
@@ -196,8 +235,8 @@ for (variable in  names(kaggle)){
                           Mean = mean(d, na.rm = TRUE),
                           Third = q[4],
                           Max = max(d, na.rm = TRUE)) %>%
-      rename("First Q" = First,
-             "Third Q" = Third) %>%
+      rename("First Quartile" = First,
+             "Third Quartile" = Third) %>%
       gather(Measure, Value) %>%
       kable() %>%
       kable_styling()
@@ -218,29 +257,93 @@ kaggle %>%
 Derive a correlation matrix for any three quantitative variables in the dataset.
 
 ```{r, echo=TRUE}
-kaggle %>%
+correlation_matrix <- kaggle %>%
   select(TotalBsmtSF, GrLivArea, YearBuilt) %>%
   cor() %>%
+  as.matrix()
+
+correlation_matrix %>%
   kable() %>%
   kable_styling()
 ```
 
-Test the hypothesis that the correlations between each pairwise set of variables is 0 and provide an 80% confidence interval. Discuss the meaning of your analysis. Would you be worried about familywise error? Why or why not?
+Test the hypothesis that the correlations between each pairwise set of variables is 0 and provide an 80% confidence interval. 
 
-```{r}
-d_table <- data.frame(Min = min(d, na.rm = TRUE),
-                          "First Qu." = q[2],
-                          Median = median(d, na.rm = TRUE), 
-                          Mean = mean(d, na.rm = TRUE),
-                          "Third Qu." = q[4],
-                          Max = max(d, na.rm = TRUE)) %>%
-  gather(Measure, Value)
+```{r, results="asis", tidy=TRUE}
+zero_vars <- c()
 
+variables <- kaggle %>%
+  select(-SalePrice) %>%
+  names()
+
+cat("<table><thead><tr><th>Variable</th><th>Correlation</th><th>Equal to Zero</th></tr></thread><tbody>")
+
+for(variable in variables){
+  d <- kaggle[,names(kaggle) == variable]
+  if(is.numeric(d)){
+    results <- cor.test(kaggle$SalePrice, d, conf.level = 0.8)
+    if(0 > results$conf.int[1] & results$conf.int[2] > 0){
+      hypothesis_test_results <- "Yes"
+      zero_vars <- c(zero_vars, variable)
+    } else {
+      hypothesis_test_results <- "No"
+    }
+    cat(paste("<tr><td>",variable,"</td><td>", cor(kaggle$SalePrice, d), "</td><td>", hypothesis_test_results, "</td>"))
+  }
+}
+cat("</tbody></table>")
 ```
+
+Discuss the meaning of your analysis. Would you be worried about familywise error? Why or why not?
+
+**There are `r length(zero_vars)` variables that have no correlation with the sale price.  I would be worried be woried about family-wise error because I just ran `r length(variable)` hypothesis tests.  The family-wise error rate would be: ${FWER} = 1 - (1 - .2)^`r length(zero_vars)` = 1 - `r .8 ^ length(zero_vars)` = `r 1 - (.8^ length(zero_vars))`$.  This means there is a high probability of committing a Type I error.**
 
 ### Linear Algebra and Correlation
 
-Invert your correlation matrix from above. (This is known as the precision matrix and contains variance inflation factors on the diagonal.) Multiply the correlation matrix by the precision matrix, and then multiply the precision matrix by the correlation matrix. Conduct LU decomposition on the matrix.
+Invert your correlation matrix from above. (This is known as the precision matrix and contains variance inflation factors on the diagonal.) 
+
+```{r}
+precision_matrix <- inv(correlation_matrix)
+
+precision_matrix %>%
+  kable() %>%
+  kable_styling()
+```
+
+Multiply the correlation matrix by the precision matrix, and then multiply the precision matrix by the correlation matrix. 
+
+**This will generate the identity matrix.**
+
+```{r}
+correlation_matrix %*% precision_matrix %>%
+  round() %>%
+  kable() %>%
+  kable_styling()
+```
+
+
+```{r}
+precision_matrix %*% correlation_matrix %>%
+  round() %>%
+  kable() %>%
+  kable_styling()
+```
+
+Conduct LU decomposition on the matrix.
+
+```{r}
+A <- Matrix::expand(lu(correlation_matrix))
+
+A$L %>%
+  as.matrix() %>%
+  kable() %>%
+  kable_styling()
+
+A$U %>%
+  as.matrix() %>%
+  kable() %>%
+  kable_styling()
+```
 
 ### Calculus-Based Probability & Statistics
 
