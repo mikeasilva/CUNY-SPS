@@ -1,6 +1,6 @@
 ---
 title: "CUNY SPS DATA 605 Final"
-author: "Mike Silva"
+author: "by Mike Silva"
 date: "`r Sys.Date()`"
 output:
   prettydoc::html_pretty:
@@ -8,10 +8,11 @@ output:
     highlight: github
 ---
 
+**NOTE:** The instructions/questions are in **bold**. My responses and comments are in *italics*.
+
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 library(MASS)
 library(Matrix)
-library(knitr)
 library(matlib)
 library(dplyr)
 library(ggplot2)
@@ -21,7 +22,7 @@ library(kableExtra)
 
 ## Problem 1
 
-Using R, generate a random variable X that has 10,000 random uniform numbers from 1 to N, where N can be any number of your choosing greater than or equal to 6. Then generate a random variable Y that has 10,000 random normal numbers with a mean of $\mu=\sigma=\frac{N+1}{2}$.
+**Using R, generate a random variable X that has 10,000 random uniform numbers from 1 to N, where N can be any number of your choosing greater than or equal to 6. Then generate a random variable Y that has 10,000 random normal numbers with a mean of $\mu=\sigma=\frac{N+1}{2}$.**
 
 ```{r, echo=TRUE, eval=TRUE, comment=NA}
 set.seed(12345)
@@ -36,14 +37,14 @@ summary(df$Y)
 
 ### Probability
 
-Calculate as a minimum the below probabilities a through c. Assume the small letter "x" is estimated as the median of the X variable, and the small letter "y" is estimated as the 1st quartile of the Y variable. Interpret the meaning of all probabilities.
+**Calculate as a minimum the below probabilities a through c. Assume the small letter "x" is estimated as the median of the X variable, and the small letter "y" is estimated as the 1st quartile of the Y variable. Interpret the meaning of all probabilities.**
 
 ```{r echo=TRUE, eval=TRUE}
 x <- median(df$X)
 y <- as.numeric(quantile(df$Y)["25%"])
 ```
 
-small letter "x" is `r x` and small letter "y" is `r y`.
+*small letter "x" is `r x` and small letter "y" is `r y`.*
 
 a. $P(X>x | X>y)$ 
 
@@ -60,7 +61,7 @@ P_b <- df %>%
 problem_1a <- P_a_and_b / P_b
 ```
 
-**The probablity of a random number uniformly ranging from 1 to `r N` being greater than `r x` given that it is greater than `r y` is `r problem_1a`**
+*The probablity of a random number uniformly ranging from 1 to `r N` being greater than `r x` given that it is greater than `r y` is `r problem_1a`*
 
 b. $P(X>x, Y>y)$ 
 
@@ -71,7 +72,7 @@ problem_1b <- df %>%
   nrow() / n
 ```
 
-**The probablity of a random number uniformly ranging from 1 to `r N` being greater than `r x` and a random normally distributed number with a mean and standard deviation of `r mu` being greater than `r y` is `r problem_1b`**
+*The probablity of a random number uniformly ranging from 1 to `r N` being greater than `r x` and a random normally distributed number with a mean and standard deviation of `r mu` being greater than `r y` is `r problem_1b`*
 
 c. $P(X<x | X>y)$
 
@@ -88,9 +89,9 @@ P_b <- df %>%
 problem_1c <- P_a_and_b / P_b
 ```
 
-**The probablity of a random number uniformly ranging from 1 to `r N` being less than `r x` given that it is greater than `r y` is `r problem_1c`**
+*The probablity of a random number uniformly ranging from 1 to `r N` being less than `r x` given that it is greater than `r y` is `r problem_1c`*
 
-Investigate whether P(X>x and Y>y)=P(X>x)P(Y>y) by building a table and evaluating the marginal and joint probabilities.
+**Investigate whether P(X>x and Y>y)=P(X>x)P(Y>y) by building a table and evaluating the marginal and joint probabilities.**
 
 ```{r echo=TRUE, eval=TRUE}
 # Create Joint Probabilities
@@ -127,9 +128,9 @@ temp %>%
   kable_styling()
 ```
 
-**P(X>x and Y>y) is `r temp[temp$A == " X greater than x" & temp$B == " Y greater than y",]$probability`. P(X>x)P(Y>y) is `r temp[temp$A == " X greater than x" & temp$B == "Total",]$probability` $\times$ `r temp[temp$A == "Total" & temp$B == " Y greater than y",]$probability` which is `r temp[temp$A == " X greater than x" & temp$B == "Total",]$probability * temp[temp$A == "Total" & temp$B == " Y greater than y",]$probability`.  They are not the same.**
+*P(X>x and Y>y) is `r temp[temp$A == " X greater than x" & temp$B == " Y greater than y",]$probability`. P(X>x)P(Y>y) is `r temp[temp$A == " X greater than x" & temp$B == "Total",]$probability` $\times$ `r temp[temp$A == "Total" & temp$B == " Y greater than y",]$probability` which is `r temp[temp$A == " X greater than x" & temp$B == "Total",]$probability * temp[temp$A == "Total" & temp$B == " Y greater than y",]$probability`.  They are not the same.*
 
-Check to see if independence holds by using Fisher's Exact Test and the Chi Square Test. What is the difference between the two? Which is most appropriate?
+**Check to see if independence holds by using Fisher's Exact Test and the Chi Square Test. What is the difference between the two? Which is most appropriate?**
 
 ```{r, echo=TRUE, eval=TRUE, comment=NA}
 count_data <- temp %>%
@@ -153,15 +154,16 @@ fisher.test(count_data)
 chisq.test(count_data)
 ```
 
-**Fisher's Exact Test is for is used when you have small cell sizes (less than 5).  The Chi Square Test is used when the cell sizes are large.  It would be appropriate in this case.**
+*Fisher's Exact Test is for is used when you have small cell sizes (less than 5).  The Chi Square Test is used when the cell sizes are large.  It would be appropriate in this case.*
 
 ## Problem 2
 
-You are to register for Kaggle.com (free) and compete in the House Prices: Advanced Regression Techniques competition. https://www.kaggle.com/c/house-prices-advanced-regression-techniques. I want you to do the following.
+**You are to register for Kaggle.com (free) and compete in the House Prices: Advanced Regression Techniques competition. https://www.kaggle.com/c/house-prices-advanced-regression-techniques. I want you to do the following.**
 
 ```{r, echo=TRUE, eval=TRUE}
 kaggle <- read.csv("Kaggle_House_Prices/train.csv") %>%
-  filter(GrLivArea < 4000) %>% # Removing outliers per http://jse.amstat.org/v19n3/decock.pdf
+  # Removing outliers per http://jse.amstat.org/v19n3/decock.pdf
+  filter(GrLivArea < 4000) %>% 
   # Filling in missing values with zeros where it makes sense
   mutate(BedroomAbvGr = replace_na(BedroomAbvGr, 0),
          BsmtFullBath = replace_na(BsmtFullBath, 0),
@@ -178,10 +180,10 @@ kaggle <- read.csv("Kaggle_House_Prices/train.csv") %>%
          PoolArea = replace_na(PoolArea, 0),
          ScreenPorch = replace_na(ScreenPorch, 0),
          TotRmsAbvGrd = replace_na(TotRmsAbvGrd, 0),
-         WoodDeckSF = replace_na(WoodDeckSF, 0))
+         WoodDeckSF = replace_na(WoodDeckSF, 0)) 
 ```
 
-There are some numerical features that are really categories that will need to be cleaned up
+*There are some numerical features that are really categories that will need to be cleaned up*
 
 ```{r}
 clean_MSSubClass <- function(x){
@@ -195,19 +197,29 @@ clean_MoSold <- function(x){
   }
 }
 
+clean_text_number <- function(x){
+  if(x < 10){return(paste0("0", x))}
+  return(as.character(x))
+}
+
 kaggle <- kaggle %>%
+  # Clean up variables
   rowwise() %>%
   mutate(MSSubClass = clean_MSSubClass(MSSubClass)) %>%
   mutate(MoSold = clean_MoSold(MoSold)) %>%
+  mutate(OverallQual = clean_text_number(OverallQual)) %>%
+  mutate(OverallCond = clean_text_number(OverallCond)) %>%
   ungroup() %>%
   mutate(MSSubClass = as.factor(MSSubClass),
-         MoSold = as.factor(MoSold)) %>%
+         MoSold = as.factor(MoSold),
+         OverallQual = as.factor(OverallQual),
+         OverallCond = as.factor(OverallCond)) %>%
   as.data.frame()
 ```
 
 ### Descriptive and Inferential Statistics
 
-Provide univariate descriptive statistics and appropriate plots for the training data set. 
+**Provide univariate descriptive statistics and appropriate plots for the training data set.**
 
 ```{r echo=FALSE, eval=TRUE, results='asis', warning=FALSE}
 for (variable in  names(kaggle)){
@@ -246,7 +258,7 @@ for (variable in  names(kaggle)){
 }
 ```
 
-Provide a scatterplot matrix for at least two of the independent variables and the dependent variable. 
+**Provide a scatterplot matrix for at least two of the independent variables and the dependent variable.**
 
 ```{r, echo=TRUE}
 kaggle %>%
@@ -254,7 +266,7 @@ kaggle %>%
   pairs()
 ```
 
-Derive a correlation matrix for any three quantitative variables in the dataset.
+**Derive a correlation matrix for any three quantitative variables in the dataset.**
 
 ```{r, echo=TRUE}
 correlation_matrix <- kaggle %>%
@@ -267,7 +279,7 @@ correlation_matrix %>%
   kable_styling()
 ```
 
-Test the hypothesis that the correlations between each pairwise set of variables is 0 and provide an 80% confidence interval. 
+**Test the hypothesis that the correlations between each pairwise set of variables is 0 and provide an 80% confidence interval.**
 
 ```{r, results="asis", tidy=TRUE}
 zero_vars <- c()
@@ -294,13 +306,13 @@ for(variable in variables){
 cat("</tbody></table>")
 ```
 
-Discuss the meaning of your analysis. Would you be worried about familywise error? Why or why not?
+**Discuss the meaning of your analysis. Would you be worried about familywise error? Why or why not?**
 
-**There are `r length(zero_vars)` variables that have no correlation with the sale price.  I would be worried be woried about family-wise error because I just ran `r length(variable)` hypothesis tests.  The family-wise error rate would be: ${FWER} = 1 - (1 - .2)^`r length(zero_vars)` = 1 - `r .8 ^ length(zero_vars)` = `r 1 - (.8^ length(zero_vars))`$.  This means there is a high probability of committing a Type I error.**
+*There are `r length(zero_vars)` variables that have no correlation with the sale price.  I would be worried be woried about family-wise error because I just ran `r length(variable)` hypothesis tests.  The family-wise error rate would be: ${FWER} = 1 - (1 - .2)^`r length(zero_vars)` = 1 - `r .8 ^ length(zero_vars)` = `r 1 - (.8^ length(zero_vars))`$.  This means there is a really high probability of committing a Type I error.*
 
 ### Linear Algebra and Correlation
 
-Invert your correlation matrix from above. (This is known as the precision matrix and contains variance inflation factors on the diagonal.) 
+**Invert your correlation matrix from above. (This is known as the precision matrix and contains variance inflation factors on the diagonal.)**
 
 ```{r}
 precision_matrix <- inv(correlation_matrix)
@@ -310,9 +322,9 @@ precision_matrix %>%
   kable_styling()
 ```
 
-Multiply the correlation matrix by the precision matrix, and then multiply the precision matrix by the correlation matrix. 
+**Multiply the correlation matrix by the precision matrix, and then multiply the precision matrix by the correlation matrix.**
 
-**This will generate the identity matrix.**
+*This will generate the identity matrix.*
 
 ```{r}
 correlation_matrix %*% precision_matrix %>%
@@ -321,6 +333,7 @@ correlation_matrix %*% precision_matrix %>%
   kable_styling()
 ```
 
+*This will too.*
 
 ```{r}
 precision_matrix %*% correlation_matrix %>%
@@ -329,28 +342,111 @@ precision_matrix %*% correlation_matrix %>%
   kable_styling()
 ```
 
-Conduct LU decomposition on the matrix.
+**Conduct LU decomposition on the matrix.**
 
 ```{r}
-A <- Matrix::expand(lu(correlation_matrix))
+lu_decomposition <- Matrix::expand(lu(correlation_matrix))
+```
 
-A$L %>%
-  as.matrix() %>%
+*The LU decomposition should yield the correlation matrix after multiplying the two components.*
+
+```{r}
+A <- lu_decomposition$L %*% lu_decomposition$U %>%
+  as.matrix() 
+colnames(A) <- colnames(correlation_matrix)
+rownames(A) <- rownames(correlation_matrix)
+
+A %>%
   kable() %>%
   kable_styling()
 
-A$U %>%
-  as.matrix() %>%
+correlation_matrix %>%
   kable() %>%
   kable_styling()
 ```
 
 ### Calculus-Based Probability & Statistics
 
-Many times, it makes sense to fit a closed form distribution to data. Select a variable in the Kaggle.com training dataset that is skewed to the right, shift it so that the minimum value is absolutely above zero if necessary. Then load the MASS package and run fitdistr to fit an exponential probability density function. (See https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/fitdistr.html). Find the optimal value of $\lambda$ for this distribution, and then take 1000 samples from this exponential distribution using this value (e.g., rexp(1000, $\lambda$)). Plot a histogram and compare it with a histogram of your original variable. Using the exponential pdf, find the 5th and 95th percentiles using the cumulative distribution function (CDF). Also generate a 95% confidence interval from the empirical data, assuming normality. Finally, provide the empirical 5th percentile and 95th percentile of the data. Discuss.
+**Many times, it makes sense to fit a closed form distribution to data. Select a variable in the Kaggle.com training dataset that is skewed to the right, shift it so that the minimum value is absolutely above zero if necessary. Then load the MASS package and run fitdistr to fit an exponential probability density function. (See https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/fitdistr.html). Find the optimal value of $\lambda$ for this distribution, and then take 1000 samples from this exponential distribution using this value (e.g., rexp(1000, $\lambda$)).**
+
+*I will be using the Square Footage of the Unfinished Basement for this part of the exam.  I know it is right skewed because the mean (`r mean(kaggle$BsmtUnfSF)`) is larger than the median (`r median(kaggle$BsmtUnfSF)`) as shown in the figure below:*
+
+```{r, echo=FALSE}
+ggplot(kaggle, aes(BsmtUnfSF)) + geom_density() + 
+  geom_vline(xintercept = mean(kaggle$BsmtUnfSF), color = "red")+ 
+  geom_vline(xintercept = median(kaggle$BsmtUnfSF), color = "blue") +
+  annotate("text", x = 700, y = 0.0005, label = "Mean", color="red") + 
+  annotate("text", x = 300, y = 0.0005, label = "Median", color="blue")
+```
+
+*The minimum (`r min(kaggle$BsmtUnfSF)`) is not smaller than zero so we don't need to shift the data.  Remember that the maximum value is `r max(kaggle$BsmtUnfSF)`.  I have already loaded the MASS package.*
+
+```{r}
+exponential_pdf <- fitdistr(kaggle$BsmtUnfSF, densfun = "exponential")
+```
+
+*The optimal value for $\lambda$ is `r exponential_pdf$estimate`.*
+
+```{r}
+samples <- rexp(10000, rate = exponential_pdf$estimate)
+```
+
+**Plot a histogram and compare it with a histogram of your original variable.**
+
+```{r}
+histogram_data <- data.frame(Value = samples, Data = c("Sample"))
+histogram_data <- data.frame(Value = kaggle$BsmtUnfSF, Data = c("Original")) %>%
+  rbind(histogram_data) %>%
+  mutate(Data = as.factor(Data))
+
+ggplot(histogram_data, aes(Value, fill = Data)) + geom_histogram(bins = 50, alpha = 0.5)
+```
+
+*The original data is not quite exponential, but it's not a bad approximation.  It has a longer tail than the data.*
+
+**Using the exponential pdf, find the 5th and 95th percentiles using the cumulative distribution function (CDF).**
+
+```{r}
+
+```
+
+**Also generate a 95% confidence interval from the empirical data, assuming normality.**
+
+```{r, comment=NA}
+mu <- mean(kaggle$BsmtUnfSF)
+s <- sd(kaggle$BsmtUnfSF)
+n <- nrow(kaggle)
+error <- qnorm(0.975) * s / sqrt(n)
+
+ci <- c(mu - error, mu + error)
+names(ci) <- c("5%", "95%")
+ci
+```
+
+*The 95% confidence interval (assuming normality) is `r round(ci[1])` to `r round(ci[2])`.*
+
+**Finally, provide the empirical 5th percentile and 95th percentile of the data. Discuss.**
+
+```{r, comment=NA}
+quantile(kaggle$BsmtUnfSF, c(0.05, 0.95))
+```
+
+*The actual 95% confidence interval is `r quantile(kaggle$BsmtUnfSF, c(0.05))` to `r quantile(kaggle$BsmtUnfSF, c(0.95))`.*
 
 ### Modeling
 
-Build some type of multiple regression model and submit your model to the competition board. Provide your complete model summary and results with analysis. Report your Kaggle.com user name and score.
+**Build some type of multiple regression model and submit your model to the competition board. Provide your complete model summary and results with analysis. Report your Kaggle.com user name and score.**
 
-(http://jse.amstat.org/v19n3/decock.pdf)
+*Since there are so many variables I will be using a random forest to detect which variables are the most important and will be using them to build the model.*
+
+```{r}
+library(randomForest)
+library(caret)
+
+rf_data <- kaggle %>%
+  # Dropping variables with a lot of missing values
+  select(-Alley, -MasVnrType, -MasVnrArea, -BsmtQual, -BsmtCond, -BsmtExposure, -BsmtFinType1, -BsmtFinType2, -Electrical, -FireplaceQu, -GarageType, -GarageYrBlt, -GarageFinish, -GarageQual, -GarageCond, -PoolQC, -Fence, -MiscFeature)
+
+ctrl <- trainControl(method = "cv", number = 5)
+rf_fit <- train(SalePrice ~ ., data = rf_data, method = "rf", trControl = ctrl, importance = TRUE, verbose = TRUE)
+```
