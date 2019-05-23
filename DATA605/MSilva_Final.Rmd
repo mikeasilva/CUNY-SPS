@@ -382,13 +382,12 @@ ggplot(kaggle, aes(BsmtUnfSF)) + geom_density() +
 *The minimum (`r min(kaggle$BsmtUnfSF)`) is not smaller than zero so we don't need to shift the data.  Remember that the maximum value is `r max(kaggle$BsmtUnfSF)`.  I have already loaded the MASS package.*
 
 ```{r}
-exponential_pdf <- fitdistr(kaggle$BsmtUnfSF, densfun = "exponential")
+lambda <- fitdistr(kaggle$BsmtUnfSF, densfun = "exponential")$estimate
 ```
 
-*The optimal value for $\lambda$ is `r exponential_pdf$estimate`.*
-
+*The optimal value for $\lambda$ is `r lambda`.*
 ```{r}
-samples <- rexp(10000, rate = exponential_pdf$estimate)
+samples <- rexp(10000, rate = lambda)
 ```
 
 **Plot a histogram and compare it with a histogram of your original variable.**
@@ -402,13 +401,33 @@ histogram_data <- data.frame(Value = kaggle$BsmtUnfSF, Data = c("Original")) %>%
 ggplot(histogram_data, aes(Value, fill = Data)) + geom_histogram(bins = 50, alpha = 0.5)
 ```
 
-*The original data is not quite exponential, but it's not a bad approximation.  It has a longer tail than the data.*
+*The original data is not quite exponential, but it's not a bad approximation.  The exponential distribution data has a longer tail than the basement square footage data.*
 
 **Using the exponential pdf, find the 5th and 95th percentiles using the cumulative distribution function (CDF).**
 
-```{r}
 
-```
+*The PDF would be $f(x;\lambda) = \lambda e^{-\lambda x}$ where $x \geq 0$ and otherwise zero.*
+
+*The CDF would be $F(x;\lambda) = 1 - e^{-\lambda x}$.  lambda is `r lambda`. To find the 5th percentile we need to solve for x in:*
+
+$$0.05 = 1 - e^{-`r lambda` x}$$
+
+$$-0.95 = - e^{-`r lambda` x}$$
+
+$$-ln(0.95) = `r lambda` x$$
+
+$$x = \frac{-ln(0.95)}{`r lambda`} = `r -log(0.95)/lambda`$$
+*For the 95th percentile we need to solve for x in:*
+
+$$0.95 = 1 - e^{-`r lambda` x}$$
+
+$$-0.05 = - e^{-`r lambda` x}$$
+
+$$-ln(0.05) = `r lambda` x$$
+
+$$x = \frac{-ln(0.05)}{`r lambda`} = `r -log(0.05)/lambda`$$
+
+*So the 5th and 95th percentiles are approximately `r round(-log(0.95)/lambda,0)` and `r round(-log(0.05)/lambda,0)`, respectively.*
 
 **Also generate a 95% confidence interval from the empirical data, assuming normality.**
 
@@ -439,14 +458,35 @@ quantile(kaggle$BsmtUnfSF, c(0.05, 0.95))
 
 *Since there are so many variables I will be using a random forest to detect which variables are the most important and will be using them to build the model.*
 
-```{r}
+```{r, cache=TRUE, message=FALSE, warning=FALSE}
 library(randomForest)
 library(caret)
+
+set.seed(12345)
 
 rf_data <- kaggle %>%
   # Dropping variables with a lot of missing values
   select(-Alley, -MasVnrType, -MasVnrArea, -BsmtQual, -BsmtCond, -BsmtExposure, -BsmtFinType1, -BsmtFinType2, -Electrical, -FireplaceQu, -GarageType, -GarageYrBlt, -GarageFinish, -GarageQual, -GarageCond, -PoolQC, -Fence, -MiscFeature)
 
-ctrl <- trainControl(method = "cv", number = 5)
+ctrl <- trainControl(method = "cv", number = 10)
 rf_fit <- train(SalePrice ~ ., data = rf_data, method = "rf", trControl = ctrl, importance = TRUE, verbose = TRUE)
+```
+
+*Now we can examine the variable importance*
+
+```{r}
+imp_var <- importance(rf_fit$finalModel) 
+variables <- rownames(imp_var)
+
+imp_var <- imp_var %>%
+  as.data.frame()
+
+names(imp_var) <- c("IncMSE", "IncNodePurity")
+imp_var$Variable <- variables
+
+imp_var %>%
+  select(Variable, IncMSE, IncNodePurity) %>%
+  arrange(-IncMSE) %>%
+  kable() %>%
+  kable_styling()
 ```
