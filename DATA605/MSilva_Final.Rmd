@@ -10,7 +10,9 @@ output:
 
 **NOTE:** The instructions/questions are in **bold**. My responses and comments are in *italics*.
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE}
+library(randomForest)
+library(caret)
 library(MASS)
 library(Matrix)
 library(matlib)
@@ -44,7 +46,7 @@ x <- median(df$X)
 y <- as.numeric(quantile(df$Y)["25%"])
 ```
 
-*small letter "x" is `r x` and small letter "y" is `r y`.*
+*Small letter "x" is `r x` and small letter "y" is `r y`.*
 
 a. $P(X>x | X>y)$ 
 
@@ -183,45 +185,13 @@ kaggle <- read.csv("Kaggle_House_Prices/train.csv") %>%
          WoodDeckSF = replace_na(WoodDeckSF, 0)) 
 ```
 
-*There are some numerical features that are really categories that will need to be cleaned up*
 
-```{r}
-clean_MSSubClass <- function(x){
-  return(paste0("SC", as.character(x)))
-}
-
-clean_MoSold <- function(x){
-  if(x > 9){return(as.character(x))}
-  else{
-    return(paste0("0", as.character(x)))
-  }
-}
-
-clean_text_number <- function(x){
-  if(x < 10){return(paste0("0", x))}
-  return(as.character(x))
-}
-
-kaggle <- kaggle %>%
-  # Clean up variables
-  rowwise() %>%
-  mutate(MSSubClass = clean_MSSubClass(MSSubClass)) %>%
-  mutate(MoSold = clean_MoSold(MoSold)) %>%
-  mutate(OverallQual = clean_text_number(OverallQual)) %>%
-  mutate(OverallCond = clean_text_number(OverallCond)) %>%
-  ungroup() %>%
-  mutate(MSSubClass = as.factor(MSSubClass),
-         MoSold = as.factor(MoSold),
-         OverallQual = as.factor(OverallQual),
-         OverallCond = as.factor(OverallCond)) %>%
-  as.data.frame()
-```
 
 ### Descriptive and Inferential Statistics
 
 **Provide univariate descriptive statistics and appropriate plots for the training data set.**
 
-```{r echo=FALSE, eval=TRUE, results='asis', warning=FALSE}
+```{r stats_and_plots, echo=FALSE, eval=TRUE, results='asis', warning=FALSE}
 for (variable in  names(kaggle)){
   cat(paste("<h4>", variable, "</h4>"))
   
@@ -281,14 +251,14 @@ correlation_matrix %>%
 
 **Test the hypothesis that the correlations between each pairwise set of variables is 0 and provide an 80% confidence interval.**
 
-```{r, results="asis", tidy=TRUE}
+```{r, results="asis"}
 zero_vars <- c()
 
 variables <- kaggle %>%
   select(-SalePrice) %>%
   names()
 
-cat("<table><thead><tr><th>Variable</th><th>Correlation</th><th>Equal to Zero</th></tr></thread><tbody>")
+cat("<table><thead><tr><th>Variable</th><th>Correlation Equal to Zero</th></tr></thread><tbody>")
 
 for(variable in variables){
   d <- kaggle[,names(kaggle) == variable]
@@ -300,7 +270,7 @@ for(variable in variables){
     } else {
       hypothesis_test_results <- "No"
     }
-    cat(paste("<tr><td>",variable,"</td><td>", cor(kaggle$SalePrice, d), "</td><td>", hypothesis_test_results, "</td>"))
+    cat(paste("<tr><td>",variable,"</td><td>", hypothesis_test_results, "</td>"))
   }
 }
 cat("</tbody></table>")
@@ -348,7 +318,7 @@ precision_matrix %*% correlation_matrix %>%
 lu_decomposition <- Matrix::expand(lu(correlation_matrix))
 ```
 
-*The LU decomposition should yield the correlation matrix after multiplying the two components.*
+*The LU decomposition should yield the correlation matrix after multiplying the two components.  In other words this:*
 
 ```{r}
 A <- lu_decomposition$L %*% lu_decomposition$U %>%
@@ -359,11 +329,17 @@ rownames(A) <- rownames(correlation_matrix)
 A %>%
   kable() %>%
   kable_styling()
+```
 
+*Should match this:*
+
+```{r}
 correlation_matrix %>%
   kable() %>%
   kable_styling()
 ```
+
+*Which it does.*
 
 ### Calculus-Based Probability & Statistics
 
@@ -386,13 +362,14 @@ lambda <- fitdistr(kaggle$BsmtUnfSF, densfun = "exponential")$estimate
 ```
 
 *The optimal value for $\lambda$ is `r lambda`.*
+
 ```{r}
 samples <- rexp(10000, rate = lambda)
 ```
 
 **Plot a histogram and compare it with a histogram of your original variable.**
 
-```{r}
+```{r, echo=FALSE}
 histogram_data <- data.frame(Value = samples, Data = c("Sample"))
 histogram_data <- data.frame(Value = kaggle$BsmtUnfSF, Data = c("Original")) %>%
   rbind(histogram_data) %>%
@@ -442,7 +419,7 @@ names(ci) <- c("5%", "95%")
 ci
 ```
 
-*The 95% confidence interval (assuming normality) is `r round(ci[1])` to `r round(ci[2])`.*
+*The 95% confidence interval (assuming normality) is `r round(ci[1])` to `r round(ci[2])`. Although what I think was meant was assume the data is normally distributed.  Calculate the 5th and 95th percentile.  That is found using $x = \mu + Z \sigma$.  The Z is -1.645 for the 5th percentile, and 1.645 for the 95th.  So the percentiles would be `r round(mu + (-1.645 * s), 0)` and `r round(mu + (1.645 * s), 0)`.*
 
 **Finally, provide the empirical 5th percentile and 95th percentile of the data. Discuss.**
 
@@ -450,31 +427,50 @@ ci
 quantile(kaggle$BsmtUnfSF, c(0.05, 0.95))
 ```
 
-*The actual 95% confidence interval is `r quantile(kaggle$BsmtUnfSF, c(0.05))` to `r quantile(kaggle$BsmtUnfSF, c(0.95))`.*
+*The actual 5th percentile is `r quantile(kaggle$BsmtUnfSF, c(0.05))` and the 95th is `r quantile(kaggle$BsmtUnfSF, c(0.95))`.  So the findings are summarized in the following table:*
+
+| Method | 5% | 95% |
+| ------ |:--:|:---:|
+| Exponential CDF | `r round(-log(0.95)/lambda,0)` | `r round(-log(0.05)/lambda,0)` |
+| Normal 95% CI | `r round(ci[1])`      | `r round(ci[2])` |
+| Normal Percentiles | `r round(mu + (-1.645 * s), 0)`  | `r round(mu + (1.645 * s), 0)` | 
+| Emperical Percentiles | `r round(quantile(kaggle$BsmtUnfSF, c(0.05)),0)`       | `r round(quantile(kaggle$BsmtUnfSF, c(0.95)),0)` |
+
+*If we model the data as exponentially distributed the 5th percentile is `r round(-log(0.95)/lambda,0)`.  If we model it as normally distributed the 5th is at `r round(mu + (-1.645 * s), 0)` which in the context of square footage does not make any sense. The actual 5th percentile is `r round(quantile(kaggle$BsmtUnfSF, c(0.05)),0)`. The difference is explained to the assumed shape/distibution of the underlying data.*
+
+*Looking at the 95th percentile we have `r round(-log(0.5)/lambda,0)` if the data are exponentially distributed, `r round(mu + (1.645 * s), 0)` if it is normally distributed and `r round(quantile(kaggle$BsmtUnfSF, c(0.95)),0)` in reality.  Again the difference is due to the assumed shape.*
+
+*I have left out the 95% CI from the discussion because the confidence interval is a way of estimating the mean of the population.  We would know if we took 100 estimates that the actual mean falls within the confidence intervals 95% of the time.  Within this context it is meaningless.*
 
 ### Modeling
 
 **Build some type of multiple regression model and submit your model to the competition board. Provide your complete model summary and results with analysis. Report your Kaggle.com user name and score.**
 
-*Since there are so many variables I will be using a random forest to detect which variables are the most important and will be using them to build the model.*
+*Since there are so many variables I will be using a random forest to detect which variables are the most important and will be using them to build the model.  First I will drop out the variables that are missing a lot of data or otherwise meaningless.*
 
-```{r, cache=TRUE, message=FALSE, warning=FALSE}
-library(randomForest)
-library(caret)
-
+```{r rf, cache=TRUE, message=FALSE, warning=FALSE}
 set.seed(12345)
 
 rf_data <- kaggle %>%
   # Dropping variables with a lot of missing values
-  select(-Alley, -MasVnrType, -MasVnrArea, -BsmtQual, -BsmtCond, -BsmtExposure, -BsmtFinType1, -BsmtFinType2, -Electrical, -FireplaceQu, -GarageType, -GarageYrBlt, -GarageFinish, -GarageQual, -GarageCond, -PoolQC, -Fence, -MiscFeature)
+  select(-Alley, -MasVnrType, -MasVnrArea, -BsmtQual, -BsmtCond, -BsmtExposure, -BsmtFinType1, -BsmtFinType2, -Electrical, -FireplaceQu, -GarageType, -GarageYrBlt, -GarageFinish, -GarageQual, -GarageCond, -PoolQC, -Fence, -MiscFeature) %>%
+  # Dropping the ID because it is meaningless
+  select(-Id)
 
-ctrl <- trainControl(method = "cv", number = 10)
-rf_fit <- train(SalePrice ~ ., data = rf_data, method = "rf", trControl = ctrl, importance = TRUE, verbose = TRUE)
+ctrl <- trainControl(method = "cv", number = 5)
+rf_fit <- train(SalePrice ~ ., 
+                data = rf_data, 
+                method = "rf", 
+                ntree = 1000, 
+                trControl = ctrl, 
+                tuneGrid = data.frame(mtry = 10), 
+                importance = TRUE, 
+                verbose = TRUE)
 ```
 
-*Now we can examine the variable importance*
+*Now we can examine the variables to in order of importance:*
 
-```{r}
+```{r rf_importance}
 imp_var <- importance(rf_fit$finalModel) 
 variables <- rownames(imp_var)
 
@@ -490,3 +486,32 @@ imp_var %>%
   kable() %>%
   kable_styling()
 ```
+
+*The takeaways from the preceeding table is that size seems to consistently rise to the top as a variable to include in the model.  I don't want to have multiple variables that are measuring the same thing (i.e. Total SF of Living Area, Total SF of Basement, etc.).  I will use this table to select the variables that I think should be included in the linear regression model.*
+
+```{r model, comment=NA}
+fit <- lm(SalePrice ~ GrLivArea + GarageArea + LotArea + YearRemodAdd + Fireplaces + YearBuilt + OverallQual, kaggle)
+summary(fit)
+```
+
+*These seven variables explain 80% of the variability in the sale price.  I will use this model to make the Kaggle submission.*
+
+```{r predict, comment=NA}
+test <- read.csv("Kaggle_House_Prices/test.csv")
+y_hat <- predict(fit, test)
+submission <- data.frame(Id = test$Id, SalePrice = y_hat)
+summary(submission)
+```
+
+*It appears there is an NA in the submission.  In the interest of getting my final turned in on time I will be using the median to plug that hole.*
+
+```{r}
+fill <- median(submission$SalePrice, na.rm = TRUE)
+submission <- submission %>%
+  mutate(SalePrice = replace_na(SalePrice, fill))
+write.csv(submission, "submission.csv", quote = FALSE, row.names =  FALSE)
+```
+
+*My Kaggle score is* **0.47768** *and my username is* **mikesilva***.  I am ranked 4520 on the leaderboard.  I will try to improve this score when I have time.*
+
+*This analysis is available on  [GitHub](https://github.com/mikeasilva/CUNY-SPS/blob/master/DATA605/MSilva_Final.Rmd).*
