@@ -257,7 +257,8 @@ correlation_matrix %>%
 **Test the hypothesis that the correlations between each pairwise set of variables is 0 and provide an 80% confidence interval.**
 
 ```{r, results="asis"}
-zero_vars <- c()
+zero_vars <- 0
+test <- 0
 
 variables <- kaggle %>%
   select(-SalePrice) %>%
@@ -268,10 +269,11 @@ cat("<table><thead><tr><th>Variable</th><th>Correlation Equal to Zero</th></tr><
 for(variable in variables){
   d <- kaggle[,names(kaggle) == variable]
   if(is.numeric(d)){
+    test <- test + 1
     results <- cor.test(kaggle$SalePrice, d, conf.level = 0.8)
     if(0 > results$conf.int[1] & results$conf.int[2] > 0){
       hypothesis_test_results <- "Yes"
-      zero_vars <- c(zero_vars, variable)
+      zero_vars <- zero_vars + 1
     } else {
       hypothesis_test_results <- "No"
     }
@@ -283,7 +285,7 @@ cat("</tbody></table>")
 
 **Discuss the meaning of your analysis. Would you be worried about familywise error? Why or why not?**
 
-*There are `r length(zero_vars)` variables that have no correlation with the sale price.  I would be worried be woried about family-wise error because I just ran `r length(variable)` hypothesis tests.  The family-wise error rate would be: ${FWER} = 1 - (1 - .2)^`r length(zero_vars)` = 1 - `r .8 ^ length(zero_vars)` = `r 1 - (.8^ length(zero_vars))`$.  This means there is a really high probability of committing a Type I error.*
+*There are `r zero_vars` variables that have no correlation with the sale price.  I would be worried be woried about family-wise error because I just ran `r test` hypothesis tests.  The family-wise error rate would be: ${FWER} = 1 - (1 - .2)^`r zero_vars` = 1 - `r .8 ^ zero_vars` = `r 1 - (.8^ zero_vars)`$.  This means there is a really high probability of committing a Type I error.*
 
 ### Linear Algebra and Correlation
 
@@ -369,7 +371,7 @@ lambda <- fitdistr(kaggle$BsmtUnfSF, densfun = "exponential")$estimate
 *The optimal value for $\lambda$ is `r lambda`.*
 
 ```{r}
-samples <- rexp(10000, rate = lambda)
+samples <- rexp(1000, rate = lambda)
 ```
 
 **Plot a histogram and compare it with a histogram of your original variable.**
@@ -517,4 +519,4 @@ write.csv(submission, "submission.csv", quote = FALSE, row.names =  FALSE)
 
 *My Kaggle score is* **0.47769** *and my username is* **mikesilva***.  I am ranked 4520 on the leaderboard.  I will try to improve this score when I have time.*
 
-*This analysis is available on  [https://github.com/mikeasilva/CUNY-SPS](https://github.com/mikeasilva/CUNY-SPS/blob/master/DATA605/MSilva_Final.Rmd).*
+*This analysis is available on  [https://github.com/mikeasilva/CUNY-SPS](https://github.com/mikeasilva/CUNY-SPS/blob/master/DATA605/MSilva_Final.Rmd).  A walkthough of this analysis is available on [YouTube](https://youtu.be/W5iE-ItRvrQ).*
