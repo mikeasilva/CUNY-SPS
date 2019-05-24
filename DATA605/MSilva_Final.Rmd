@@ -10,7 +10,7 @@ output:
 
 **NOTE:** The instructions/questions are in **bold**. My responses and comments are in *italics*.
 
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
 library(randomForest)
 library(caret)
 library(MASS)
@@ -165,27 +165,32 @@ chisq.test(count_data)
 ```{r, echo=TRUE, eval=TRUE}
 kaggle <- read.csv("Kaggle_House_Prices/train.csv") %>%
   # Removing outliers per http://jse.amstat.org/v19n3/decock.pdf
-  filter(GrLivArea < 4000) %>% 
-  # Filling in missing values with zeros where it makes sense
-  mutate(BedroomAbvGr = replace_na(BedroomAbvGr, 0),
-         BsmtFullBath = replace_na(BsmtFullBath, 0),
-         BsmtHalfBath = replace_na(BsmtHalfBath, 0),
-         BsmtUnfSF = replace_na(BsmtUnfSF, 0),
-         EnclosedPorch = replace_na(EnclosedPorch, 0),
-         Fireplaces = replace_na(Fireplaces, 0),
-         GarageArea = replace_na(GarageArea, 0),
-         GarageCars = replace_na(GarageCars, 0),
-         HalfBath = replace_na(HalfBath, 0),
-         KitchenAbvGr = replace_na(KitchenAbvGr, 0),
-         LotFrontage = replace_na(LotFrontage, 0),
-         OpenPorchSF = replace_na(OpenPorchSF, 0),
-         PoolArea = replace_na(PoolArea, 0),
-         ScreenPorch = replace_na(ScreenPorch, 0),
-         TotRmsAbvGrd = replace_na(TotRmsAbvGrd, 0),
-         WoodDeckSF = replace_na(WoodDeckSF, 0)) 
+  filter(GrLivArea < 4000)
+  
+  
+fill_holes <- function(df){
+  df %>%
+    # Filling in missing values with zeros where it makes sense
+    mutate(BedroomAbvGr = replace_na(BedroomAbvGr, 0),
+           BsmtFullBath = replace_na(BsmtFullBath, 0),
+           BsmtHalfBath = replace_na(BsmtHalfBath, 0),
+           BsmtUnfSF = replace_na(BsmtUnfSF, 0),
+          EnclosedPorch = replace_na(EnclosedPorch, 0),
+          Fireplaces = replace_na(Fireplaces, 0),
+          GarageArea = replace_na(GarageArea, 0),
+          GarageCars = replace_na(GarageCars, 0),
+          HalfBath = replace_na(HalfBath, 0),
+          KitchenAbvGr = replace_na(KitchenAbvGr, 0),
+          LotFrontage = replace_na(LotFrontage, 0),
+          OpenPorchSF = replace_na(OpenPorchSF, 0),
+          PoolArea = replace_na(PoolArea, 0),
+          ScreenPorch = replace_na(ScreenPorch, 0),
+          TotRmsAbvGrd = replace_na(TotRmsAbvGrd, 0),
+          WoodDeckSF = replace_na(WoodDeckSF, 0)) 
+}
+
+kaggle <- fill_holes(kaggle)
 ```
-
-
 
 ### Descriptive and Inferential Statistics
 
@@ -497,21 +502,19 @@ summary(fit)
 *These seven variables explain 80% of the variability in the sale price.  I will use this model to make the Kaggle submission.*
 
 ```{r predict, comment=NA}
-test <- read.csv("Kaggle_House_Prices/test.csv")
+test <- read.csv("Kaggle_House_Prices/test.csv") %>%
+  fill_holes()
 y_hat <- predict(fit, test)
 submission <- data.frame(Id = test$Id, SalePrice = y_hat)
 summary(submission)
 ```
 
-*It appears there is an NA in the submission.  In the interest of getting my final turned in on time I will be using the median to plug that hole.*
+*It appears that some of the predictions are incorrect since the minimum is negative.*
 
 ```{r}
-fill <- median(submission$SalePrice, na.rm = TRUE)
-submission <- submission %>%
-  mutate(SalePrice = replace_na(SalePrice, fill))
 write.csv(submission, "submission.csv", quote = FALSE, row.names =  FALSE)
 ```
 
-*My Kaggle score is* **0.47768** *and my username is* **mikesilva***.  I am ranked 4520 on the leaderboard.  I will try to improve this score when I have time.*
+*My Kaggle score is* **0.47769** *and my username is* **mikesilva***.  I am ranked 4520 on the leaderboard.  I will try to improve this score when I have time.*
 
-*This analysis is available on  [GitHub](https://github.com/mikeasilva/CUNY-SPS/blob/master/DATA605/MSilva_Final.Rmd).*
+*This analysis is available on  [https://github.com/mikeasilva/CUNY-SPS](https://github.com/mikeasilva/CUNY-SPS/blob/master/DATA605/MSilva_Final.Rmd).*
