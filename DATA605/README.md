@@ -4,7 +4,7 @@ Mike Silva's Masters in Data Science Course Work for [DATA 605 - Computational M
 
 ## Assignments (Source Code)
 
-### Linear Regression
+### Linear Algebra
 
 [Assignment 1](https://github.com/mikeasilva/CUNY-SPS/blob/master/DATA605/MSilva_Assign1.Rmd)
 
