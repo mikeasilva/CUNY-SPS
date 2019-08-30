@@ -30,40 +30,119 @@ summary(inc)
 
 Think a bit on what these summaries mean. Use the space below to add some more relevant non-visual exploratory information you think helps you understand this data:
 
-```{r}
+*First let's start with some aggregate counts of the data:*
 
-# Insert your code here, create more chunks as necessary
+```{r, warning=FALSE, message=FALSE}
+library(dplyr)
+library(kableExtra)
 
+temp <- inc %>%
+  select(Industry) %>%
+  unique() %>%
+  tally() %>%
+  rename(Industries = n)
+
+temp <- inc %>%
+  select(City) %>%
+  unique() %>%
+  tally() %>%
+  rename(Cities = n) %>%
+  bind_cols(temp)
+
+inc %>%
+  select(State) %>%
+  unique() %>%
+  tally() %>%
+  rename(States = n) %>%
+  bind_cols(temp) %>%
+  kable() %>%
+  kable_styling()
 ```
+
+*Hmmm.  There are 52 states in the data set.  I'm guessing there is DC but I wonder if there is an error in the data.  I will take a closer look at this:*
+
+```{r, comment=NA}
+unique(inc$State)
+```
+
+*Ahh!  There's Puerto Rico.  My hunch about DC was correct.  No need to clean that up.  Great!*
+
+*I am wondering how some of the variables differ the industry.  I will look at the size of the work force and the revenue.  I will also construct an output per worker to see which industry is the most productive in economic terms:*
+
+```{r}
+inc %>%
+  group_by(Industry) %>%
+  mutate(`Output per Worker` = Revenue / Employees) %>%
+  summarise(`Avg Employees` = round(mean(Employees, na.rm = TRUE), 0),
+            `Avg Revenue` = mean(Revenue, na.rm = TRUE),
+            `Avg Output per Worker` = round(mean(`Output per Worker`, na.rm = TRUE), 0)) %>%
+  arrange(desc(`Avg Output per Worker`)) %>%
+  kable() %>%
+  kable_styling()
+```
+
+*This is not supprising that the top industries are the most "productive."  They are very capital intensive.*
 
 ## Question 1
 
 Create a graph that shows the distribution of companies in the dataset by State (ie how many are in each state). There are a lot of States, so consider which axis you should use. This visualization is ultimately going to be consumed on a 'portrait' oriented screen (ie taller than wide), which should further guide your layout choices.
 
-```{r}
+```{r, fig.height=10}
+library(ggplot2)
+library(ggthemes)
 
-# Answer Question 1 here
-
+inc %>%
+  group_by(State) %>%
+  tally() %>%
+  ggplot(aes(x = n, y=reorder(State, n))) +
+  geom_point() +
+  ggtitle("Number of Fastest Growing Companies by State") +
+  ylab(element_blank()) + 
+  xlab("Companies") + 
+  theme_economist()
 ```
 
 ## Question 2
 
 Lets dig in on the state with the 3rd most companies in the data set. Imagine you work for the state and are interested in how many people are employed by companies in different industries. Create a plot that shows the average and/or median employment by industry for companies in this state (only use cases with full data, use R's `complete.cases()` function.) In addition to this, your graph should show how variable the ranges are, and you should deal with outliers.
 
-```{r}
-
-# Answer Question 2 here
-
+```{r, warning=FALSE}
+inc %>%
+  filter(State == "NY") %>%
+  select(Industry, Employees) %>%
+  na.omit() %>%
+  group_by(Industry) %>%
+  mutate(Median = median(Employees)) %>%
+  ggplot(aes(x = reorder(Industry, Median), y = Employees)) +
+  ylim(0, 1000) +
+  xlab(element_blank()) + 
+  ggtitle("Workforce Size by Industry", subtitle = "(employment over 1,000 not shown)") +
+  geom_boxplot(outlier.colour="red", outlier.shape=8, outlier.size = 0.9) +
+  coord_flip() +
+  theme_economist()
 ```
 
 ## Question 3
 
 Now imagine you work for an investor and want to see which industries generate the most revenue per employee. Create a chart that makes this information clear. Once again, the distribution per industry should be shown.
 
-```{r}
-
-# Answer Question 3 here
-
+*Funny!  I guess I think like this investor.*
+  
+```{r, warning=FALSE}
+inc %>%
+  select(Industry, Revenue, Employees) %>%
+  na.omit() %>%
+  mutate(`Revenue Per Employee` = Revenue / Employees / 1000000) %>%
+  group_by(Industry) %>%
+  mutate(Median = median(`Revenue Per Employee`, na.rm = TRUE)) %>%
+  ggplot(aes(x = reorder(Industry, Median), y = `Revenue Per Employee`)) +
+  ylim(0, 1) +
+  xlab(element_blank()) + 
+  ylab("Millions of Dollars") + 
+  ggtitle("Revenue per Employee by Industry", subtitle = "(revenue over $1MM not shown)") +
+  geom_boxplot(outlier.colour="red", outlier.shape=8, outlier.size = 0.9) +
+  coord_flip() +
+  theme_economist()
 ```
 
 
