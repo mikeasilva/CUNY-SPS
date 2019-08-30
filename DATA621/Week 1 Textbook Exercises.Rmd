@@ -1,0 +1,41 @@
+---
+title: "DATA 612 Week #1 Textbook Exercises"
+author: "Mike Silva"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+---
+
+
+```{r knitr_init, echo=FALSE, cache=FALSE}
+library(knitr)
+library(rmdformats)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=FALSE,
+	             cache=TRUE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+opts_knit$set(width=75)
+```
+
+## LMR 1.1
+
+The dataset *teengam* concers a study of teenage gambline in Britain.  Make a numerical and graphical summary of the data, commenting on any features that you find interesting.  Limit the output you present to a quantity that a busy reader would find sufficeint to get a basic understanding of the data.
+
+## LMR 1.3
+
+The dataset *prostate* is from a study on 97 men with prostate conacer who were due to receive a radical prostatectomy.  Make a numerical and graphical summary of the data as in the first question.
+
+## LMR 1.4
+
+The dataset *sat* comes from a study entitled "Getting What You Pay For: The Debate Overty Equity in Public School Expenditures."  Make a numerical and graphical summary of the data as in the first question.
+
+## LMR 1.5
+
+The dataset *divusa* contains data on divorces in the United States from 1920 to 1996.  Make a numerical and graphical summary of the data as in the first question.
