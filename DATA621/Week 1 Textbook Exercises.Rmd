@@ -13,6 +13,8 @@ library(knitr)
 library(rmdformats)
 library(tidyverse)
 library(kableExtra)
+library(gridExtra)
+library(ggthemes)
 ## Global options
 options(max.print="75")
 opts_chunk$set(echo=FALSE,
@@ -38,12 +40,21 @@ teengamb <- read.delim("data/teengamb.txt") %>%
   mutate(sex = as.factor(ifelse(sex == 0, "Male", "Female")),
          income = income * 52)
 
-ggplot(teengamb, aes(x = sex, y = gamble, color=sex)) + 
+plot1 <- ggplot(teengamb, aes(x = sex, color = sex, fill = sex)) +
+  geom_bar(stat = "count") +
+  ylab("Teens") + 
+  xlab(element_blank()) +
+  theme(legend.position = "none") +
+  ggtitle("Respondents by Sex")
+
+plot2 <- ggplot(teengamb, aes(x = sex, y = gamble, color=sex)) + 
   geom_boxplot() +
   ylab("Pounds") +
   xlab(element_blank()) +
   theme(legend.position = "none") +
   ggtitle("Estimated Annual Gambling by Sex")
+
+grid.arrange(plot1, plot2, ncol = 2)
 ```
 
 ```{r}
@@ -57,14 +68,15 @@ teengamb %>%
   group_by(sex) %>%
   summarise(`Min.` = min(gamble),
             Mean = mean(gamble),
-            `Max.` = max(gamble)) %>%
+            `Max.` = max(gamble), 
+            Count = n()) %>%
   merge(temp) %>%
-  select(sex, `Min.`, `25%`, `50%`, Mean, `75%`, `Max.`) %>%
+  select(sex, `Min.`, `25%`, `50%`, Mean, `75%`, `Max.`, Count) %>%
   kable() %>%
   kable_styling()
 ```
 
-**Teens earned between 31 and 780 pounds annually.  Those who earned more were more likely to gammble more.**
+**Teens earned between 31 and 780 pounds annually.  Those who earned more were more likely to gamble more.**
 
 ```{r}
 ggplot(teengamb, aes(x = income, y = gamble)) + 
@@ -91,13 +103,164 @@ The dataset *prostate* is from a study on 97 men with prostate conacer who were 
 #lpsa log(prostate specific antigen)
 
 prostate <- read.delim("data/prostate.txt") 
-pairs(prostate)
+```
+
+**These men are generally older.  Their age ranges from 41 to 79 years.  The median age is 65.**
+
+```{r}
+ggplot(prostate, aes(x=age)) + 
+  geom_histogram(bins=30) +
+  ylab("Men") +
+  xlab(element_blank()) + 
+  ggtitle("Age of Men")
+
+temp <- prostate %>%
+  summarise(mpg = list(enframe(quantile(age, probs=c(0.25, 0.5, 0.75))))) %>% 
+  unnest() %>%
+  spread(name, value)
+
+prostate %>%
+  summarise(`Min.` = min(age),
+            Mean = mean(age),
+            `Max.` = max(age)) %>%
+  merge(temp) %>%
+  select(`Min.`, `25%`, `50%`, Mean, `75%`, `Max.`) %>%
+  kable() %>%
+  kable_styling()
+```
+
+**There is a direct relationship between the prostate cancer volume and the capsular penetration.**
+
+```{r}
+ggplot(prostate, aes(lcp, lcavol)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  xlab("Capsular Penetration (log)") +
+  ylab("Cancer Volume (log)") +
+  ggtitle("Cancer Volume and Capsular Penetration")
+```
+
+```{r}
+temp <- prostate %>%
+  summarise(mpg = list(enframe(quantile(lcp, probs=c(0.25, 0.5, 0.75))))) %>% 
+  unnest() %>%
+  spread(name, value)
+
+prostate %>%
+  summarise(`Min.` = min(lcp),
+            Mean = mean(lcp),
+            `Max.` = max(lcp)) %>%
+  merge(temp) %>%
+  select(`Min.`, `25%`, `50%`, Mean, `75%`, `Max.`) %>%
+  kable() %>%
+  kable_styling()
+```
+
+**The volume of the cancer is also positively correlated with the PSA.**
+
+```{r}
+ggplot(prostate, aes(lpsa, lcavol)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  xlab("PSA (log)") +
+  ylab("Cancer Volume (log)") +
+  ggtitle("Cancer Volume and PSA (Prostate Specific Antigen)")
+```
+
+```{r}
+temp <- prostate %>%
+  summarise(mpg = list(enframe(quantile(lpsa, probs=c(0.25, 0.5, 0.75))))) %>% 
+  unnest() %>%
+  spread(name, value)
+
+prostate %>%
+  summarise(`Min.` = min(lpsa),
+            Mean = mean(lpsa),
+            `Max.` = max(lpsa)) %>%
+  merge(temp) %>%
+  select(`Min.`, `25%`, `50%`, Mean, `75%`, `Max.`) %>%
+  kable() %>%
+  kable_styling()
 ```
 
 ## LMR 1.4
 
-The dataset *sat* comes from a study entitled "Getting What You Pay For: The Debate Overty Equity in Public School Expenditures."  Make a numerical and graphical summary of the data as in the first question.
+The dataset *sat* comes from a study entitled "Getting What You Pay For: The Debate Over Equity in Public School Expenditures."  Make a numerical and graphical summary of the data as in the first question.
+
+**SAT scores range from 844 to 1107 with an average arround 966.  These data have considerable variability.**
+
+```{r}
+#  These variables include average annual expenditures per student, the student/teacher ratio, the average annual salary for teachers in each state, and the percentage of all eligible students taking the SAT. Finally, the three remaining variables in the dataset measure educational "output" (e.g., performance) using the SAT. Verbal and math scores appear separately, and an average total score is given for each state. 
+
+sat <- read.delim("data/sat.txt") 
+```
+
+**At first blush it appears that high schools that spend less per pupil do better on the SAT than those who spend more.  Strange!?!**
+
+```{r}
+ggplot(sat, aes(expend, total)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  xlab("1994-95 per Student Spending (thousands of dollars)") +
+  ylab("Avg T SAT Score, 1994-95") +
+  ggtitle("Spend Less for Better SAT Scores")
+```
+
+**But when you examine the popularity of the SAT test a different pattern emerges.  In certain states the ACT is the college enterance test of choice.  Thus the SAT scores in these state are only for the students who want to apply to a school back East.**
+
+```{r}
+ggplot(sat, aes(takers, total)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  xlab("Percent of Students Taking the SAT") +
+  ylab("Avg. SAT Score, 1994-95") +
+  ggtitle("SAT Self-Selection Bias")
+```
 
 ## LMR 1.5
 
 The dataset *divusa* contains data on divorces in the United States from 1920 to 1996.  Make a numerical and graphical summary of the data as in the first question.
+
+```{r}
+# year the year from 1920-1996
+# divorce divorce per 1000 women aged 15 or more
+# unemployed unemployment rate
+# femlab percent female participation in labor force aged 16+
+# marriage marriages per 1000 unmarried women aged 16+
+# birth births per 1000 women aged 15-44
+# military military personnel per 1000 population
+
+divusa <- read.delim("data/divusa.txt")
+```
+
+**The US divorce rate has generally been increasing over time.  There was a spike in the 1940s and it has been trending down since the 1980.**
+
+```{r}
+ggplot(divusa, aes(year, divorce)) +
+  geom_line() +
+  ylab("Per 1,000 Women") +
+  xlab(element_blank()) +
+  ggtitle("U.S. Divorce Rate Over Time")
+```
+
+```{r}
+divusa <- divusa %>%
+  mutate(Decade = floor(year/10)*10)
+
+temp <- divusa %>%
+  group_by(Decade) %>%
+  summarise(mpg = list(enframe(quantile(divorce, probs=c(0.25, 0.5, 0.75))))) %>% 
+  unnest() %>%
+  spread(name, value)
+
+divusa %>%
+  group_by(Decade) %>%
+  summarise(`Min.` = min(divorce),
+            Mean = mean(divorce),
+            `Max.` = max(divorce), 
+            Count = n()) %>%
+  merge(temp) %>%
+  select(Decade, `Min.`, `25%`, `50%`, Mean, `75%`, `Max.`, Count) %>%
+  kable() %>%
+  kable_styling()
+```
