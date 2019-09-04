@@ -1,0 +1,38 @@
+---
+title: "DATA 621 Week #3 Textbook Exercises"
+author: "Mike Silva"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+---
+
+
+```{r knitr_init, echo=FALSE, cache=FALSE, warning=FALSE, message=FALSE}
+library(knitr)
+library(rmdformats)
+library(tidyverse)
+library(kableExtra)
+library(gridExtra)
+library(ggthemes)
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=FALSE,
+	             cache=TRUE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+opts_knit$set(width=75)
+```
+
+## MARR 2.3
+
+## LMR 3.6
+
+## LMR 4.5
+
+## LMR 5.2
+
+## LMR 14.2
