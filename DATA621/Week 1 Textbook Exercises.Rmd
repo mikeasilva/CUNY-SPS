@@ -1,5 +1,5 @@
 ---
-title: "DATA 612 Week #1 Textbook Exercises"
+title: "DATA 621 Week #1 Textbook Exercises"
 author: "Mike Silva"
 date: "`r Sys.Date()`"
 output:
