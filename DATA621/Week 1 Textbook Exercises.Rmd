@@ -193,6 +193,21 @@ The dataset *sat* comes from a study entitled "Getting What You Pay For: The Deb
 #  These variables include average annual expenditures per student, the student/teacher ratio, the average annual salary for teachers in each state, and the percentage of all eligible students taking the SAT. Finally, the three remaining variables in the dataset measure educational "output" (e.g., performance) using the SAT. Verbal and math scores appear separately, and an average total score is given for each state. 
 
 sat <- read.delim("data/sat.txt") 
+
+temp <- sat %>%
+  summarise(mpg = list(enframe(quantile(total, probs=c(0.25, 0.5, 0.75))))) %>% 
+  unnest() %>%
+  spread(name, value)
+
+sat %>%
+  summarise(`Min.` = min(total),
+            Mean = mean(total),
+            `Max.` = max(total),
+            Count = n()) %>%
+  merge(temp) %>%
+  select(`Min.`, `25%`, `50%`, Mean, `75%`, `Max.`, Count) %>%
+  kable() %>%
+  kable_styling()
 ```
 
 **At first blush it appears that high schools that spend less per pupil do better on the SAT than those who spend more.  Strange!?!**
@@ -264,3 +279,43 @@ divusa %>%
   kable() %>%
   kable_styling()
 ```
+
+
+**There are a couple of things that have a similar spike.  For example military personnel per 1000...**
+
+```{r}
+ggplot(divusa, aes(x = year)) +
+  geom_line(aes(y = divorce, color = "Divorce")) +
+  geom_line(aes(y = military, color = "Military")) + 
+  scale_y_continuous(sec.axis = sec_axis(~.*1, name = "Per 1,000 People"))+ 
+  scale_colour_manual(values = c("blue", "red")) +
+  labs(y = "Per 1,000 Women", x = element_blank(), color = element_blank()) +
+  theme(legend.position = "bottom") +
+  ggtitle("Divorce and Military Personnel Rate")
+```
+
+**...the marriage rate...**
+
+```{r}
+ggplot(divusa, aes(x = year)) +
+  geom_line(aes(y = divorce, color = "Divorce Rate")) +
+  geom_line(aes(y = marriage, color = "Marriage")) +
+  scale_colour_manual(values = c("blue", "red")) +
+  labs(y = "Per 1,000 Women", x = element_blank(), color = element_blank()) +
+  theme(legend.position = "bottom") +
+  ggtitle("Divorce and Marriage Rate")
+```
+
+**...and most strikingly, the female labor force participation rate.**
+
+```{r}
+ggplot(divusa, aes(x = year)) +
+  geom_line(aes(y = divorce, color = "Divorce Rate")) +
+  geom_line(aes(y = femlab, color = "Female Labor Force Participation")) +
+  scale_y_continuous(sec.axis = sec_axis(~.*1, name = "Percent of Working Age Females"))+ 
+  scale_colour_manual(values = c("blue", "red")) +
+  labs(y = "Per 1,000 Women", x = element_blank(), color = element_blank()) +
+  theme(legend.position = "bottom") +
+  ggtitle("Divorce Rate and Female Labor Force Participation")
+```
+
