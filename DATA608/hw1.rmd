@@ -75,7 +75,8 @@ inc %>%
   mutate(`Output per Worker` = Revenue / Employees) %>%
   summarise(`Avg Employees` = round(mean(Employees, na.rm = TRUE), 0),
             `Avg Revenue` = mean(Revenue, na.rm = TRUE),
-            `Avg Output per Worker` = round(mean(`Output per Worker`, na.rm = TRUE), 0)) %>%
+            `Avg Output per Worker` = round(mean(`Output per Worker`, na.rm = TRUE), 0),
+            Count = n()) %>%
   arrange(desc(`Avg Output per Worker`)) %>%
   kable() %>%
   kable_styling()
@@ -99,7 +100,7 @@ inc %>%
   ggtitle("Number of Fastest Growing Companies by State") +
   ylab(element_blank()) + 
   xlab("Companies") + 
-  theme_economist()
+  theme_clean()
 ```
 
 ## Question 2
@@ -117,9 +118,9 @@ inc %>%
   ylim(0, 1000) +
   xlab(element_blank()) + 
   ggtitle("Workforce Size by Industry", subtitle = "(employment over 1,000 not shown)") +
-  geom_boxplot(outlier.colour="red", outlier.shape=8, outlier.size = 0.9) +
+  geom_boxplot(outlier.colour="gray", outlier.shape=8, outlier.size = 0.9) +
   coord_flip() +
-  theme_economist()
+  theme_clean()
 ```
 
 ## Question 3
@@ -140,9 +141,9 @@ inc %>%
   xlab(element_blank()) + 
   ylab("Millions of Dollars") + 
   ggtitle("Revenue per Employee by Industry", subtitle = "(revenue over $1MM not shown)") +
-  geom_boxplot(outlier.colour="red", outlier.shape=8, outlier.size = 0.9) +
+  geom_boxplot(outlier.colour="gray", outlier.shape=8, outlier.size = 0.9) +
   coord_flip() +
-  theme_economist()
+  theme_clean()
 ```
 
 

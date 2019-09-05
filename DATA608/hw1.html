@@ -278,7 +278,6 @@ code {
 }
 img {
   max-width:100%;
-  height: auto;
 }
 .tabbed-pane {
   padding-top: 12px;
@@ -487,7 +486,8 @@ Industries
   mutate(`Output per Worker` = Revenue / Employees) %&gt;%
   summarise(`Avg Employees` = round(mean(Employees, na.rm = TRUE), 0),
             `Avg Revenue` = mean(Revenue, na.rm = TRUE),
-            `Avg Output per Worker` = round(mean(`Output per Worker`, na.rm = TRUE), 0)) %&gt;%
+            `Avg Output per Worker` = round(mean(`Output per Worker`, na.rm = TRUE), 0),
+            Count = n()) %&gt;%
   arrange(desc(`Avg Output per Worker`)) %&gt;%
   kable() %&gt;%
   kable_styling()</code></pre>
@@ -506,6 +506,9 @@ Avg Revenue
 <th style="text-align:right;">
 Avg Output per Worker
 </th>
+<th style="text-align:right;">
+Count
+</th>
 </tr>
 </thead>
 <tbody>
@@ -522,6 +525,9 @@ Energy
 <td style="text-align:right;">
 1554656
 </td>
+<td style="text-align:right;">
+109
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -535,6 +541,9 @@ Computer Hardware
 </td>
 <td style="text-align:right;">
 817702
+</td>
+<td style="text-align:right;">
+44
 </td>
 </tr>
 <tr>
@@ -550,6 +559,9 @@ Logistics &amp; Transportation
 <td style="text-align:right;">
 794811
 </td>
+<td style="text-align:right;">
+155
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -563,6 +575,9 @@ Food &amp; Beverage
 </td>
 <td style="text-align:right;">
 618383
+</td>
+<td style="text-align:right;">
+131
 </td>
 </tr>
 <tr>
@@ -578,6 +593,9 @@ Insurance
 <td style="text-align:right;">
 474966
 </td>
+<td style="text-align:right;">
+50
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -591,6 +609,9 @@ Consumer Products &amp; Services
 </td>
 <td style="text-align:right;">
 466068
+</td>
+<td style="text-align:right;">
+203
 </td>
 </tr>
 <tr>
@@ -606,6 +627,9 @@ Construction
 <td style="text-align:right;">
 465682
 </td>
+<td style="text-align:right;">
+187
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -619,6 +643,9 @@ Manufacturing
 </td>
 <td style="text-align:right;">
 453524
+</td>
+<td style="text-align:right;">
+256
 </td>
 </tr>
 <tr>
@@ -634,6 +661,9 @@ Telecommunications
 <td style="text-align:right;">
 449260
 </td>
+<td style="text-align:right;">
+129
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -647,6 +677,9 @@ Real Estate
 </td>
 <td style="text-align:right;">
 434516
+</td>
+<td style="text-align:right;">
+96
 </td>
 </tr>
 <tr>
@@ -662,6 +695,9 @@ Travel &amp; Hospitality
 <td style="text-align:right;">
 414788
 </td>
+<td style="text-align:right;">
+62
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -675,6 +711,9 @@ Retail
 </td>
 <td style="text-align:right;">
 412555
+</td>
+<td style="text-align:right;">
+203
 </td>
 </tr>
 <tr>
@@ -690,6 +729,9 @@ Human Resources
 <td style="text-align:right;">
 395972
 </td>
+<td style="text-align:right;">
+196
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -703,6 +745,9 @@ Financial Services
 </td>
 <td style="text-align:right;">
 394231
+</td>
+<td style="text-align:right;">
+260
 </td>
 </tr>
 <tr>
@@ -718,6 +763,9 @@ Business Products &amp; Services
 <td style="text-align:right;">
 359097
 </td>
+<td style="text-align:right;">
+482
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -731,6 +779,9 @@ Health
 </td>
 <td style="text-align:right;">
 325199
+</td>
+<td style="text-align:right;">
+355
 </td>
 </tr>
 <tr>
@@ -746,6 +797,9 @@ Media
 <td style="text-align:right;">
 307144
 </td>
+<td style="text-align:right;">
+54
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -759,6 +813,9 @@ Advertising &amp; Marketing
 </td>
 <td style="text-align:right;">
 306036
+</td>
+<td style="text-align:right;">
+471
 </td>
 </tr>
 <tr>
@@ -774,6 +831,9 @@ Education
 <td style="text-align:right;">
 296454
 </td>
+<td style="text-align:right;">
+83
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -787,6 +847,9 @@ Environmental Services
 </td>
 <td style="text-align:right;">
 283607
+</td>
+<td style="text-align:right;">
+51
 </td>
 </tr>
 <tr>
@@ -802,6 +865,9 @@ Security
 <td style="text-align:right;">
 283391
 </td>
+<td style="text-align:right;">
+73
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -815,6 +881,9 @@ IT Services
 </td>
 <td style="text-align:right;">
 270494
+</td>
+<td style="text-align:right;">
+733
 </td>
 </tr>
 <tr>
@@ -830,6 +899,9 @@ Government Services
 <td style="text-align:right;">
 243596
 </td>
+<td style="text-align:right;">
+202
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -844,6 +916,9 @@ Software
 <td style="text-align:right;">
 225989
 </td>
+<td style="text-align:right;">
+342
+</td>
 </tr>
 <tr>
 <td style="text-align:left;">
@@ -857,6 +932,9 @@ Engineering
 </td>
 <td style="text-align:right;">
 201120
+</td>
+<td style="text-align:right;">
+74
 </td>
 </tr>
 </tbody>
