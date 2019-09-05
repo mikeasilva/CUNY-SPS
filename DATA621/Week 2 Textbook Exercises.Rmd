@@ -25,11 +25,96 @@ opts_chunk$set(echo=FALSE,
                message=FALSE,
                warning=FALSE)
 opts_knit$set(width=75)
+
+
+# A Prefix nulling hook.
+
+# Make sure to keep the default for normal processing.
+default_output_hook <- knitr::knit_hooks$get("output")
+
+# Output hooks handle normal R console output.
+knitr::knit_hooks$set( output = function(x, options) {
+
+  comment <- knitr::opts_current$get("comment")
+  if( is.na(comment) ) comment <- ""
+  can_null <- grepl( paste0( comment, "\\s*\\[\\d?\\]" ),
+                     x, perl = TRUE)
+  do_null <- isTRUE( knitr::opts_current$get("null_prefix") )
+  if( can_null && do_null ) {
+    # By default R print output aligns at the right brace.
+    align_index <- regexpr( "\\]", x )[1] - 1
+    # Two cases: start or newline
+    re <- paste0( "^.{", align_index, "}\\]")
+    rep <- comment
+    x <- gsub( re, rep,  x )
+    re <- paste0( "\\\n.{", align_index, "}\\]")
+    rep <- paste0( "\n", comment )
+    x <- gsub( re, rep,  x )
+  }
+
+  default_output_hook( x, options )
+
+})
+
+knitr::opts_template$set("kill_prefix"=list(comment=NA, null_prefix=TRUE))
 ```
 
 ## MARR 2.1
 
+The dataset *teengamb* concerns a study of teenage gambling in Britain.  Fit a regression model with the expenditure on gambling as the response and the sex, status, income and verbal score as predictors.  Present the output.
+
+```{r, comment=NA}
+teengamb <- read.delim("data/teengamb.txt") %>%
+  mutate(sex = as.factor(ifelse(sex == 0, "Male", "Female")))
+model <- lm(gamble ~ sex + status + income + verbal, data = teengamb)
+summary(model)
+```
+
+A. What percentage of variation in the response is explained by these predictors?
+
+```{r, null_prefix=TRUE}
+summary(model)$r.squared
+```
+
+
+B. Which observation has the largest (positive) residual?  Give the case number
+
+```{r, null_prefix=TRUE}
+largest_positive_residual <- max(residuals(model))
+
+seq(1, length(residuals(model)))[residuals(model) == largest_positive_residual]
+```
+
+C. Compute the mean and median of the residuals.
+
+```{r, null_prefix=TRUE}
+noquote(paste("Mean:", round(mean(residuals(model)),3)))
+
+noquote(paste("Median:", round(median(residuals(model)),3)))
+```
+
+D. Compute the correlation of the residuals with the fitted values.
+
+```{r, null_prefix=TRUE}
+fitted_vals <- predict(model, teengamb)
+round(cor(fitted_vals, residuals(model)),3)
+```
+
+E. Compute the correlation of the residual with the income
+
+```{r, null_prefix=TRUE}
+round(cor(teengamb$income, residuals(model)),3)
+```
+
+F. For all other predictors held constant, what would be the difference in predicted expenditure on gambling for a male compared to a female?
+
+```{r, null_prefix=TRUE}
+unname(model$coefficients["sexMale"])
+```
+
 ## MARR 2.2
+
+The dataset *uswages* is drawn as a sample from the Current Population Survey in 1988.  Fit a model with weekly wages as the response and years of education and experience as predictors.  Report and give a simple interpretation to the regression coefficient for the years of education.  Now fit the same model but with the logged weekly wages.  Give an interpretation to the regression coefficeint for the years of education.  Which interpretation is more natural?
 
 ## LMR 2.4
 
