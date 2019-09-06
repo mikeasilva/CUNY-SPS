@@ -1,10 +1,43 @@
 ---
 title: "R Notebook"
 output:
-  html_document: default
+  html_document:
+    code_folding: "hide"
   html_notebook: default
 ---
+```{r}
+library(knitr)
+# A Prefix nulling hook.
 
+# Make sure to keep the default for normal processing.
+default_output_hook <- knitr::knit_hooks$get("output")
+
+# Output hooks handle normal R console output.
+knitr::knit_hooks$set( output = function(x, options) {
+
+  comment <- knitr::opts_current$get("comment")
+  if( is.na(comment) ) comment <- ""
+  can_null <- grepl( paste0( comment, "\\s*\\[\\d?\\]" ),
+                     x, perl = TRUE)
+  do_null <- isTRUE( knitr::opts_current$get("null_prefix") )
+  if( can_null && do_null ) {
+    # By default R print output aligns at the right brace.
+    align_index <- regexpr( "\\]", x )[1] - 1
+    # Two cases: start or newline
+    re <- paste0( "^.{", align_index, "}\\]")
+    rep <- comment
+    x <- gsub( re, rep,  x )
+    re <- paste0( "\\\n.{", align_index, "}\\]")
+    rep <- paste0( "\n", comment )
+    x <- gsub( re, rep,  x )
+  }
+
+  default_output_hook( x, options )
+
+})
+
+knitr::opts_template$set("kill_prefix"=list(comment=NA, null_prefix=TRUE))
+```
 **Principles of Data Visualization and Introduction to ggplot2**
 
 I have provided you with data about the 5,000 fastest growing companies in the US, as compiled by Inc. magazine. lets read this in:
@@ -17,12 +50,12 @@ inc <- read.csv("https://raw.githubusercontent.com/charleyferrari/CUNY_DATA_608/
 
 And lets preview this data:
 
-```{r}
+```{r comment=NA}
 
 head(inc)
 
 ```
-```{r}
+```{r comment=NA}
 
 summary(inc)
 
@@ -30,7 +63,7 @@ summary(inc)
 
 Think a bit on what these summaries mean. Use the space below to add some more relevant non-visual exploratory information you think helps you understand this data:
 
-*First let's start with some aggregate counts of the data:*
+**First let's start with some aggregate counts of the data:**
 
 ```{r, warning=FALSE, message=FALSE}
 library(dplyr)
@@ -59,15 +92,15 @@ inc %>%
   kable_styling()
 ```
 
-*Hmmm.  There are 52 states in the data set.  I'm guessing there is DC but I wonder if there is an error in the data.  I will take a closer look at this:*
+**Hmmm.  There are 52 states in the data set.  I'm guessing there is DC but I wonder if there is an error in the data.  I will take a closer look at this:**
 
-```{r, comment=NA}
+```{r, comment=NA, null_prefix=TRUE}
 unique(inc$State)
 ```
 
-*Ahh!  There's Puerto Rico.  My hunch about DC was correct.  No need to clean that up.  Great!*
+**Ahh!  There's Puerto Rico.  My hunch about DC was correct.  No need to clean that up.  Great!**
 
-*I am wondering how some of the variables differ the industry.  I will look at the size of the work force and the revenue.  I will also construct an output per worker to see which industry is the most productive in economic terms:*
+**I am wondering how some of the variables differ the industry.  I will look at the size of the work force and the revenue.  I will also construct an output per worker to see which industry is the most productive in economic terms:**
 
 ```{r}
 inc %>%
@@ -82,7 +115,7 @@ inc %>%
   kable_styling()
 ```
 
-*This is not supprising that the top industries are the most "productive."  They are very capital intensive.*
+**This is not supprising that the top industries are the most "productive."  They are very capital intensive.**
 
 ## Question 1
 
@@ -90,17 +123,18 @@ Create a graph that shows the distribution of companies in the dataset by State 
 
 ```{r, fig.height=10}
 library(ggplot2)
-library(ggthemes)
 
 inc %>%
   group_by(State) %>%
   tally() %>%
   ggplot(aes(x = n, y=reorder(State, n))) +
-  geom_point() +
-  ggtitle("Number of Fastest Growing Companies by State") +
-  ylab(element_blank()) + 
-  xlab("Companies") + 
-  theme_clean()
+  geom_point(color = "dodger blue") +
+  labs(title = "Number of Fastest Growing Companies by State",
+       y = element_blank(),
+       x = element_blank()) +
+  theme(panel.background = element_blank(),
+        panel.grid.major = element_line(color = "gray95"),
+        panel.grid.major.x = element_line(color = "gray95", linetype="dashed"))
 ```
 
 ## Question 2
@@ -116,18 +150,22 @@ inc %>%
   mutate(Median = median(Employees)) %>%
   ggplot(aes(x = reorder(Industry, Median), y = Employees)) +
   ylim(0, 1000) +
-  xlab(element_blank()) + 
-  ggtitle("Workforce Size by Industry", subtitle = "(employment over 1,000 not shown)") +
-  geom_boxplot(outlier.colour="gray", outlier.shape=8, outlier.size = 0.9) +
-  coord_flip() +
-  theme_clean()
+  labs(title = "Workforce Size by Industry",
+       subtitle = "(employment over 1,000 not shown)",
+       y = element_blank(),
+       x = element_blank()) +
+  theme(panel.background = element_blank(),
+        panel.grid.major = element_line(color = "gray95"),
+        panel.grid.major.x = element_line(color = "gray95", linetype="dashed")) +
+  geom_boxplot(outlier.colour="gray", outlier.shape = 8, outlier.size = 0.9) +
+  coord_flip()
 ```
 
 ## Question 3
 
 Now imagine you work for an investor and want to see which industries generate the most revenue per employee. Create a chart that makes this information clear. Once again, the distribution per industry should be shown.
 
-*Funny!  I guess I think like this investor.*
+**Funny!  I guess I think like this investor.**
   
 ```{r, warning=FALSE}
 inc %>%
@@ -138,12 +176,15 @@ inc %>%
   mutate(Median = median(`Revenue Per Employee`, na.rm = TRUE)) %>%
   ggplot(aes(x = reorder(Industry, Median), y = `Revenue Per Employee`)) +
   ylim(0, 1) +
-  xlab(element_blank()) + 
-  ylab("Millions of Dollars") + 
-  ggtitle("Revenue per Employee by Industry", subtitle = "(revenue over $1MM not shown)") +
-  geom_boxplot(outlier.colour="gray", outlier.shape=8, outlier.size = 0.9) +
-  coord_flip() +
-  theme_clean()
+  labs(title = "Revenue per Employee by Industry", 
+       subtitle = "(revenue over $1MM not shown)",
+       y = "Millions of Dollars",
+       x = element_blank()) +
+  theme(panel.background = element_blank(),
+        panel.grid.major = element_line(color = "gray95"),
+        panel.grid.major.x = element_line(color = "gray95", linetype="dashed")) +
+  geom_boxplot(outlier.colour="gray", outlier.shape = 8, outlier.size = 0.9) +
+  coord_flip()
 ```
 
 
