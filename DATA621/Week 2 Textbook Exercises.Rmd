@@ -61,60 +61,31 @@ knitr::opts_template$set("kill_prefix"=list(comment=NA, null_prefix=TRUE))
 
 ## MARR 2.1
 
-The dataset *teengamb* concerns a study of teenage gambling in Britain.  Fit a regression model with the expenditure on gambling as the response and the sex, status, income and verbal score as predictors.  Present the output.
+The web site www.playbill.com provides weekly reports on the box office ticket sales for plays on Broadway in New York.  We shall consider the data for the week Octover 11-17, 2004 (reffered to below as the current week).  The data are in the form of the gross box office results for the current week and the gross box office results for the previous wek (i.e., October 3-10, 2004).
+
+Fit the following model to the data: $Y=\beta_0 + \beta_1 x + e$ where $Y$ is the gross box office results for the current week (in $) and $x$ is the gross box office results for the previous week (in $).  Compleete the following tasks:
 
 ```{r, comment=NA}
-teengamb <- read.delim("data/teengamb.txt") %>%
-  mutate(sex = as.factor(ifelse(sex == 0, "Male", "Female")))
-model <- lm(gamble ~ sex + status + income + verbal, data = teengamb)
-summary(model)
+playbill <- read.csv("data/playbill.csv")
+# teengamb <- read.delim("data/teengamb.txt") %>%
+#   mutate(sex = as.factor(ifelse(sex == 0, "Male", "Female")))
+fit <- lm(CurrentWeek ~ LastWeek, data = playbill)
+summary(fit)
 ```
 
-A. What percentage of variation in the response is explained by these predictors?
+A. Find a 95% confidence interval for the slope of the regression model, $\beta_1$.  Is 1 a plausible value for $\beta_1$?  Give a reason to support your answer.
 
 ```{r, null_prefix=TRUE}
-summary(model)$r.squared
+confint(fit, "LastWeek")
 ```
 
+**Yes.  It is plausible because it falls within the range of the 95% confidence interval.**
 
-B. Which observation has the largest (positive) residual?  Give the case number
+B. Test the null hypothesis $H_0 : \beta_0 = 10000$ against a two-sided alternative.  Interpret your result.
 
-```{r, null_prefix=TRUE}
-largest_positive_residual <- max(residuals(model))
 
-seq(1, length(residuals(model)))[residuals(model) == largest_positive_residual]
-```
-
-C. Compute the mean and median of the residuals.
-
-```{r, null_prefix=TRUE}
-noquote(paste("Mean:", round(mean(residuals(model)),3)))
-
-noquote(paste("Median:", round(median(residuals(model)),3)))
-```
-
-D. Compute the correlation of the residuals with the fitted values.
-
-```{r, null_prefix=TRUE}
-fitted_vals <- predict(model, teengamb)
-round(cor(fitted_vals, residuals(model)),3)
-```
-
-E. Compute the correlation of the residual with the income
-
-```{r, null_prefix=TRUE}
-round(cor(teengamb$income, residuals(model)),3)
-```
-
-F. For all other predictors held constant, what would be the difference in predicted expenditure on gambling for a male compared to a female?
-
-```{r, null_prefix=TRUE}
-unname(model$coefficients["sexMale"])
-```
 
 ## MARR 2.2
-
-The dataset *uswages* is drawn as a sample from the Current Population Survey in 1988.  Fit a model with weekly wages as the response and years of education and experience as predictors.  Report and give a simple interpretation to the regression coefficient for the years of education.  Now fit the same model but with the logged weekly wages.  Give an interpretation to the regression coefficeint for the years of education.  Which interpretation is more natural?
 
 ## LMR 2.4
 
