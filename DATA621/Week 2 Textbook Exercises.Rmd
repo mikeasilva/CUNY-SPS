@@ -8,25 +8,17 @@ output:
 ---
 
 
-```{r knitr_init, echo=FALSE, cache=FALSE, warning=FALSE, message=FALSE}
+```{r knitr_init, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
 library(rmdformats)
 library(tidyverse)
-library(kableExtra)
-library(gridExtra)
-library(ggthemes)
 ## Global options
-options(max.print="75")
-opts_chunk$set(echo=FALSE,
-	             cache=TRUE,
-               prompt=FALSE,
-               tidy=TRUE,
+options(max.print="100")
+opts_chunk$set(tidy=TRUE,
                comment=NA,
                message=FALSE,
                warning=FALSE)
-opts_knit$set(width=75)
-
-
+opts_knit$set(width=200)
 # A Prefix nulling hook.
 
 # Make sure to keep the default for normal processing.
@@ -61,21 +53,20 @@ knitr::opts_template$set("kill_prefix"=list(comment=NA, null_prefix=TRUE))
 
 ## MARR 2.1
 
-The web site www.playbill.com provides weekly reports on the box office ticket sales for plays on Broadway in New York.  We shall consider the data for the week Octover 11-17, 2004 (reffered to below as the current week).  The data are in the form of the gross box office results for the current week and the gross box office results for the previous wek (i.e., October 3-10, 2004).
+The web site www.playbill.com provides weekly reports on the box office ticket sales for plays on Broadway in New York.  We shall consider the data for the week October 11-17, 2004 (reffered to below as the current week).  The data are in the form of the gross box office results for the current week and the gross box office results for the previous wek (i.e., October 3-10, 2004).
 
-Fit the following model to the data: $Y=\beta_0 + \beta_1 x + e$ where $Y$ is the gross box office results for the current week (in $) and $x$ is the gross box office results for the previous week (in $).  Compleete the following tasks:
+Fit the following model to the data: $Y=\beta_0 + \beta_1 x + e$ where $Y$ is the gross box office results for the current week (in $) and $x$ is the gross box office results for the previous week (in $). 
 
 ```{r, comment=NA}
 playbill <- read.csv("data/playbill.csv")
-# teengamb <- read.delim("data/teengamb.txt") %>%
-#   mutate(sex = as.factor(ifelse(sex == 0, "Male", "Female")))
 fit <- lm(CurrentWeek ~ LastWeek, data = playbill)
-summary(fit)
 ```
+
+Complete the following tasks:
 
 A. Find a 95% confidence interval for the slope of the regression model, $\beta_1$.  Is 1 a plausible value for $\beta_1$?  Give a reason to support your answer.
 
-```{r, null_prefix=TRUE}
+```{r, comment=NA}
 confint(fit, "LastWeek")
 ```
 
@@ -83,9 +74,71 @@ confint(fit, "LastWeek")
 
 B. Test the null hypothesis $H_0 : \beta_0 = 10000$ against a two-sided alternative.  Interpret your result.
 
+```{r}
+confint(fit, "(Intercept)")
+```
 
+**The 95% confidence interval ranges from -14,244 to 27,854.  Since the null hypothesis falls outside of this range we would reject the null hypothesis.**
+
+C. Use the fitted regression model to estimate the gross box office results for the current week (in $) for a production with $400,000 in gross box office the previous week.  Find a 95% prediction interval for the gross box office results for the current week (in $) for a production with $400,000 in gross box office the previous week.  
+
+```{r, null_prefix=TRUE}
+predict(fit, data.frame("LastWeek" = 400000), interval="predict")
+```
+
+Is $450,000 a feasible value for the gross box office results in the current week, for a production with $400,000 in gros box office the previous week?  Give a reason to support your answer.
+
+**No, because it falls outside of the upper bounds of the prediction interval.**
+
+D. Some promoters of Brodway plays use the rediction rult that next weeks gross box office results will be equal to this weeks's gross box office results.  Comment on the appropriateness of this rule.
+
+**Let's examine this model graphically.  We will plot the data and add a red line that represents the model:**
+
+```{r}
+ggplot(playbill, aes(x=LastWeek/1000, y=CurrentWeek/1000)) +
+  geom_point() +
+  labs(title = "Gross Box Office Results",
+       subtitle = "(in thousands of dollars)",
+       x = "Previous Week",
+       y = "Current Week") +
+  geom_abline(slope=1, intercept = 0, color = "red")
+```
+
+**Most of the data lines up with the line.  It is not a bad model.  This also relates to question A.  1 falls in the 95% confidence interval.**
 
 ## MARR 2.2
+
+A story by James R. Hagerty entitled *With Buyers Sidelined, Home Prices Slide* published in the Thursday October 25, 2007 edition of the *Wall Street Journal* contained data on so-called fundamental housing indicators in major real estate markets across the US.  The author argues that...*prices are generally falling and overdue loan payments are pilling up*.  Thus, we shall consider data presented in the article on
+
+$Y$ = Percentage change in average price from July 2006 to July 2007 (based on the S&P/Case-Shiller national housing index); and
+
+$x$ = Percentage of mortgage loans 30 days or more overdue in latest quarter (based on data from Equifax and Moody's).
+
+Fit the following model to the data: $Y = \beta_0 + \beta_1 x + e$.  
+
+```{r}
+indicators <- read.delim("data/indicators.txt")
+fit <- lm(PriceChange ~ LoanPaymentsOverdue, data = indicators)
+```
+
+Complete the following tasks:
+
+A. Find a 95% confidence interval for the slope of the regression model, $\beta_1$.  On the basis of this confidence interval decide whether there is evidence of a significant negative linear association.
+
+```{r}
+confint(fit, "LoanPaymentsOverdue")
+```
+
+**The data suggest that there may be a negative linear association.  However this relationship is not very strong.**
+
+B. Use the fitted regression model to estimate $E(Y|X=4)$.  Find a 95% confidence interval for $E(Y|X=4)$.  Is 0% a feasible value for $E(Y|X=4)$?  Give a reason to support your answer.
+
+
+```{r, null_prefix=TRUE}
+predict(fit, data.frame("LoanPaymentsOverdue" = 4), interval="predict")
+```
+
+**The expected value is -3.79 (roughly).  The 95% CI is -14.48 to 6.9.  0 is a feasible value because it falls within the confidence interval.**
 
 ## LMR 2.4
 
