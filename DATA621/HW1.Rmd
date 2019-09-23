@@ -1,0 +1,171 @@
+---
+title: "DATA 621 Homework #1"
+author: "Michael Silva"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    toc_depth: 3
+    code_folding: "hide"
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
+library(tidyverse)
+library(kableExtra)
+library(corrplot)
+```
+
+## Introduction
+
+```{r read_data, echo=FALSE}
+# Read in the training data
+training <- read.csv("./data/moneyball-training-data.csv") %>%
+  select(-INDEX) # Dropping meaningless index
+# Read in the evaluation data
+evaluation <- read.csv("./data/moneyball-evaluation-data.csv")
+```
+
+We have been given a dataset with `r nrow(training)` records summarizing a major league baseball team's season. The records span 1871 to 2006 inclusive.  All statistics have been adjusted to match the performance of a 162 game season.  The objective is to build a linear regression model to predict the number of wins for a team.
+
+### Working Theory
+
+We are working on the premise that there are "good" teams and there are "bad" teams.  The good teams win more than the bad teams.  We are assuming that some of the predictors will be higher for the good teams than for the bad teams.  Consequently we can use these variables to predict how many times a team will win in a season.
+
+### Notes About the Data
+
+There are some difficulties with this dataset.  First it covers such a wide time period.  We know there are different "eras" of baseball.  This data will span multiple eras.  Has the fundamental relationships between wining and these predictors change over time?  We think it has.  If so this will be a challenge.
+
+## Data Exploration
+
+### First Look at the Data
+
+We will first look at the data to get a sense of what we have.
+
+```{r small_multiples_density, warning=FALSE}
+training %>%
+  gather(variable, value, TARGET_WINS:TEAM_FIELDING_DP) %>%
+  ggplot(., aes(value)) + 
+  geom_density(fill = "indianred4", color="indianred4") + 
+  facet_wrap(~variable, scales ="free", ncol = 4) +
+  labs(x = element_blank(), y = element_blank())
+```
+
+```{r}
+quick_summary <- function(df){
+  df %>%
+    summary() %>%
+    kable() %>%
+    kable_styling()
+}
+
+quick_summary(training)
+```
+
+Some initial observations:  
+
+* The response variable (`TARGET_WINS`) looks to be normally distributed.  This supports the working theory that there are good teams and bad teams.  There are also a lot of average teams.
+* There are also quite a few variables with missing values.  We may need to deal with these in order to have the largest data set possible for modeling.
+* A couple variables are bimodal (`TEAM_BATTING_HR`, `TEAM_BATTING_SO` `TEAM_PITCHING_HR`).  This may be a challenge as some of them are missing values and that may be a challenge in filling in missing values.
+* Some variables are right skewed (`TEAM_BASERUN_CS`, `TEAM_BASERUN_SB`, etc.).  This might support the good team theory.  It may also introduce non-normally distributed residuals in the model.  We shall see.  
+
+### Correlations
+
+Let's take a look at the correlations.  The following is the correlations from the complete cases only:
+
+```{r correlation plot}
+training %>% 
+  cor(., use = "complete.obs") %>%
+  corrplot(., method = "color", type = "upper", tl.col = "black", diag = FALSE)
+```
+
+```{r}
+temp <- training %>% 
+  cor(., use = "complete.obs") #%>%
+  
+temp[lower.tri(temp, diag=TRUE)] <- ""
+temp <- temp %>%
+  as.data.frame() %>%
+  rownames_to_column() %>%
+  gather(Variable, Correlation, -rowname) %>%
+  filter(Variable != rowname) %>%
+  filter(Correlation != "") %>%
+  mutate(Correlation = as.numeric(Correlation)) %>%
+  rename(` Variable` = rowname) %>%
+  arrange(desc(abs(Correlation))) 
+```
+
+
+#### Correlations with Response Variable
+
+Let's take a look at how the predictors are correlated with the response variable:
+
+```{r}
+temp %>%
+  filter(` Variable` == "TARGET_WINS") %>%
+  kable() %>%
+  kable_styling()
+```
+
+It looks like the hits, walks, home runs, and errors have the strongest correlations with wins.  None of these correlations are particularly strong.  This suggests there is a lot of 'noise' in these relationships.
+
+It is interesting to note allowing hits is positively correlated with wins. How strange!  Let's take a closer look at this correlation:
+
+```{r}
+ggplot(training, aes(TEAM_PITCHING_H, TARGET_WINS)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  xlab("Hits Allowed") +
+  ylab("Wins")
+```
+
+It is also noteworthy that pitching strikeouts is negatively correlated with winning.  That does not make any sense.
+
+#### Strong Correlations (Absolute Value > 0.5)
+
+Let's see if the are any predictors are correlated with each other.  We will only look for "strong" correlations:
+
+```{r}
+temp %>%
+  filter(abs(Correlation) > .5) %>%
+  kable() %>%
+  kable_styling()
+```
+
+There are `r temp %>% filter(Correlation > .99) %>% nrow(.)` variables that have a correlation that is almost 1!  We will need to be careful to prevent adding autocorrelation errors to our model.
+
+### Missing Values
+
+During our first look at the data it was noted that there were variables that are missing data.  Here's a look at what variables are missing data and how big of a problem is it:
+
+```{r}
+training %>% 
+  gather(variable, value) %>%
+  filter(is.na(value)) %>%
+  group_by(variable) %>%
+  tally() %>%
+  mutate(percent = n / nrow(training) * 100) %>%
+  mutate(percent = paste0(round(percent, ifelse(percent < 10, 1, 0)), "%")) %>%
+  arrange(desc(n)) %>%
+  rename(`Variable Missing Data` = variable,
+         `Number of Records` = n,
+         `Share of Total` = percent) %>%
+  kable() %>%
+  kable_styling()
+```
+
+The hit by pitcher varriable is missing over 90% of it's data.  Based on the weak correlation with the response variable we will exclude it from consideration in our model.
+
+Caught stealling a base (`TEAM_BASERUN_CS`) is next on the list.  It may be possible to predict it using `TEAM_BASERUN_SB` since they are strongly correlated, but there are `r training %>% filter(is.na(TEAM_BASERUN_SB) & is.na(TEAM_BASERUN_SB)) %>% nrow()` times they both are missing data.
+
+
+## Data Preparation
+
+
+
+## Model Building
+
+## Model Selection
+
+## Appendix
