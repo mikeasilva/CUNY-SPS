@@ -417,43 +417,26 @@ Again, we will use the KNN imputation from earlier to fill in NAs with imputed v
 
 ### Fixing Missing/Zero Values
 
-First we will remove the invalid data and prep it for imputation.  We will drop the hit by pitcher variable from the dataset.
+First we will remove the invalid data and prep it for imputation.  We will drop the hit by pitcher variable from the dataset.  We will then impute the data using KNN.
 
 ```{r}
-remove_bad_values <- function(df){
-  # Change 0's to NA so they too can be imputed
-  df <- df %>%
-  mutate(TEAM_BATTING_SO = ifelse(TEAM_BATTING_SO == 0, NA, TEAM_BATTING_SO))
-  # Remove the high pitching strikeout values
-  df[which(df$TEAM_PITCHING_SO > 5346),"TEAM_PITCHING_SO"] <- NA
-  # Drop the hit by pitcher variable
-  df %>%
-    select(-TEAM_BATTING_HBP)
-}
+training <- training %>%
+  mutate(TEAM_BATTING_SO = ifelse(TEAM_BATTING_SO == 0, NA, TEAM_BATTING_SO)) %>%
+  mutate(TEAM_PITCHING_SO = ifelse(TEAM_PITCHING_SO > 5346, NA, TEAM_PITCHING_SO)) %>%
+  select(-TEAM_BATTING_HBP)
 
-training <- remove_bad_values(training)
-evaluation <- remove_bad_values(evaluation)
-```
-
-```{r}
 set.seed(42)
 knn <- training %>% knnImputation()
-
-impute_values <- function(df, knn){
-  impute_me <- is.na(df$TEAM_BATTING_SO)
-  df[impute_me,"TEAM_BATTING_SO"] <- knn[impute_me,"TEAM_BATTING_SO"] 
-  impute_me <- is.na(df$TEAM_BASERUN_SB)
-  df[impute_me,"TEAM_BASERUN_SB"] <- knn[impute_me,"TEAM_BASERUN_SB"] 
-  impute_me <- is.na(df$TEAM_BASERUN_CS)
-  df[impute_me,"TEAM_BASERUN_CS"] <- knn[impute_me,"TEAM_BASERUN_CS"] 
-  impute_me <- is.na(df$TEAM_PITCHING_SO)
-  df[impute_me,"TEAM_PITCHING_SO"] <- knn[impute_me,"TEAM_PITCHING_SO"]
-  impute_me <- is.na(df$TEAM_FIELDING_DP)
-  df[impute_me,"TEAM_FIELDING_DP"] <- knn[impute_me,"TEAM_FIELDING_DP"]
-  return(df)
-}
-
-training <- impute_values(training, knn)
+impute_me <- is.na(training$TEAM_BATTING_SO)
+training[impute_me,"TEAM_BATTING_SO"] <- knn[impute_me,"TEAM_BATTING_SO"] 
+impute_me <- is.na(training$TEAM_BASERUN_SB)
+training[impute_me,"TEAM_BASERUN_SB"] <- knn[impute_me,"TEAM_BASERUN_SB"] 
+impute_me <- is.na(training$TEAM_BASERUN_CS)
+training[impute_me,"TEAM_BASERUN_CS"] <- knn[impute_me,"TEAM_BASERUN_CS"] 
+impute_me <- is.na(training$TEAM_PITCHING_SO)
+training[impute_me,"TEAM_PITCHING_SO"] <- knn[impute_me,"TEAM_PITCHING_SO"]
+impute_me <- is.na(training$TEAM_FIELDING_DP)
+training[impute_me,"TEAM_FIELDING_DP"] <- knn[impute_me,"TEAM_FIELDING_DP"]
 ```
 
 ### Feature Engineering
