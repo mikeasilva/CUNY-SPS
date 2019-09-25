@@ -1,12 +1,13 @@
 ---
 title: "DATA 621 Homework #1"
-author: "Michael Silva"
+subtitle: "From Work by Critical Thinking Group 3"
+author: "Mike Silva"
 date: "`r Sys.Date()`"
 output:
   rmdformats::readthedown:
     highlight: kate
     toc_depth: 3
-    code_folding: "hide"
+    code_folding: "show"
 ---
 
 
@@ -15,6 +16,8 @@ knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
 library(tidyverse)
 library(kableExtra)
 library(corrplot)
+library(caret)
+library(DMwR)
 ```
 
 ## Introduction
@@ -35,7 +38,7 @@ We are working on the premise that there are "good" teams and there are "bad" te
 
 ### Notes About the Data
 
-There are some difficulties with this dataset.  First it covers such a wide time period.  We know there are different "eras" of baseball.  This data will span multiple eras.  Has the fundamental relationships between wining and these predictors change over time?  We think it has.  If so this will be a challenge.
+There are some difficulties with this dataset.  First it covers such a wide time period.  We know there are different "eras" of baseball.  This data will span multiple eras.  Has the fundamental relationships between winning and these predictors change over time?  We think it has.  If so this will be a challenge.
 
 ## Data Exploration
 
@@ -101,6 +104,16 @@ temp <- temp %>%
 
 Let's take a look at how the predictors are correlated with the response variable:
 
+```{r warning=FALSE}
+training %>%
+  gather(variable, value, -TARGET_WINS) %>%
+  ggplot(., aes(value, TARGET_WINS)) + 
+  geom_point(fill = "indianred4", color="indianred4") + 
+  geom_smooth(method = "lm", se = FALSE, color = "black") + 
+  facet_wrap(~variable, scales ="free", ncol = 4) +
+  labs(x = element_blank(), y = "Wins")
+```
+
 ```{r}
 temp %>%
   filter(` Variable` == "TARGET_WINS") %>%
@@ -110,21 +123,11 @@ temp %>%
 
 It looks like the hits, walks, home runs, and errors have the strongest correlations with wins.  None of these correlations are particularly strong.  This suggests there is a lot of 'noise' in these relationships.
 
-It is interesting to note allowing hits is positively correlated with wins. How strange!  Let's take a closer look at this correlation:
-
-```{r}
-ggplot(training, aes(TEAM_PITCHING_H, TARGET_WINS)) +
-  geom_point() +
-  geom_smooth(method = "lm", se = FALSE) +
-  xlab("Hits Allowed") +
-  ylab("Wins")
-```
-
-It is also noteworthy that pitching strikeouts is negatively correlated with winning.  That does not make any sense.
+It is interesting to note allowing hits is positively correlated with wins. How strange! It is also noteworthy that pitching strikeouts is negatively correlated with winning.  That does not make any sense.  When one examines the scatter plots above it becomes apparent that these correlations are being effected by some outliers.
 
 #### Strong Correlations (Absolute Value > 0.5)
 
-Let's see if the are any predictors are correlated with each other.  We will only look for "strong" correlations:
+Are any predictors are correlated with each other?  We will only look for "strong" correlations:
 
 ```{r}
 temp %>%
@@ -135,9 +138,11 @@ temp %>%
 
 There are `r temp %>% filter(Correlation > .99) %>% nrow(.)` variables that have a correlation that is almost 1!  We will need to be careful to prevent adding autocorrelation errors to our model.
 
-### Missing Values
+### Strange Data Values
 
-During our first look at the data it was noted that there were variables that are missing data.  Here's a look at what variables are missing data and how big of a problem is it:
+#### Missing Values
+
+During our first look at the data it was noted that there were variables that are missing data.  Here's a look at what variables are missing data and how big of a problem it is:
 
 ```{r}
 training %>% 
@@ -155,17 +160,474 @@ training %>%
   kable_styling()
 ```
 
-The hit by pitcher varriable is missing over 90% of it's data.  Based on the weak correlation with the response variable we will exclude it from consideration in our model.
+The hit by pitcher varriable is missing over 90% of it's data.  We will exclude it from consideration in our model.
 
 Caught stealling a base (`TEAM_BASERUN_CS`) is next on the list.  It may be possible to predict it using `TEAM_BASERUN_SB` since they are strongly correlated, but there are `r training %>% filter(is.na(TEAM_BASERUN_SB) & is.na(TEAM_BASERUN_SB)) %>% nrow()` times they both are missing data.
+
+The strike outs are going to be a little tricky because of their bimodal distribution.  All `r training %>% filter(is.na(TEAM_BATTING_SO) & is.na(TEAM_PITCHING_SO)) %>% nrow()`
+
+#### Zero Values
+
+There are also variables that have verly low values.  Let's see how big of a problem this is:
+
+```{r}
+training %>% 
+  gather(variable, value) %>%
+  filter(value == 0) %>%
+  group_by(variable) %>%
+  tally() %>%
+  mutate(percent = n / nrow(training) * 100) %>%
+  mutate(percent = paste0(round(percent, ifelse(percent < 10, 1, 0)), "%")) %>%
+  arrange(desc(n)) %>%
+  rename(`Variable With Zeros` = variable,
+         `Number of Records` = n,
+         `Share of Total` = percent) %>%
+  kable() %>%
+  kable_styling()
+```
+
+This isn't nearly as large of a problem as the missing values. 
+
+### Deeper Dive into the Variables
+
+#### TARGET_WINS
+
+```{r}
+training %>% 
+  ggplot(aes(TARGET_WINS)) + 
+  geom_histogram(bins = 50) +
+  geom_vline(aes(xintercept = mean(TARGET_WINS)), col = "red", lty = 2) +
+  geom_vline(aes(xintercept = median(TARGET_WINS)), col = "green", lty = 2) +
+  labs(x = element_blank(), 
+       y = "Count",
+       title = "Distribution of Wins",
+       caption = "* Red line is the mean value and green is the median")
+```
+
+The range of data looks good.  There is a single zero value, which is the Washington Nationals 1872 season.
+
+#### TEAM_BATTING_3B
+
+This field represents triples hit by the team. Triples aren't very common because the ball is still in the field of play (unlike a homerun) but the batter still has enough time to get 3 bases.
+
+```{r}
+training %>% 
+  ggplot(aes(TEAM_BATTING_3B)) + 
+  geom_histogram(bins = 50) +
+  geom_vline(aes(xintercept = mean(TEAM_BATTING_3B)), col = "red", lty = 2) +
+  geom_vline(aes(xintercept = median(TEAM_BATTING_3B)), col = "green", lty = 2) +
+  labs(x = element_blank(), 
+       y = "Count",
+       title = "Distribution of Triples",
+       caption = "* Red line is the mean value and green is the median")
+```
+
+Looking at the distribution, the value of zero doesn't look too unusual. Even if it were, the value is not likely to have a large impact.
+
+#### TEAM_BATTING_HR
+
+Although homeruns are more common in modern baseball (thank you PDEs!), there are some low values in the data. So zero doesn't seem too unusual here either.
+
+```{r}
+training %>% 
+  ggplot(aes(TEAM_BATTING_HR)) + 
+  geom_histogram(bins = 50) +
+  geom_vline(aes(xintercept = mean(TEAM_BATTING_HR)), col = "red", lty = 2) +
+  geom_vline(aes(xintercept = median(TEAM_BATTING_HR)), col = "green", lty = 2) +
+  labs(x = element_blank(), 
+       y = "Count",
+       title = "Distribution of Homeruns",
+       caption = "* Red line is the mean value and green is the median")
+```
+
+#### TEAM_BATTING_BB
+
+This variable represents when the batter is "walked" by the pitcher (also known as Base on Balls):
+
+```{r}
+training %>% 
+  ggplot(aes(TEAM_BATTING_BB)) + 
+  geom_histogram(bins = 50) +
+  geom_vline(aes(xintercept = mean(TEAM_BATTING_BB)), col = "red", lty = 2) +
+  geom_vline(aes(xintercept = median(TEAM_BATTING_BB)), col = "green", lty = 2) +
+  labs(x = element_blank(), 
+       y = "Count",
+       title = "Distribution of Walks (Base on Balls)",
+       caption = "* Red line is the mean value and green is the median")
+```
+
+Four balls will walk a batter in modern baseball, however that wasn't always the case. A century or more ago (within the date range of this data set) walks took as many as 9 balls to happen[^1]. Knowing this, and looking at the left-tail of the values above, it is not unreasonable that there might be a season with no walks. Like triples above, leaving the one zero data point in is unlikely to adversely impact any regression, since there are valid values nearby.
+
+#### TEAM_BATTING_SO
+
+Here we saw some NA values, `r training %>% filter(is.na(TEAM_BATTING_SO)) %>% nrow(.)` of them to be specific. Plus we have `r training %>% filter(TEAM_BATTING_SO == 0) %>% nrow(.)` zero values as well.
+
+```{r}
+training %>% 
+  ggplot(aes(TEAM_BATTING_SO)) + 
+  geom_histogram(bins = 50) +
+  geom_vline(aes(xintercept = mean(TEAM_BATTING_SO,na.rm = T)), col = "red", lty = 2) +
+  geom_vline(aes(xintercept = median(TEAM_BATTING_SO, na.rm = T)), col = "green", lty = 2) +
+  labs(x = element_blank(), 
+       y = "Count",
+       title = "Distribution of Strikeouts (Batter)",
+       caption = "* Red line is the mean value and green is the median")
+```
+
+First, the zero values seem nigh-impossible. An entire season (162 games) without a single batter being struck out seems highly suspect, let alone 20 of them in the dataset.
+
+We will replace these values with imputed values, but the distribution looks to be bimodal, so using a mean or median (which is squarely between those peaks) may cause some issues with the model. So, instead, we will impute values using regression.
+
+We will impute values for this variable by looking at it's nearest neighbors (based on other variables) and taking a weighted average of their values.
+
+#### TEAM_BASERUN_SB
+
+With this variable, we have a good number of NA values, and 2 zeroes:
+
+```{r}
+training %>% 
+  ggplot(aes(TEAM_BASERUN_SB)) + 
+  geom_histogram(bins = 50) +
+  geom_vline(aes(xintercept = mean(TEAM_BASERUN_SB, na.rm = T)), col = "red", lty = 2) +
+  geom_vline(aes(xintercept = median(TEAM_BASERUN_SB, na.rm = T)), col = "green", lty = 2) +
+  labs(x = element_blank(),
+       y = "Count",
+       title = "Distribution of Stolen Bases",
+       caption = "* Red line is the mean value and green is the median")
+```
+
+The zeroes may be legitimate here so we will leave them alone. For the NAs, we will use the same KNN imputation we used above for strikeouts to impute values.
+
+#### TEAM_BASERUN_CS
+
+This variable is NA for nearly a third of records and only 2 zero values (which could be legitimate values):
+
+```{r}
+training %>% 
+  ggplot(aes(TEAM_BASERUN_CS)) + 
+  geom_histogram(bins = 50) +
+  geom_vline(aes(xintercept = mean(TEAM_BASERUN_CS, na.rm = T)), col = "red", lty = 2) +
+  geom_vline(aes(xintercept = median(TEAM_BASERUN_CS, na.rm = T)),col = "green", lty = 2) +
+  labs(x = element_blank(),
+       y = "Count",
+       title = "Distribution of Caught Stealing Bases",
+       caption = "* Red line is the mean value and green is the median")
+```
+
+Despite the high number of missing values (and a potential for increased error), we will use the KNN imputed values.
+
+#### TEAM_BATTING_HBP
+
+With this variable, we see nearly all entries are missing:
+
+```{r}
+training %>% 
+  ggplot(aes(TEAM_BATTING_HBP)) + 
+  geom_histogram(bins = 50) +
+  geom_vline(aes(xintercept = mean(TEAM_BATTING_HBP, na.rm = T)), col = "red", lty = 2) +
+  geom_vline(aes(xintercept = median(TEAM_BATTING_HBP, na.rm = T)), col = "green", lty = 2) +
+  labs(x = element_blank(),
+       y = "Count",
+       title = "Distribution of Being Hit By a Pitch",
+       caption = "* Red line is the mean value and green is the median")
+```
+
+We will drop this variable as we cannot responsibly impute values with such thin data.
+
+#### TEAM_PITCHING_HR
+
+This variable has no NA values, but there are a few zero values. However, the zero values seem to be legitimate given the distribution:
+
+```{r}
+training %>% 
+  ggplot(aes(TEAM_PITCHING_HR)) + 
+  geom_histogram(bins = 50) +
+  geom_vline(aes(xintercept = mean(TEAM_PITCHING_HR, na.rm = T)), col = "red", lty = 2) +
+  geom_vline(aes(xintercept = median(TEAM_PITCHING_HR, na.rm = T)), col = "green", lty = 2) +
+  labs(x = element_blank(),
+       y = "Count",
+       title = "Distribution of Homeruns Pitched",
+       caption = "* Red line is the mean value and green is the median")
+```
+
+#### TEAM_PITCHING_BB
+
+Here we have no NA values and a single zero:
+
+```{r}
+training %>% 
+  ggplot(aes(TEAM_PITCHING_BB)) + 
+  geom_histogram(bins = 50) +
+  geom_vline(aes(xintercept = mean(TEAM_PITCHING_BB, na.rm = T)), col = "red", lty = 2) +
+  geom_vline(aes(xintercept = median(TEAM_PITCHING_BB, na.rm = T)), col = "green", lty = 2) +
+  labs(x = element_blank(),
+       y = "Count",
+       title = "Distribution of Walks Pitched",
+       caption = "* Red line is the mean value and green is the median")
+```
+
+As we did with walks above, we can assume that is is possible to have no walks (and therefore pitch no walks). So, we will leave the zero alone.
+
+However, there are some **really** high values in the data, which strains reality a little. We could take anything defined as an outlier ($1.5 \cdot \text{IQR}$) and set it to NA so those records will be excluded from any model we build with this variable. But, when you do the math it seems extreme, but plausible. For example, the most number of games in a season in MLB is 162 (currently). With a max value or 3,645 walks pitched you get 22.5 walks per game on average. Divided equally amongst 9 innings, it comes out to 2.5 walks per inning. 
+
+I'd be surprised that any pitcher wouldn't be removed after an inning or two of 2-3 walks, but neither can we rule it out as a possibility.
+
+#### TEAM_PITCHING_SO
+
+This variable represents strikeouts pitched. We see that there are 102 NA values and a *lot* of extremely high values:
+
+```{r}
+training %>% 
+  ggplot(aes(TEAM_PITCHING_SO)) + 
+  geom_histogram(bins = 50) +
+  geom_vline(aes(xintercept = mean(TEAM_PITCHING_SO, na.rm = T)), col = "red", lty = 2) +
+  geom_vline(aes(xintercept = median(TEAM_PITCHING_SO, na.rm = T)), col = "green", lty = 2) +
+  labs(x = element_blank(),
+       y = "Count",
+       title = "Distribution of Strikeouts Pitched",
+       caption = "* Red line is the mean value and green is the median")
+```
+
+The extreme values need to be handled. First, a typical game will be 9 innings in length, and in each inning you can only pitch 3 strikeouts (because then your part of the inning is over). Those 27 potential strikeouts multiplied by 162 games means an upper limit near 4,374 a season.
+
+Games can go beyond 9 innings, but even if every game in a season was as long as the longest ever MLB game (26 innings) you can only have 12,636 strikeouts. So, the max value of `r max(training$TEAM_PITCHING_SO,na.rm=T)` is invalid.
+
+We'll make a high-yet-reasonable assumption of a mean 11 innings per game.  We will call anything more than 5,346 strikeouts an invalid data point by setting them to NA so they will be imputed prior to modeling.
+
+#### TEAM_FIELDING_DP
+
+The values in this variable seem reasonable, however we do have some NA values.
+
+```{r}
+training %>% 
+  ggplot(aes(TEAM_FIELDING_DP)) + 
+  geom_histogram(bins = 50) +
+  geom_vline(aes(xintercept = mean(TEAM_FIELDING_DP, na.rm = T)), col = "red", lty = 2) +
+  geom_vline(aes(xintercept = median(TEAM_FIELDING_DP, na.rm = T)), col = "green", lty = 2) +
+  labs(x = element_blank(),
+       y = "Counts",
+       title = "Distribution of Double Plays",
+       caption = "* Red line is the mean value and green is the median")
+```
+
+Again, we will use the KNN imputation from earlier to fill in NAs with imputed values.
 
 
 ## Data Preparation
 
+### Fixing Missing/Zero Values
 
+First we will remove the invalid data and prep it for imputation.  We will drop the hit by pitcher variable from the dataset.
+
+```{r}
+remove_bad_values <- function(df){
+  # Change 0's to NA so they too can be imputed
+  df <- df %>%
+  mutate(TEAM_BATTING_SO = ifelse(TEAM_BATTING_SO == 0, NA, TEAM_BATTING_SO))
+  # Remove the high pitching strikeout values
+  df[which(df$TEAM_PITCHING_SO > 5346),"TEAM_PITCHING_SO"] <- NA
+  # Drop the hit by pitcher variable
+  df %>%
+    select(-TEAM_BATTING_HBP)
+}
+
+training <- remove_bad_values(training)
+evaluation <- remove_bad_values(evaluation)
+```
+
+```{r}
+set.seed(42)
+knn <- training %>% knnImputation()
+
+impute_values <- function(df, knn){
+  impute_me <- is.na(df$TEAM_BATTING_SO)
+  df[impute_me,"TEAM_BATTING_SO"] <- knn[impute_me,"TEAM_BATTING_SO"] 
+  impute_me <- is.na(df$TEAM_BASERUN_SB)
+  df[impute_me,"TEAM_BASERUN_SB"] <- knn[impute_me,"TEAM_BASERUN_SB"] 
+  impute_me <- is.na(df$TEAM_BASERUN_CS)
+  df[impute_me,"TEAM_BASERUN_CS"] <- knn[impute_me,"TEAM_BASERUN_CS"] 
+  impute_me <- is.na(df$TEAM_PITCHING_SO)
+  df[impute_me,"TEAM_PITCHING_SO"] <- knn[impute_me,"TEAM_PITCHING_SO"]
+  impute_me <- is.na(df$TEAM_FIELDING_DP)
+  df[impute_me,"TEAM_FIELDING_DP"] <- knn[impute_me,"TEAM_FIELDING_DP"]
+  return(df)
+}
+
+training <- impute_values(training, knn)
+```
+
+### Feature Engineering
+
+The batting singles is not included but we can back it out of the hits.  We will do this.
+
+```{r}
+add_features <- function(df){
+  df %>%
+    mutate(TEAM_BATTING_1B = TEAM_BATTING_H - TEAM_BATTING_2B - TEAM_BATTING_3B - TEAM_BATTING_HR)
+}
+
+training <- add_features(training)
+evaluation <- add_features(evaluation)
+```
+
+### Results
+
+Here's what the data look like after imputation and correction:
+
+```{r warning=FALSE}
+training %>%
+  gather(variable, value) %>%
+  ggplot(., aes(value)) + 
+  geom_density(fill = "indianred4", color="indianred4") + 
+  facet_wrap(~variable, scales ="free", ncol = 4) +
+  labs(x = element_blank(), y = element_blank())
+```
+
+```{r}
+quick_summary <- function(df){
+  df %>%
+    summary() %>%
+    kable() %>%
+    kable_styling()
+}
+
+quick_summary(training)
+```
 
 ## Model Building
 
+We will divide the data into training and test sets using a 70/30 split.  We will build our models on the training set and evaluate it on the test set.
+
+```{r}
+set.seed(42)
+train_index <- createDataPartition(training$TARGET_WINS, p = .7, list = FALSE, times = 1)
+
+moneyball_train <- training[train_index,]
+moneyball_test <- training[-train_index,]
+```
+
+### Kitchen Sink Model
+
+We will begin with a "kitchen sink" model.
+
+```{r}
+kitchen_sink <- lm(TARGET_WINS ~ ., moneyball_train)
+summary(kitchen_sink)
+```
+
+It does a fairly good job predicting, but there are a lot of variables that are not statistically significant.
+
+```{r}
+plot(kitchen_sink)
+```
+
+### Simple Model
+
+Let's try to create a simplier model. We will pick variables that had high correlations and exclude the pitching variables which would introduce autocorrelation issues.
+
+```{r}
+simple_fit <- lm(TARGET_WINS ~ TEAM_BATTING_H + TEAM_BATTING_BB + TEAM_FIELDING_E, data = moneyball_train)
+summary(simple_fit)
+```
+
+This model isn't as fitted to the data as well but the variables are statistically significant.
+
+```{r}
+plot(simple_fit)
+```
+
+### Higher Order Stepwise Regression
+
+For the third model we will use a stepwise regression method using a backwards elimination process.  We also introduce some higher order polynomial variables.
+
+```{r}
+full_formula <- "TARGET_WINS ~ TEAM_BATTING_2B + TEAM_BATTING_3B + TEAM_BATTING_HR + TEAM_BATTING_BB + TEAM_BATTING_SO + TEAM_BASERUN_SB + TEAM_BASERUN_CS + TEAM_PITCHING_H + TEAM_PITCHING_HR + TEAM_PITCHING_BB + TEAM_PITCHING_SO + TEAM_FIELDING_E + TEAM_FIELDING_DP + TEAM_BATTING_1B + I(TEAM_BATTING_2B^2) + I(TEAM_BATTING_3B^2) + I(TEAM_BATTING_HR^2) + I(TEAM_BATTING_BB^2) + I(TEAM_BATTING_SO^2) + I(TEAM_BASERUN_SB^2) + I(TEAM_BASERUN_CS^2) + I(TEAM_PITCHING_H^2) + I(TEAM_PITCHING_HR^2) + I(TEAM_PITCHING_BB^2) + I(TEAM_PITCHING_SO^2) + I(TEAM_FIELDING_E^2) + I(TEAM_FIELDING_DP^2) + I(TEAM_BATTING_1B^2) + I(TEAM_BATTING_2B^3) + I(TEAM_BATTING_3B^3) + I(TEAM_BATTING_HR^3) + I(TEAM_BATTING_BB^3) + I(TEAM_BATTING_SO^3) + I(TEAM_BASERUN_SB^3) + I(TEAM_BASERUN_CS^3) + I(TEAM_PITCHING_H^3) + I(TEAM_PITCHING_HR^3) + I(TEAM_PITCHING_BB^3) + I(TEAM_PITCHING_SO^3) + I(TEAM_FIELDING_E^3) + I(TEAM_FIELDING_DP^3) + I(TEAM_BATTING_1B^3) + I(TEAM_BATTING_2B^4) + I(TEAM_BATTING_3B^4) + I(TEAM_BATTING_HR^4) + I(TEAM_BATTING_BB^4) + I(TEAM_BATTING_SO^4) + I(TEAM_BASERUN_SB^4) + I(TEAM_BASERUN_CS^4) + I(TEAM_PITCHING_H^4) + I(TEAM_PITCHING_HR^4) + I(TEAM_PITCHING_BB^4) + I(TEAM_PITCHING_SO^4) + I(TEAM_FIELDING_E^4) + I(TEAM_FIELDING_DP^4) + I(TEAM_BATTING_1B^4)"
+
+full_model <- lm(full_formula, moneyball_train)
+step_back <- MASS::stepAIC(full_model, direction="backward", trace = F)
+poly_call <- summary(step_back)$call
+step_back <- lm(poly_call[2], moneyball_train)
+summary(step_back)
+```
+
+This model has the highest adjusted R-squared but has some variables that are statistically insignificant.
+
+```{r}
+plot(step_back)
+```
+
 ## Model Selection
 
-## Appendix
+In order to select which model is the "best" we will test it against a test set.  We will examine the difference between the predicted and actual values.  Since the wins are in whole numbers and the `predict` function will generate floating point numbers, I will be rounding the results.
+
+### Kitchen Sink Results
+
+```{r}
+moneyball_test$kitchen_sink <- round(predict(kitchen_sink, moneyball_test), 0)
+moneyball_test <- moneyball_test %>%
+  mutate(kitchen_sink_error = TARGET_WINS - kitchen_sink)
+
+ggplot(moneyball_test, aes(kitchen_sink_error)) +
+  geom_histogram(bins = 50)
+
+summary(moneyball_test$kitchen_sink_error)
+```
+
+### Simple Model
+
+```{r}
+moneyball_test$simple <- round(predict(simple_fit, moneyball_test), 0)
+moneyball_test <- moneyball_test %>%
+  mutate(simple_error = TARGET_WINS - simple)
+
+ggplot(moneyball_test, aes(simple_error)) +
+  geom_histogram(bins = 50)
+
+summary(moneyball_test$simple_error)
+```
+
+### Stepwise Results
+
+```{r}
+moneyball_test$step_back <- round(predict(step_back, moneyball_test), 0)
+moneyball_test <- moneyball_test %>%
+  mutate(step_back_error = TARGET_WINS - step_back)
+
+moneyball_test %>%
+  filter(step_back_error > -100) %>%
+  ggplot(., aes(step_back_error)) +
+  geom_histogram(bins = 50) +
+  labs(caption = "Outlier removed")
+
+summary(moneyball_test$step_back_error)
+```
+
+This model did not preform very well on the out of sample data.
+
+
+## Final Model Selection
+
+In deciding which model to use to make my final predictions I will look at the amount of error in the predictions:
+
+```{r}
+moneyball_test %>%
+  select(kitchen_sink_error, simple_error, step_back_error) %>%
+  rename(`Kitchen Sink` = kitchen_sink_error,
+         `Simple` = simple_error,
+         `Stepwise` = step_back_error) %>%
+  summary() %>%
+  kable() %>%
+  kable_styling()
+```
+
+The stepwise regression model did not preform well with out of sample data.  The high adjusted R-squared is probably evidence of overfitting.  The simple and "kitchen sink" model have similar preformance.  I will use the simple model because I prefer to keep it simple stupid. The residuals of the simple model are mostly normally distributed.  The adjusted R squared indicates about a quarter of the variation is explained by the model.  I will complete this homework by generating predictions off of the evaluation set using the simple model.
+
+```{r}
+evaluation$TARGET_WINS <- round(predict(simple_fit, evaluation), 0)
+evaluation %>%
+  select(INDEX, TARGET_WINS) %>%
+  write.csv(., "./data/moneyball-predictions.csv", row.names = F)
+```
+
+
+[^1]: https://en.wikipedia.org/wiki/Base_on_balls
