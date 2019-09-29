@@ -18,18 +18,160 @@ library(ggthemes)
 ## Global options
 options(max.print="75")
 opts_chunk$set(echo=FALSE,
-	             cache=TRUE,
+	             cache=FALSE,
                prompt=FALSE,
                tidy=TRUE,
                comment=NA,
                message=FALSE,
                warning=FALSE)
 opts_knit$set(width=75)
+
+# A Prefix nulling hook.
+
+# Make sure to keep the default for normal processing.
+default_output_hook <- knitr::knit_hooks$get("output")
+
+# Output hooks handle normal R console output.
+knitr::knit_hooks$set( output = function(x, options) {
+
+  comment <- knitr::opts_current$get("comment")
+  if( is.na(comment) ) comment <- ""
+  can_null <- grepl( paste0( comment, "\\s*\\[\\d?\\]" ),
+                     x, perl = TRUE)
+  do_null <- isTRUE( knitr::opts_current$get("null_prefix") )
+  if( can_null && do_null ) {
+    # By default R print output aligns at the right brace.
+    align_index <- regexpr( "\\]", x )[1] - 1
+    # Two cases: start or newline
+    re <- paste0( "^.{", align_index, "}\\]")
+    rep <- comment
+    x <- gsub( re, rep,  x )
+    re <- paste0( "\\\n.{", align_index, "}\\]")
+    rep <- paste0( "\n", comment )
+    x <- gsub( re, rep,  x )
+  }
+
+  default_output_hook( x, options )
+
+})
+
+knitr::opts_template$set("kill_prefix"=list(comment=NA, null_prefix=TRUE))
 ```
 
 ## MARR 2.3
 
+The manager of the purchasing department of a large company would like to develop a regression model to predict the average amount of times it takes to process a given number of invoices.  Over a 30-day period, data are collected on the number of invoices processed and the total time taken (in hours). The data are avialable in the file inovices.txt. The following modle was fit to the data $Y = \beta_0 + \beta_1 x + e$ where $Y$ is the processing time and $x$ is the number of invoices.  Utilizing the output of the fit of theis model provided below, complete the following tasks.
+
+```{r comment=NA}
+invoices <- read.delim('./data/invoices.txt')
+fit <- lm(Time ~ Invoices, invoices)
+summary(fit)
+```
+
+a) Find a 95% confidence interval for the start-up time, i.e., $\beta_0$. 
+
+```{r}
+confint(fit, "(Intercept)")
+```
+
+b) Suppose that a best practice benchmark for the average processing time for an additonal invoice is 0.01 hours (or 0.6 minutes).  Test the null hypothesis $H_0:\beta_1 = 0.01$ against a two-sided alternative.  Interpret your results.
+
+```{r, null_prefix=TRUE}
+# T statistic
+abs(coef(summary(fit))[2, 1] - 0.01 / coef(summary(fit))[2, 2])
+```
+
+since the t is greater than  2.048 we reject the null hypothsis.  This suggests that the the observed invoice processing time is not equal to the best practice time.
+
+c) Find a point estimate and a 95% prediction interval for the itme taken to process 130 invoices.
+
+```{r, null_prefix=TRUE}
+predict(fit, data.frame(Invoices = 130), interval="predict") 
+```
+
 ## LMR 3.6
+
+Thirty-nine MBA students were asked about hapiness and how it relates to their income and social life.  the data is found in `happy`.  Fit a regression model with `happy` as the response and the other four variables as predictors.
+
+```{r, comment=NA}
+happy <- read.delim('./data/happy.txt')
+fit <- lm(happy ~ ., data = happy)
+summary(fit)
+```
+
+a) What predictors were statistically significant at  the 1% level? **money**
+
+b) Use the `table` function to produce a numerical summary of the response.  What assumption used to preform the t-tests seems questionable in light of this summary?  **Normally distributed residuals**
+
+```{r, eval=FALSE}
+table(happy$happy)
+```
+
+```{r}
+happy %>%
+  group_by(happy) %>%
+  tally() %>%
+  kable() %>%
+  kable_styling()
+```
+
+c) Use the permutation process described in section 3.3 to test the significance of the `money` predictor.
+
+```{r, null_prefix=TRUE}
+nreps <- 4000
+set.seed(123)
+t_stats <- numeric(nreps)
+p_values <- numeric(nreps)
+for(i in 1:nreps){
+  fit <- lm(sample(happy) ~ ., data = happy)
+  t_stats[i] <- summary(fit)[["coefficients"]][2, "t value"]
+  p_values[i] <- summary(fit)[["coefficients"]][2, "Pr(>|t|)"]
+  
+}
+
+mean(p_values)
+```
+
+d) Plot a histogram of the permutation t-statistics.  Make sure you use the probability rather than the frequency version of the histogram.
+
+```{r}
+hist(t_stats, freq = FALSE)
+```
+
+e)  Overlay an appropriate t-densisty over the histogram.  Hint: Use `grid <- seq(-3, 3, length = 300)` to create a grid of values, then use the `dt` function to compute the t-density on this grid and the `lines` function to superimpose the result.  
+
+```{r}
+grid <- seq(-3, 3, length = 300)
+hist(t_stats, freq = FALSE)
+lines(grid, dt(grid, 34))
+```
+
+f) Use the bootstrap procedure from Section 3.6 to compute 90% and 95% confidence intervals for $\beta_\text{money}$.  Does zero fall within these confidence intervals?  Are the results consistent with previous tests?
+
+```{r}
+set.seed(123)
+nb <- 4000
+bootstrap_coefficients <- matrix(NA, nb, length(coef(fit)))
+for (i in 1:nb){
+  bfit <- lm(sample(happy) ~ ., data = happy)
+  bootstrap_coefficients[i,] <- coef(bfit)
+}
+
+bootstrap_coefficients <- as.data.frame(bootstrap_coefficients)
+names(bootstrap_coefficients) <- names(coef(bfit))
+```
+
+```{r}
+# 95% CI
+apply(bootstrap_coefficients, 2, function(x) quantile(x, c(0.025, 0.975)))
+```
+
+```{r}
+# 90% CI
+apply(bootstrap_coefficients, 2, function(x) quantile(x, c(0.05, 0.95)))
+```
+
+**Zero falls within the CI's.  This is consistent with the other results.**
 
 ## LMR 4.5
 
