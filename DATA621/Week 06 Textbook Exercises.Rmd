@@ -5,6 +5,7 @@ date: "`r Sys.Date()`"
 output:
   rmdformats::readthedown:
     highlight: kate
+    code_folding: "hide"
 ---
 
 
@@ -14,17 +15,45 @@ library(rmdformats)
 library(tidyverse)
 library(kableExtra)
 library(gridExtra)
+library(faraway)
 library(ggthemes)
 ## Global options
 options(max.print="75")
-opts_chunk$set(echo=FALSE,
-	             cache=TRUE,
-               prompt=FALSE,
-               tidy=TRUE,
+opts_chunk$set(echo=TRUE,
                comment=NA,
                message=FALSE,
                warning=FALSE)
 opts_knit$set(width=75)
+# A Prefix nulling hook.
+
+# Make sure to keep the default for normal processing.
+default_output_hook <- knitr::knit_hooks$get("output")
+
+# Output hooks handle normal R console output.
+knitr::knit_hooks$set( output = function(x, options) {
+
+  comment <- knitr::opts_current$get("comment")
+  if( is.na(comment) ) comment <- ""
+  can_null <- grepl( paste0( comment, "\\s*\\[\\d?\\]" ),
+                     x, perl = TRUE)
+  do_null <- isTRUE( knitr::opts_current$get("null_prefix") )
+  if( can_null && do_null ) {
+    # By default R print output aligns at the right brace.
+    align_index <- regexpr( "\\]", x )[1] - 1
+    # Two cases: start or newline
+    re <- paste0( "^.{", align_index, "}\\]")
+    rep <- comment
+    x <- gsub( re, rep,  x )
+    re <- paste0( "\\\n.{", align_index, "}\\]")
+    rep <- paste0( "\n", comment )
+    x <- gsub( re, rep,  x )
+  }
+
+  default_output_hook( x, options )
+
+})
+
+knitr::opts_template$set("kill_prefix"=list(comment=NA, null_prefix=TRUE))
 ```
 
 ## MARR 6.3
@@ -32,5 +61,35 @@ opts_knit$set(width=75)
 ## MARR 6.5
 
 ## LMR 7.3
+
+Using the `divusa` data:
+
+a) Fit a regression model with `divorce` as the response and `unemployed`, `femlab`, `marriage`, `birth` and `military` as predictors. Compute the condition numbers and interpret their meanings.
+
+```{r, null_prefix=TRUE}
+divusa <- read.delim("data/divusa.txt")
+fit <- lm(divorce ~ unemployed + femlab + marriage + birth + military, data = divusa)
+summary(fit)
+x <- model.matrix(fit)[,-1]
+e <- eigen(t(x) %*% x)
+sqrt(e$val[1]/e$val)
+```
+
+b) For the same model, compute the VIFs.  Is there evidence that collinearity causes some predictors not to be significant? Explain.
+
+```{r, null_prefix=TRUE}
+vif(x)
+```
+
+c) Does the removal of insignificant predictors from the model reduce the collinearity? Investigate.
+
+```{r, null_prefix=TRUE}
+fit <- lm(divorce ~ femlab + marriage + birth, data = divusa)
+summary(fit)
+x <- model.matrix(fit)[,-1]
+e <- eigen(t(x) %*% x)
+sqrt(e$val[1]/e$val)
+vif(x)
+```
 
 ## LMR 7.8
