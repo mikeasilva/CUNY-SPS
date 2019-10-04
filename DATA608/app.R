@@ -22,18 +22,18 @@ ui <- navbarPage("Cause of Death",
                  tabPanel("2010 Ranking",
                           selectInput("cause_of_death", "Cause of Death:", options, width = "100%"),
                           mainPanel(
-                              plotlyOutput("rank_plot", height = "600px")
-                            )
+                              plotlyOutput("rank_plot", height = "700px")
+                            , width = 12)
                           )
                  )
 
 server <- function(input, output) {
     
     # change_over_time <- reactive({
-    #     temp <- df %>%
+    #     plot_df <- df %>%
     #         filter(ICD.Chapter == cause_of_death)
     #     
-    #     us <- temp %>%
+    #     us <- plot_df %>%
     #         group_by(Year) %>%
     #         summarise(Deaths = sum(Deaths),
     #                   Population = sum(Population)) %>%
@@ -42,34 +42,37 @@ server <- function(input, output) {
     #                Crude.Rate = round(Deaths / Population * 100000, 1)) %>%
     #         select(ICD.Chapter, State, Year, Deaths, Population, Crude.Rate)
     #     
-    #     return(bind_rows(temp, us))
+    #     return(bind_rows(plot_df, us))
     # })
     
     output$rank_plot <- renderPlotly({
-        temp <- df %>%
+        # Wrangle the data
+        plot_df <- df %>%
             filter(Year == 2010 & ICD.Chapter == input$cause_of_death) %>%
             arrange(Crude.Rate) %>%
             rename(`Mortality Rate` = Crude.Rate,
                    `State Name` = state_name) %>%
             mutate(Rank = row_number())
-        n_group <- nrow(temp) / 5
-        p <- temp %>%
-            mutate(color = as.factor(ceiling(Rank / n_group))) %>%
-            ggplot(aes(y = `Mortality Rate`, x = Rank, text = `State Name`,  fill = color)) +
+        n_group <- nrow(plot_df) / 5
+        plot_df <- plot_df %>%
+            mutate(color = as.factor(ceiling(Rank / n_group))) 
+        # This is to help position the text
+        text_y <- max(plot_df$`Mortality Rate`) / - 100
+        # Create the ggplot
+        p <- ggplot(plot_df, aes(y = `Mortality Rate`, x = Rank, text = paste("State:", `State Name`),  fill = color)) +
             scale_fill_brewer(palette = "Set1") +
             geom_bar(stat = "identity")+
-            #geom_text(aes(label=Crude.Rate), color="white", size=2, nudge_x = 2)+
             theme_minimal() +
             theme(legend.position = "none", 
                   axis.title.y = element_blank(),
                   axis.text.y = element_blank(),
                   axis.ticks.y = element_blank()) +
-            labs(y = "Mortality Rate", x = "") +
+            labs(y = "Deaths per 100,000", x = "") +
+            geom_text(data = plot_df, aes(x = Rank, y = text_y, label = State), color = "black", size = 2) + 
             coord_flip()
-        
-            ggplotly(p) %>% 
-                config(displayModeBar = F) %>% 
-                layout(dragmode = "select")
+        # Load it into plotly
+        ggplotly(p) %>% 
+            config(displayModeBar = F)
     })
     
     output$ranking_map <- renderPlot({
