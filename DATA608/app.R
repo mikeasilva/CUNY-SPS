@@ -13,6 +13,10 @@ xwalk <- read.csv("data/xwalk.csv", colClasses=c("state_fips"="character"))
 df <- read.csv("data/cleaned-cdc-mortality-1999-2010-2.csv") %>%
     merge(xwalk)
 
+# us <- read.csv("data/us-cdc-mortality-1999-2017.csv") %>%
+#     filter(Year <= max(df$Year)) %>%
+#     mutate(Crude.Rate = as.numeric(as.character(Crude.Rate)))
+
 # 2010 Ranking options
 options <- filter(df, Year == 2010) %>%
     mutate(ICD.Chapter = as.character(ICD.Chapter))
@@ -22,11 +26,14 @@ options <- unique(sort(options$ICD.Chapter))
 ui <- navbarPage("Cause of Death",
                  tabPanel("States by Rank in 2010",
                           selectInput("cause_of_death", "Cause of Death:", options, width = "100%"),
-                          mainPanel(
-                              plotlyOutput("rank_plot", height = "700px")
-                            , width = 12)
-                          )
+                          mainPanel(plotlyOutput("rank_plot", height = "700px"), width = 12)
+                          ),
+                 tabPanel("Improvement vs National Average",
+                          selectInput("cause_of_death_2", "Cause of Death:", options, width = "100%"),
+                          #uiOutput("state_options"),
+                          mainPanel(plotlyOutput("improvement_plot"), width = 12)
                  )
+)
 
 server <- function(input, output) {
     
@@ -58,6 +65,65 @@ server <- function(input, output) {
             labs(y = "Deaths per 100,000", x = "") +
             geom_text(data = plot_df, aes(x = Rank, y = text_y, label = State), color = "black", size = 2) + 
             coord_flip()
+        # Load it into plotly
+        ggplotly(p) %>% 
+            config(displayModeBar = F) %>%
+            layout(margin = list(t = 0))
+    })
+    
+    output$state_options <- reactive({
+        options <- df %>%
+            filter(ICD.Chapter == input$cause_of_death_2) %>%
+            select(state_name)
+        options <- unique(sort(options$state_name))
+        
+        selectInput("highlight", "Highlight:", options, width = "100%")
+    })
+    
+    output$improvement_plot <- renderPlotly({
+        # Wrangle the data
+        plot_df <- df %>%
+            merge(xwalk) %>%
+            filter(ICD.Chapter == input$cause_of_death_2)
+        
+        n_years <- plot_df %>%
+            select(Year) %>%
+            unique() %>%
+            nrow()
+        
+        us <- plot_df %>%
+            group_by(ICD.Chapter, Year) %>%
+            summarise(Deaths = sum(Deaths), 
+                      Population = sum(Population)) %>%
+            mutate(State = "US",
+                   state_fips = "00",
+                   state_name = "United States",
+                   Crude.Rate = round(Deaths / Population * 100000, 1)) %>%
+            select(State, state_fips, state_name, ICD.Chapter, Year, Deaths, Population, Crude.Rate)
+        
+        plot_df <- plot_df %>%
+            bind_rows(us)
+        
+        plot_df <- plot_df %>%
+            filter(Year == 1999) %>%
+            rename(base_rate = Crude.Rate) %>%
+            select(State, base_rate) %>%
+            merge(plot_df) %>%
+            mutate(Index = round(Crude.Rate / base_rate * 100, 0),
+                   color = ifelse(State == "US", "red", "gray")) %>%
+            rename(abbr = State,
+                   State = state_name,
+                   `Mortality Rate` = Crude.Rate)
+        plot_df$color <- as.factor(plot_df$color)
+        p <- ggplot(plot_df) +
+            geom_line(aes(x = Year, y = Index, group = State, color = color)) +
+            geom_point(aes(x = Year, y = Index, group = State, color = color, text = paste("Mortality Rate:", `Mortality Rate`))) +
+            scale_x_continuous(breaks = 1999:2010) +
+            theme_minimal() +
+            scale_color_manual(values=c("#bbbbbb", "#e41a1c", "#377eb8")) +
+            theme(panel.grid.major.x = element_blank(),
+                  legend.position = "none") +
+            labs(x = "", y = "1999 Mortality Rate = 100")
         # Load it into plotly
         ggplotly(p) %>% 
             config(displayModeBar = F) %>%
