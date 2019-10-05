@@ -13,9 +13,7 @@ xwalk <- read.csv("data/xwalk.csv", colClasses=c("state_fips"="character"))
 df <- read.csv("data/cleaned-cdc-mortality-1999-2010-2.csv") %>%
     merge(xwalk)
 
-# us <- read.csv("data/us-cdc-mortality-1999-2017.csv") %>%
-#     filter(Year <= max(df$Year)) %>%
-#     mutate(Crude.Rate = as.numeric(as.character(Crude.Rate)))
+state_options <- sort(df$state_name)
 
 # 2010 Ranking options
 options <- filter(df, Year == 2010) %>%
@@ -30,7 +28,7 @@ ui <- navbarPage("Cause of Death",
                           ),
                  tabPanel("Improvement vs National Average",
                           selectInput("cause_of_death_2", "Cause of Death:", options, width = "100%"),
-                          #uiOutput("state_options"),
+                          selectInput("highlight", "Highlight:", state_options, width = "100%"),
                           mainPanel(plotlyOutput("improvement_plot"), width = 12)
                  )
 )
@@ -71,15 +69,6 @@ server <- function(input, output) {
             layout(margin = list(t = 0))
     })
     
-    output$state_options <- reactive({
-        options <- df %>%
-            filter(ICD.Chapter == input$cause_of_death_2) %>%
-            select(state_name)
-        options <- unique(sort(options$state_name))
-        
-        selectInput("highlight", "Highlight:", options, width = "100%")
-    })
-    
     output$improvement_plot <- renderPlotly({
         # Wrangle the data
         plot_df <- df %>%
@@ -110,14 +99,14 @@ server <- function(input, output) {
             select(State, base_rate) %>%
             merge(plot_df) %>%
             mutate(Index = round(Crude.Rate / base_rate * 100, 0),
-                   color = ifelse(State == "US", "red", "gray")) %>%
+                   color = ifelse(State == "US", "2", "1")) %>%
+            mutate(color = ifelse(state_name == input$highlight, "3", color)) %>%
             rename(abbr = State,
                    State = state_name,
                    `Mortality Rate` = Crude.Rate)
         plot_df$color <- as.factor(plot_df$color)
         p <- ggplot(plot_df) +
-            geom_line(aes(x = Year, y = Index, group = State, color = color)) +
-            geom_point(aes(x = Year, y = Index, group = State, color = color, text = paste("Mortality Rate:", `Mortality Rate`))) +
+            geom_line(aes(x = Year, y = Index, group = State, text = paste("Mortality Rate:", `Mortality Rate`), color = color)) +
             scale_x_continuous(breaks = 1999:2010) +
             theme_minimal() +
             scale_color_manual(values=c("#bbbbbb", "#e41a1c", "#377eb8")) +
@@ -126,8 +115,10 @@ server <- function(input, output) {
             labs(x = "", y = "1999 Mortality Rate = 100")
         # Load it into plotly
         ggplotly(p) %>% 
+            style(mode = "markers+lines") %>%
             config(displayModeBar = F) %>%
-            layout(margin = list(t = 0))
+            layout(margin = list(t = 0), clickmode = "select") %>%
+            highlight("plotly_selected")
     })
     
     output$ranking_map <- renderPlot({
