@@ -5,6 +5,7 @@ date: "`r Sys.Date()`"
 output:
   rmdformats::readthedown:
     highlight: kate
+    code_folding: "hide"
 ---
 
 
@@ -17,7 +18,7 @@ library(gridExtra)
 library(ggthemes)
 ## Global options
 options(max.print="75")
-opts_chunk$set(echo=FALSE,
+opts_chunk$set(echo=TRUE,
 	             cache=FALSE,
                prompt=FALSE,
                tidy=TRUE,
@@ -175,6 +176,91 @@ apply(bootstrap_coefficients, 2, function(x) quantile(x, c(0.05, 0.95)))
 
 ## LMR 4.5
 
+For the `fat` data used in this chapter, a smaller model using only `age`, and `weight`, `height` and `abdom` was proposed on the grounds that these predictors are either known by the individual or easily measured.
+
+a. Compare this model to the full thirteen predictor model used earlier in the chapter.  Is it justifiable to use the smaller model?
+
+```{r}
+fat <- read.delim('./data/fat.txt') 
+full <- lm(brozek ~ age + weight + height + neck + chest + abdom + hip + thigh + knee + ankle + biceps + forearm + wrist, data = fat)
+small <- lm(brozek ~ age + weight + height + abdom, data = fat)
+summary(small)
+```
+
+b. Compute a 95% prediction interval for median predictor values and compare to the results to the interval for the full model.  Do the intervals differ by a practically important amount? **No it doesn't differ.  See below:**
+
+### Small Model
+
+```{r}
+x0 <- data.frame(t(apply(model.matrix(full), 2, median)))
+predict(small, x0, interval = "prediction")
+```
+
+### Full Model
+
+```{r}
+predict(full, x0, interval = "prediction")
+```
+
+c. For the smaller model, examine all the observations from case number 25 to 50.  Which two observations are particularly anomalous? **Case 25 and 33.**
+
+```{r}
+data.frame(actual = fat[25:50, "brozek"], yhat = round(predict(small, fat)[25:50], 1)) %>% 
+  rownames_to_column() %>%
+  mutate(error = abs((yhat - actual)/yhat)) %>% 
+  arrange(desc(error)) %>%
+  top_n(5) %>%
+  kable() %>% 
+  kable_styling()
+```
+
+d. Recompute the 95% prediction interval for the median predictors after these two anomoulous cases have been excluded from the data.  Did this make much difference to the outcome? **It certainly did.  See below:**
+
+```{r}
+fat <- fat[!row.names(fat) %in% c(25,33),]
+
+full <- lm(brozek ~ age + weight + height + neck + chest + abdom + hip + thigh + knee + ankle + biceps + forearm + wrist, data = fat)
+small <- lm(brozek ~ age + weight + height + abdom, data = fat)
+
+x0 <- data.frame(t(apply(model.matrix(full), 2, median)))
+```
+
+### Small Model
+
+```{r}
+predict(small, x0, interval = "prediction")
+```
+
+### Full Model
+
+```{r}
+predict(full, x0, interval = "prediction")
+```
+
+
 ## LMR 5.2
+
+Use the `odor` dataset with odor as the response variable and `temp` as the predictor. Consider all possible models that also include all, some or none of the other two predictors.  Report the coefficient for temperature, its standard error, t-statistic and p-value in each case. Discuss what stays the same, what changes and why.  Which model is the best?
+
+```{r}
+odor <- read.delim("data/odor.txt")
+models <- c("odor ~ temp", "ordor ~ temp + gas", "ordor ~ temp + pack", "ordor ~ temp + gas + pack")
+coefficients <- matrix(NA, 4, 6)
+
+fit <- lm(odor ~ temp, data = odor)
+coefficients[1,] <- c("odor ~ temp", summary(fit)$coefficients[2,], summary(fit)$adj.r.squared)
+fit <- lm(odor ~ temp + gas, data = odor)
+coefficients[2,] <- c("odor ~ temp + gas", summary(fit)$coefficients[2,], summary(fit)$adj.r.squared)
+fit <- lm(odor ~ temp + pack, data = odor)
+coefficients[3,] <- c("odor ~ temp + pack", summary(fit)$coefficients[2,], summary(fit)$adj.r.squared)
+fit <- lm(odor ~ temp + gas + pack, data = odor)
+coefficients[4,] <- c("odor ~ temp + gas + pack", summary(fit)$coefficients[2,], summary(fit)$adj.r.squared)
+coefficients <- as.data.frame(coefficients)
+names(coefficients) <- c("Formula", names(summary(fit)$coefficients[2,]), "Adjusted R-squared")
+coefficients %>%
+  kable() %>%
+  kable_styling()
+```
+
 
 ## LMR 14.2
