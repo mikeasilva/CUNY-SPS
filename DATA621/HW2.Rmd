@@ -1,0 +1,154 @@
+---
+title: "DATA 621 Homework #2"
+subtitle: "From Work by Critical Thinking Group 3"
+author: "Mike Silva"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    toc_depth: 3
+    code_folding: "hide"
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
+library(tidyverse)
+library(kableExtra)
+library(caret)
+library(pROC)
+# Thank you Stack Overflow!
+# A Prefix nulling hook.
+
+# Make sure to keep the default for normal processing.
+default_output_hook <- knitr::knit_hooks$get("output")
+
+# Output hooks handle normal R console output.
+knitr::knit_hooks$set( output = function(x, options) {
+
+  comment <- knitr::opts_current$get("comment")
+  if( is.na(comment) ) comment <- ""
+  can_null <- grepl( paste0( comment, "\\s*\\[\\d?\\]" ),
+                     x, perl = TRUE)
+  do_null <- isTRUE( knitr::opts_current$get("null_prefix") )
+  if( can_null && do_null ) {
+    # By default R print output aligns at the right brace.
+    align_index <- regexpr( "\\]", x )[1] - 1
+    # Two cases: start or newline
+    re <- paste0( "^.{", align_index, "}\\]")
+    rep <- comment
+    x <- gsub( re, rep,  x )
+    re <- paste0( "\\\n.{", align_index, "}\\]")
+    rep <- paste0( "\n", comment )
+    x <- gsub( re, rep,  x )
+  }
+
+  default_output_hook( x, options )
+
+})
+knitr::opts_template$set("kill_prefix"=list(comment=NA, null_prefix=TRUE))
+```
+
+```{r}
+df <- read.csv("./data/classification-output-data.csv")
+actual <- "class"
+predicted <- "scored.class"
+probability <- "scored.probability"
+# Load our functions
+source("hw2.R")
+```
+
+## Caret's Output
+
+```{r}
+confusionMatrix(factor(df[[predicted]]), factor(df[[actual]]))
+```
+
+## Our Function's Output 
+
+**Confusion Matrix**
+
+```{r}
+confusion_matrix(df, actual, predicted) %>%
+  kable() %>%
+  kable_styling()
+```
+
+**Accuracy**: `r accuracy(df, actual, predicted)`
+
+**Classification Error Rate**: `r classification_error_rate(df, actual, predicted)`
+
+**Precision**: `r precision(df, actual, predicted)`
+
+**Sensitivity (Recall)**: `r sensitivity(df, actual, predicted)`
+
+**Specificity**: `r specificity(df, actual, predicted)`
+
+**F1 Score**: `r f1_score(df, actual, predicted)`
+
+### F1 Score Will Always be Between 0 and 1
+Before we move on, let’s consider a question that was asked: What are the bounds on the F1 score? Show that the F1 score will always be between 0 and 1. (Hint: If 0<a<1 and 0<b<1 then ab<a).
+
+  
+**Proving the range of the F1 Score must be between 0 and 1**
+  
+**Let's expand the F1 equation using the definitions of precision and sensitivity.**
+
+
+$$\textrm{F1 Score}= \frac{2 \times\mathrm{Precision}\times\mathrm{Sensitivity}}{\mathrm{Precision}+\mathrm{Sensitivity}}$$ 
+**The numerator is equal to**
+$$=\frac{2 \times TP \times TP}{(TP + FP)(TP+FN)}$$ 
+**The denominator is equal to**
+$$= \frac{1}{\frac{TP}{TP+FP}+\frac{TP}{TP+FN}}$$  
+**Combine the Numerator and the denominator:**
+$$F1=\frac{2 \times TP \times TP}{(TP + FP)(TP+FN)} \times \frac{1}{\frac{TP}{TP+FP}+\frac{TP}{TP+FN}}$$  
+**Multiply the denominator by (TP + FP)(TP + FN):**
+
+$$denominator = \frac{(TP+FP)(TP+FN)}{TP(TP+FN)+TP(TP+FP)}$$  
+$$F1=\frac{2(TP)^2}{(TP+FP)(TP+FN)}\times \frac{(TP+FP)(TP+FN)}{TP(TP+FN)+TP(TP+FP)}$$  
+**Cancel the denominator of the first term with the numerator of the second term:**
+
+$$F1 =\frac{2(TP)^2}{TP(TP+FN)+TP(TP+FP)}$$
+**Simplify the Denominator:**
+$$F1 =\frac{2(TP)^2}{TP^2+FNTP+TP^2+TPFP}$$  
+$$F1 =\frac{2(TP)^2}{TP(TP+FN+TP+FP)}$$  
+$$F1 =\frac{2(TP)^2}{TP(TP+FN+TP+FP)}$$  
+$$F1 =\frac{2(TP)^2}{TP(2TP +FN +FP)}$$ 
+**Cancel the TP terms and get final answer**
+$$F1=\frac{2TP}{2TP+FN+FP}$$
+<br>  
+In the equation above, $TP,FN,FP \in \mathbb{N}$ where $\mathbb{N} = \{0,1,2,3...\}$  
+ 
+$2TP \le2TP+FN+FP$ this equation shows that the numerator is at most equal to the denominator (i.e $F1\le1$).  
+  
+There would be a Maximum value of $1$ when $FN=FP=0$ and $TP > 0$  
+
+The fraction $=\frac{2TP}{2TP+FN+FP}$ has a minimum value of zero when the numerator is minimized (i.e. $TP=0$).  
+  
+We have shown that $0\le F1\le1$
+<br>  
+
+## pROC Output
+
+```{r}
+par(pty = "s")
+roc(df[[actual]], df[[probability]], plot = TRUE, legacy.axes = TRUE, print.auc = TRUE)
+par(pty = "m")
+```
+
+## Our ROC Curve
+
+```{r}
+our_roc <- roc_curve(df, actual, probability)
+
+our_roc$plot
+```
+
+```{r}
+our_roc$auc_vector
+```
+
+## Source Code
+
+```{r source, code=readLines("hw2.R")}
+```
