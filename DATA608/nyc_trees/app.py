@@ -14,10 +14,7 @@ from dash.dependencies import Input, Output
 import pandas as pd
 import plotly.graph_objs as go
 
-mapbox_access_token = "pk.eyJ1IjoiZ2lsdHJhcG8iLCJhIjoiY2o4eWJyNzY4MXQ1ZDJ3b2JsZHZxb3N0ciJ9.MROnmydnXtfjqjIBtC-P5g"
-
 external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
-
 
 def get_tree_list():
     soql_url = (
@@ -174,7 +171,7 @@ app.layout = html.Div(
     [
         html.H2("NYC Trees"),
         html.P(
-            "How healthy are NYC's trees?  Are the activities of stewards helping the trees?  The following visualizations allow you to search a tree and view the results of the steward actions and answer these questions yourself."
+            "How healthy are NYC's trees?  Are the activities of stewards helping the trees?  The following visualizations allow you to search a tree and view the results of the steward actions and answer these questions yourself.  Please keep in mind that correlation is not causation when looking at the steward intervention vs nature alone graph."
         ),
         html.Div(
             [
@@ -222,7 +219,7 @@ app.layout = html.Div(
                     figure=go.Figure(
                         data=get_steward_graph_data(),
                         layout=go.Layout(
-                            title="ARE THEIR STEWARDS IN THE BRONX MAKING A DIFFERENCE?",
+                            title="ARE BRONX STEWARDS MAKING A DIFFERENCE?",
                             yaxis=go.layout.YAxis(
                                 title=go.layout.yaxis.Title(text="Percent"),
                                 range=[0, 100],
@@ -264,13 +261,10 @@ def update_tree_health_graph(spc_common):
     ],
 )
 def update_tree_health_graph(borough, spc_common):
-    b = borough.upper()
-    if b == "BRONX":
-        b = "THE BRONX"
     fig = go.Figure(
         data=get_steward_graph_data(borough, spc_common),
         layout=go.Layout(
-            title="ARE THEIR STEWARDS IN " + b + " MAKING A DIFFERENCE?",
+            title="ARE " + borough.upper() + "STEWARDS MAKING A DIFFERENCE?",
             yaxis=go.layout.YAxis(
                 title=go.layout.yaxis.Title(text="Percent"), range=[0, 100]
             ),
