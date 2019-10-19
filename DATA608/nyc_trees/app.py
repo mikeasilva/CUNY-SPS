@@ -264,7 +264,7 @@ def update_tree_health_graph(borough, spc_common):
     fig = go.Figure(
         data=get_steward_graph_data(borough, spc_common),
         layout=go.Layout(
-            title="ARE " + borough.upper() + "STEWARDS MAKING A DIFFERENCE?",
+            title="ARE " + borough.upper() + " STEWARDS MAKING A DIFFERENCE?",
             yaxis=go.layout.YAxis(
                 title=go.layout.yaxis.Title(text="Percent"), range=[0, 100]
             ),
