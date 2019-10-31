@@ -1,0 +1,331 @@
+---
+title: "DATA 621 Homework #3"
+subtitle: "From Work by Critical Thinking Group 3"
+author: "Mike Silva"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    toc_depth: 3
+    code_folding: "hide"
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
+library(tidyverse)
+library(kableExtra)
+library(corrplot)
+library(caret)
+library(Amelia)
+library(pROC)
+# Thank you Stack Overflow!
+# A Prefix nulling hook.
+
+# Make sure to keep the default for normal processing.
+default_output_hook <- knitr::knit_hooks$get("output")
+
+# Output hooks handle normal R console output.
+knitr::knit_hooks$set( output = function(x, options) {
+
+  comment <- knitr::opts_current$get("comment")
+  if( is.na(comment) ) comment <- ""
+  can_null <- grepl( paste0( comment, "\\s*\\[\\d?\\]" ),
+                     x, perl = TRUE)
+  do_null <- isTRUE( knitr::opts_current$get("null_prefix") )
+  if( can_null && do_null ) {
+    # By default R print output aligns at the right brace.
+    align_index <- regexpr( "\\]", x )[1] - 1
+    # Two cases: start or newline
+    re <- paste0( "^.{", align_index, "}\\]")
+    rep <- comment
+    x <- gsub( re, rep,  x )
+    re <- paste0( "\\\n.{", align_index, "}\\]")
+    rep <- paste0( "\n", comment )
+    x <- gsub( re, rep,  x )
+  }
+
+  default_output_hook( x, options )
+
+})
+knitr::opts_template$set("kill_prefix"=list(comment=NA, null_prefix=TRUE))
+```
+
+```{r}
+df <- read.csv('data/crime-training-data_modified.csv')
+evaluation <- read.csv("data/crime-evaluation-data_modified.csv")
+```
+
+## Data Exploration
+
+### Are There Missing Values?
+First we look at the data to see if any variables have missing data:
+
+```{r}
+missmap(df, main = "Missing vs Observed Values")
+```
+
+It looks like we have a complete data set.  No need to impute values.
+
+### Splitting the Data
+Next, we look to split our data between a training set (`train`) and a test data set (`test`). We'll use a 70-30 split between train and test, respectively.
+```{r}
+set.seed(42)
+train_index <- createDataPartition(df$target, p = .7, list = FALSE, times = 1)
+train <- df[train_index,]
+test <- df[-train_index,]
+```
+
+
+### Exploratory Data Analysis
+Now, let's look at our training data. By looking at a correlation matrix, we can see which variables may be too correlated to be included together in a model as predictor variables. This will help us later during the model selection process.
+
+```{r}
+train %>% 
+  cor(.) %>%
+  corrplot(., method = "color", type = "upper", tl.col = "black", diag = FALSE)
+```
+
+Next we will look at each potential predictor and how it is distributed across the target variable.
+
+The following plots show how predictors are distributed between a positive target variable (areas with crime rates higher than the median, i.e. blue) and a negative target variable (areas with crime rates below the median, i.e. red). What we are looking for is variables that show way to split data into two groups.
+
+```{r}
+for (var in names(train)){
+  if(var != "target"){
+    plot_df <- train
+    plot_df$x <- plot_df[,var]
+    p <- ggplot(plot_df, aes(x, color = factor(target))) +
+      geom_density() +
+      theme_light() +
+      ggtitle(var) +
+      scale_color_brewer(palette = "Set1") +
+      theme(legend.position = "none",
+            axis.title.y = element_blank(),
+            axis.title.x = element_blank())
+    print(p)
+  }
+}
+```
+
+Looking at the plots above, the `nox` variable seems to be the best variable to divide the data into the two groups.
+
+## Basic Model Building
+
+We start by applying occam's razor and create a baseline model that only has one predictor. Any model we build beyond that will have to outperform this simplest model.
+
+```{r}
+baseline <- glm(target ~ nox, family = binomial(link = "logit"), train)
+summary(baseline)
+test$baseline <- ifelse(predict.glm(baseline, test,"response") >= 0.5,1,0)
+cm <- confusionMatrix(factor(test$baseline), factor(test$target),"1")
+results <- tibble(model = "baseline",predictors = 1,F1 = cm$byClass[7],
+                  deviance=baseline$deviance, 
+                  r2 = 1 - baseline$deviance/baseline$null.deviance,
+                  aic=baseline$aic)
+cm
+```
+
+Our baseline model is ok with an F1 score of `r cm$byClass[7]`.
+
+Next we try adding every other variable, to build a full model. From here we can work backwards and eliminate non-significant predictors:
+
+```{r}
+fullmodel <- glm(target ~ ., family = binomial(link = "logit"), train)
+summary(fullmodel)
+test$fullmodel <- ifelse(predict.glm(fullmodel, test,"response") < 0.5, 0, 1)
+cm <- confusionMatrix(factor(test$fullmodel), factor(test$target),"1")
+results <- rbind(results,tibble(model = "fullmodel",
+                                predictors = 12,F1 = cm$byClass[7],
+                                deviance=fullmodel$deviance, 
+                                r2 = 1-fullmodel$deviance/fullmodel$null.deviance,
+                                aic=fullmodel$aic))
+cm
+```
+
+The full model has an F1 score is `r cm$byClass[7]`, which is a bit higher than before. However, many variables do not seem to be significant.
+
+After some backward elimination of non-significant predictor variables, we arrive at the following model: 
+
+```{r}
+model1 <- glm(target ~ . -tax -rm -chas - age -zn -indus, 
+              family = binomial(link = "logit"), 
+              train)
+summary(model1)
+test$model1 <- ifelse(predict.glm(model1, test,"response") < 0.5, 0, 1)
+cm <- confusionMatrix(factor(test$model1), factor(test$target),"1")
+results <- rbind(results,tibble(model = "model1",
+                                predictors = 6,F1 = cm$byClass[7],
+                                deviance=model1$deviance, 
+                                r2 = 1-model1$deviance/model1$null.deviance,
+                                aic=model1$aic))
+cm
+```
+
+## Alternative Models
+
+### Feature Engineering
+In this portion below we explored using the difference between the class distributions as a feature itself. So instead of the raw feature itself the we created density features that are essientially the differences in probability of the positve and negative classes at that certain point for the feature.
+
+```{r}
+library(fuzzyjoin)
+density_diff <- function(data,eval_data,var,target,new_column){
+  data[[paste0(var,"temp")]] <- data[[var]]
+  eval_data[[paste0(var,"temp")]] <- eval_data[[var]]
+          
+  #standardize variable between 0 and 1
+  data[[var]] <- (data[[var]] - min(data[[var]]))/(max(data[[var]]) - min(data[[var]]))
+  eval_data[[var]] <- (eval_data[[var]] - min(eval_data[[var]]))/(max(eval_data[[var]]) - min(eval_data[[var]]))
+              
+  ## Calculate density estimates
+  g1 <- ggplot(data, aes(x=data[[var]], group=target, colour=target)) +
+    geom_density(data = data) + xlim(min(data[[var]]), max(data[[var]]))
+  gg1 <- ggplot_build(g1)
+  # construct the dataset
+  x <- gg1$data[[1]]$x[gg1$data[[1]]$group == 1]
+  y1 <- gg1$data[[1]]$y[gg1$data[[1]]$group == 1]
+  y2 <- gg1$data[[1]]$y[gg1$data[[1]]$group == 2]
+  df2 <- data.frame(x = x, ymin = pmin(y1, y2), ymax = pmax(y1, y2), side=(y1<y2), ydiff = y2-y1)
+  ##creating the second graph object
+  g3 <- ggplot(df2) +
+    geom_line(aes(x = x, y = ydiff, colour = side)) +
+    geom_area(aes(x = x, y = ydiff, fill = side, alpha = 0.4)) +
+    guides(alpha = FALSE, fill = FALSE)
+  
+  data$join <- data[[var]]
+  df2$join <- df2$x
+  temp <- difference_left_join(data,df2, by="join", max_dist =.001)
+  means <- aggregate(ydiff ~ temp$join.x, temp, mean)
+  
+  colnames(means) <- c("std_var","density_diff")
+  
+  new_data <- merge(means,data, by.x ="std_var", by.y =var)
+  new_data$std_var <- NULL
+  new_data$join <- NULL
+  new_data[new_column] <- new_data$density_diff
+  new_data$density_diff <- NULL
+  ###################same thing with eval data ############################
+  eval_data$join <- eval_data[[var]]
+  df2$join <- df2$x
+  temp <- difference_left_join(eval_data,df2, by="join", max_dist =.001)
+  means <- aggregate(ydiff ~ temp$join.x, temp, mean)
+                
+  ##new stuff
+  colnames(means) <- c("std_var","density_diff")
+  #data["key"] <- (var - min(var))/(max(var) - min(var))
+  
+  eval_data2 <- merge(means,eval_data, by.x ="std_var", by.y =var)
+  eval_data2$std_var <- NULL
+  eval_data2$join <- NULL
+  eval_data2[new_column] <- eval_data2$density_diff
+  eval_data2$density_diff <- NULL
+  
+  eval_data2[[var]] <- eval_data2[[paste0(var,"temp")]]
+  eval_data2[[paste0(var,"temp")]] <- NULL
+  
+  new_data[[var]] <- new_data[[paste0(var,"temp")]]
+  new_data[[paste0(var,"temp")]] <- NULL
+  
+  mylist <- list(g1,g3,new_data,eval_data2)
+  names(mylist)<- c("dist","dist_diff","new_data_training","new_data_eval")
+  return(mylist)
+}
+```
+      
+### Creating Some New Variables
+      
+```{r}
+str(train)
+str(test)
+## try it out 
+train <- density_diff(train,test,"nox",train$target,"nox_density")$new_data_training
+train <- density_diff(train,test,"age",train$target,"age_density")$new_data_training 
+train <- density_diff(train,test,"indus",train$target,"indus_density")$new_data_training
+train <- density_diff(train,test,"dis",train$target,"dis_density")$new_data_training
+train <- density_diff(train,test,"rad",train$target,"rad_density")$new_data_training
+train <- density_diff(train,test,"tax",train$target,"tax_density")$new_data_training
+train <- density_diff(train,test,"ptratio",train$target,"ptratio_density")$new_data_training
+train <- density_diff(train,test,"lstat",train$target,"lstat_density")$new_data_training
+train <- density_diff(train,test,"medv",train$target,"medv_density")$new_data_training
+
+test<- density_diff(train,test,"nox",train$target,"nox_density")$new_data_eval
+test<- density_diff(train,test,"age",train$target,"age_density")$new_data_eval 
+test<- density_diff(train,test,"indus",train$target,"indus_density")$new_data_eval
+test<- density_diff(train,test,"dis",train$target,"dis_density")$new_data_eval
+test<- density_diff(train,test,"rad",train$target,"rad_density")$new_data_eval
+test<- density_diff(train,test,"tax",train$target,"tax_density")$new_data_eval
+test<- density_diff(train,test,"ptratio",train$target,"ptratio_density")$new_data_eval
+test<- density_diff(train,test,"lstat",train$target,"lstat_density")$new_data_eval
+test<- density_diff(train,test,"medv",train$target,"medv_density")$new_data_eval
+
+str(train)
+str(test)
+```
+
+### Example of the new meta feature
+The first graph below is the difference between the distributions and the second graph is the new derived predictive feature
+```{r}
+density_diff(train,test,"age",train$target,"age_density")$dist
+density_diff(train,test,"age",train$target,"age_density")$dist_diff
+```
+
+
+With our new density variables, we can run another model:
+
+```{r}
+density_models <- glm(target ~ nox_density +indus_density+age_density+dis_density+rad_density+tax_density+ptratio_density+lstat_density+medv_density, family = binomial(link = "logit"), train)
+summary(density_models)
+test$density_models <- ifelse(predict(density_models, test) < 0.5, 0, 1)
+test$density_models_yhat <- predict(density_models, test)
+cm <- confusionMatrix(factor(test$density_models), factor(test$target))
+results <- rbind(results,tibble(model = "density models",
+                                predictors = 9,
+                                F1 = cm$byClass[7],
+                                deviance = density_models$deviance,
+                                r2 = 1 - density_models$deviance / density_models$null.deviance,
+                                aic = density_models$aic))
+cm
+```
+
+## Model Selection
+
+Since the assignment mentions that the purpose is prediction, we will prefer F1 score as our measure of model success.
+
+```{r}
+kable(results)
+```
+
+Looking the three models together, `model1` looks like the best one. Although the full model scored an F1 that was ever-so-slightly higher on our test data set, `model1` has half the predictors and it's scores are almost exactly the same as `fullmodel`.
+
+### pROC Output
+
+ROC curves can give us another look at which model might be better suited for prediction.
+ 
+#### Baseline
+```{r}
+par(pty = "s")
+roc(test[["target"]], test[["baseline"]], plot = TRUE, legacy.axes = TRUE, print.auc = TRUE)
+par(pty = "m")
+```
+      
+      
+#### Full Model
+```{r}
+par(pty = "s")
+roc(test[["target"]], test[["fullmodel"]], plot = TRUE, legacy.axes = TRUE, print.auc = TRUE)
+par(pty = "m")
+```
+      
+#### Model1
+```{r}
+par(pty = "s")
+roc(test[["target"]], test[["model1"]], plot = TRUE, legacy.axes = TRUE, print.auc = TRUE)
+par(pty = "m")
+```
+      
+#### Density Model 
+```{r}
+par(pty = "s")
+roc(test[["target"]], test[["density_models_yhat"]], plot = TRUE, legacy.axes = TRUE, print.auc = TRUE)
+par(pty = "m")
+```
