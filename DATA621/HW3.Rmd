@@ -56,6 +56,12 @@ df <- read.csv('data/crime-training-data_modified.csv')
 evaluation <- read.csv("data/crime-evaluation-data_modified.csv")
 ```
 
+## Introduction
+
+We have been given a dataset with `r nrow(df)` records summarizing a attributes of various neighborhoods of a major city.  Each record in the training dataset has a response variable that is 1 when the neighborhood's crime rate is above the median and 0 when it is not.  In all there are `r ncol(df)-1` predictors.  We will construct a logistic regression model to predict the classification of the evaluation data set.
+
+
+
 ## Data Exploration
 
 ### Are There Missing Values?
@@ -68,6 +74,7 @@ missmap(df, main = "Missing vs Observed Values")
 It looks like we have a complete data set.  No need to impute values.
 
 ### Splitting the Data
+
 Next, we look to split our data between a training set (`train`) and a test data set (`test`). We'll use a 70-30 split between train and test, respectively.
 ```{r}
 set.seed(42)
@@ -78,7 +85,18 @@ test <- df[-train_index,]
 
 
 ### Exploratory Data Analysis
-Now, let's look at our training data. By looking at a correlation matrix, we can see which variables may be too correlated to be included together in a model as predictor variables. This will help us later during the model selection process.
+
+Now, let's look at our training data. The following table summarizes the predictor variables of the training set:
+
+```{r}
+train %>%
+  select(-target) %>%
+  summary() %>%
+  kable() %>%
+  kable_styling()
+```
+
+By looking at a correlation matrix, we can see which variables may be too correlated to be included together in a model as predictor variables. This will help us later during the model selection process.
 
 ```{r}
 train %>% 
@@ -269,7 +287,6 @@ density_diff(train,test,"age",train$target,"age_density")$dist
 density_diff(train,test,"age",train$target,"age_density")$dist_diff
 ```
 
-
 With our new density variables, we can run another model:
 
 ```{r}
@@ -328,4 +345,15 @@ par(pty = "m")
 par(pty = "s")
 roc(test[["target"]], test[["density_models_yhat"]], plot = TRUE, legacy.axes = TRUE, print.auc = TRUE)
 par(pty = "m")
+```
+
+
+## Final Selection and Predictions
+
+Having looked at the F1 statistics and the ROC curves we will use the model1 to form our final predictions.
+
+```{r}
+evaluation$target <- ifelse(predict.glm(model1, evaluation, "response") < 0.5, 0, 1)
+evaluation %>%
+  write.csv(., "./data/hw3-predictions.csv", row.names = F)
 ```
