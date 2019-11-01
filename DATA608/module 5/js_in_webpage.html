@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CUNY SPS DATA 608 - Module 5</title>
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet"/>
+        <meta charset="UTF-8" />
+        <meta name="author" content="Michael Silva" />
+        <meta name="description" content="CUNY SPS DATA 608 Module 5" />
+        <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+        <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui-touch-punch/0.2.3/jquery.ui.touch-punch.min.js"></script>
+        <script src="https://d3js.org/d3.v5.min.js"></script>
+        <style>
+        /* Global Styles */
+        * {
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+            outline: none;
+        }
+        html, body {
+            font-family: "Open Sans", sans-serif;
+            font-size: 15px;
+            color: #808080;
+            letter-spacing: -0.01em;
+            font-weight: 400;
+            margin: 0;
+            padding:0;
+            background-color:#F5F8FA;
+        }
+        h1{
+            color: #04334d;
+            font-weight: 300;
+            margin-bottom: 10px;
+            font-size: 2.4rem;
+        }
+        .no_copy{
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        .left {float: left;}
+        .right {float: right;}
+        .clear {clear: both;}
+
+        .hidden {
+            display: none;
+        }
+        .red_button, .back_or_next{
+            background-color: #B20838;
+            color: white;
+        }
+        .gray_button{
+            color: #999;
+            background-color: #E1E3E5;
+        }
+        .gray_button:hover{
+            cursor: default;
+        }
+        .button {
+            height: 45px;
+            line-height: 45px;
+            text-align: center;
+            padding-left: 30px;
+            padding-right: 30px;
+            border-radius: 45px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            display: inline-block;
+            margin-top: 20px;
+        }
+        select,
+        input[type="number"], 
+        input[type="text"] {
+            display: block;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            -ms-appearance: none;
+            -o-appearance: none;
+            appearance: none;
+            border-radius: 4px;
+            background-color: white;
+            box-shadow: 0px 1px 1px 0px rgba(0, 0, 0, 0.15);
+            cursor: pointer;
+            height: 45px;
+            line-height: 45px;
+            border: none;
+            outline: none;
+            padding-left: 15px;
+            color: #808080;
+            padding-right: 12px;
+            font-size: 0.9rem;
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        select {
+            background-image: url('https://www.cgr.org/cgr-assets/icons/arrow-menu-down-gray.svg');
+            background-size: 15px;
+            background-position: calc(100% - 20px) 50%;
+            background-repeat: no-repeat;
+        }
+        /* Header */
+        .github-link {
+            width: 60px;
+            height: 60px;
+            position: absolute;
+            display: block;
+            top: 0;
+            right: 0;
+            z-index: 1000;
+        }
+        .github-link .bg {
+            fill: white;
+            fill-opacity: 0.2;
+        }
+        .github-link:hover .bg {
+            fill-opacity: 0.3;
+        }
+        .github-link .icon {
+            fill: white;
+            fill-opacity: 0.6;
+        }
+        .github-link:hover .icon {
+            fill-opacity: 0.7;
+        }
+        header {
+            background-color: #04334D;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            position: relative;
+            min-height: 60px;
+            z-index: 4;
+        }
+        .branding {
+            display: block;
+            background-image: url('https://buddingdatascientist.files.wordpress.com/2019/10/branding.png');
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: 110px;
+            height: 60px;
+            margin: 0 auto;
+            opacity: 0.7;
+            transition: 0.2s;
+        }
+        .branding:hover {
+            opacity: 1;
+        }
+        /* Navigation */
+        #results_tabs, nav {
+            background: white;
+            z-index: 3;
+            top: 0;
+            width: 100%;
+            height: 70px;
+            display: flex;
+            display: -webkit-flex;
+            align-items: center;
+        }
+        nav {
+            box-shadow: 0px 1px 4px 0px rgba(0, 0, 0, 0.15);
+            position:relative;
+            z-index:3;
+        }
+        .tab,
+        .menu_item {
+            width: 25%;
+            z-index: 2;
+            text-align: center;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: #999;
+            font-size: 0.9rem;
+            border-right: 1px solid #CCC;
+            height: 100%;
+            position: relative;
+            transition: color 0.3s;
+            cursor: pointer;
+            display: flex;
+            display: -webkit-flex;
+            align-items: center;
+            -webkit-align-items: center;
+            justify-content: center;
+            -webkit-justify-content: center;
+        }
+        .menu_item .current_indicator {
+            width: 0%;
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            height: 3px;
+            background: #999;
+            opacity: 1;
+            transition: all 0.4s cubic-bezier(0.86, 0, 0.07, 1);
+        }
+        .menu_item.current, .menu_item:hover {
+            color: #04334D;
+        }
+        .menu_item:not(.current):hover .current_indicator {
+            background: #04334D;
+            opacity: 1;
+            width: 100%;
+            left: 0;
+        }
+        .menu_item.current .current_indicator {
+            opacity: 1;
+            width: 100%;
+            left: 0;
+            background: #B20838;
+        }
+        /* Main Content */
+        main{
+            width: 100%;
+            position: fixed;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            z-index: 1;
+            height: calc(100% - 130px);
+        }
+        main.part_1 section#welcome_wrapper,
+        main.part_2 section#welcome_wrapper,
+        main.part_3 section#welcome_wrapper,
+
+        main.welcome section#part_2_wrapper,
+        main.part_1 section#part_2_wrapper,
+        main.part_3 section#part_2_wrapper,
+
+        main.welcome section#part_1_wrapper,
+        main.part_2 section#part_1_wrapper,
+        main.part_3 section#part_1_wrapper,
+
+        main.welcome section#part_3_wrapper,
+        main.part_2 section#part_3_wrapper,
+        main.part_1 section#part_3_wrapper {
+            display: none;
+        }
+        section{
+            padding: 5%;
+            padding-top: 20px;
+        }
+        
+        table {
+            border-collapse: collapse;
+            margin-top: 20px;
+            border-radius: 5px;
+            background-color: white;
+            box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            font-size: 0.9rem;
+        }
+        tr {
+            align-items: center;
+            -webkit-align-items: center;
+            background-color: #FBFBFB;
+            border-bottom: 1px solid #E0E0E0;
+            border-left: 1px solid #E0E0E0;
+            border-right: 1px solid #E0E0E0;
+        }
+        thead tr {
+            background: #04334d;
+            border-radius: 5px 5px 0 0;
+            color: white;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        tr:first-child {
+            border-top: 1px solid #E0E0E0;
+            border-radius: 5px 5px 0 0;
+        }
+        tr:last-child {
+            border-radius: 0 0 5px 5px;
+        }
+        tr:nth-child(even) {
+            background-color: #008FCC;
+            color: white;
+        }
+        tr.filtered{
+            display: none;
+        }
+        th, td{
+            padding: 15px 20px;
+        }
+        pre {
+            overflow-x: scroll;
+            border: 1px solid #E0E0E0;
+            box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            border-radius: 5px;
+        }
+        #error_message{
+            border-radius: 5px;
+            background-color: #B20838;
+            color: white;
+            box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width:100%;
+            display: none;
+            margin-bottom: 20px;
+        }
+        </style>
+    </head>
+    <body>
+        <!-- Header -->
+        <header class="no_copy">
+            <!-- Branding -->
+            <a class="branding" href="https://buddingdatascientist.wordpress.com/" target="_blank"></a>
+            <!-- GitHub link -->
+            <a class="github-link" href="https://github.com/mikeasilva/CUNY-SPS/tree/master/DATA608/module%205" title="Source on GitHub" target="_blank">
+                <svg xmlns="https://www.w3.org/2000/svg" xmlns:xlink="https://www.w3.org/1999/xlink" viewBox="0 0 60.5 60.5" width="60" height="60">
+                    <polygon class="bg" points="60.5,60.5 0,0 60.5,0"/>
+                    <path class="icon" d="M43.1,5.8c-6.6,0-12,5.4-12,12c0,5.3,3.4,9.8,8.2,11.4c0.6,0.1,0.8-0.3,0.8-0.6c0-0.3,0-1,0-2c-3.3,0.7-4-1.6-4-1.6c-0.5-1.4-1.3-1.8-1.3-1.8c-1.1-0.7,0.1-0.7,0.1-0.7c1.2,0.1,1.8,1.2,1.8,1.2c1.1,1.8,2.8,1.3,3.5,1c0.1-0.8,0.4-1.3,0.8-1.6c-2.7-0.3-5.5-1.3-5.5-5.9c0-1.3,0.5-2.4,1.2-3.2c-0.1-0.3-0.5-1.5,0.1-3.2c0,0,1-0.3,3.3,1.2c1-0.3,2-0.4,3-0.4c1,0,2,0.1,3,0.4c2.3-1.6,3.3-1.2,3.3-1.2c0.7,1.7,0.2,2.9,0.1,3.2c0.8,0.8,1.2,1.9,1.2,3.2c0,4.6-2.8,5.6-5.5,5.9c0.4,0.4,0.8,1.1,0.8,2.2c0,1.6,0,2.9,0,3.3c0,0.3,0.2,0.7,0.8,0.6c4.8-1.6,8.2-6.1,8.2-11.4C55.1,11.2,49.7,5.8,43.1,5.8z"/>
+                </svg>
+            </a>
+        </header>
+        <!-- Nav -->
+        <nav class="no_copy">
+            <a data-section-id="welcome" class="menu_item current">Welcome<span class="current_indicator"></span></a>
+            <a data-section-id="part_1" class="menu_item">Part 1<span class="current_indicator"></span></a>
+            <a data-section-id="part_2" class="menu_item">Part 2<span class="current_indicator"></span></a>
+            <a data-section-id="part_3" class="menu_item">Part 3<span class="current_indicator"></span></a>
+        </nav>
+        <main class="welcome">
+            <form action="." method="GET" id="form" autocomplete="off">
+
+                <!-- Welcome Note -->
+                <section id="welcome_wrapper" class="no_copy">
+                    <h1>Welcome</h1>
+                    <p>This app was developed by Mike Silva as part of the CUNY SPSS DATA 608 course.  This app has three parts to test proficiency with JavaScript.  Part 1 have two apps: the text inverter and first twenty multiples.  Part 2 pulls data from a CSV into a table.  You can filter the table by searching a president by name.  Part 3 integrates a toy API which makes a prediction of what Borough you are in based on the tree you see around you.</p>
+                    <p><a class="gray_button button">Back</a> <a data-menu-item-name="part_1" class="back_or_next button">Next</a></p>
+                </section>
+
+                <!-- PART I -->
+                <section id="part_1_wrapper" class="no_copy">
+                    <h1>Part 1: Text Inverter &amp; First 20 Multiples</h1>
+                    <h2>Text Inverter</h2>
+                    <p>Type in some text below and it will be inverted.</p>
+                    <p><input id="part_1_text" type="text" placeholder="Please type some text here" /></p>
+                    <p><input id="part_1_inverted_text" type="text" placeholder="It will be inverted here" /></p>
+                    <br/>
+                    <h2>First 20 Multiples</h2>
+                    <p><input id="part_1_number" type="number" placeholder="Please type a number here" /></p>
+                    <div id="part_1_table"></div>
+                    <p><a data-menu-item-name="welcome" class="back_or_next button">Back</a> <a data-menu-item-name="part_2" class="back_or_next button">Next</a></p>
+                </section>
+
+                <!-- PART II -->
+                <section id="part_2_wrapper" class="no_copy">
+                    <h1>Part 2: Working with CSV's</h1>
+                    <p><input id="search_text" type="text" placeholder="Filter table by name" /></p>
+                    <div id="presidents_table"></div>
+                    <p><a data-menu-item-name="part_1" class="back_or_next button">Back</a> <a data-menu-item-name="part_3" class="back_or_next button">Next</a></p>
+                </section>
+
+                <!-- PART III -->
+                <section id="part_3_wrapper" class="no_copy">
+                    <h1>Part 3: API Integration</h1>
+                    <p>Select a tree you see and the API will predict which Borough you are in.</p>
+                    <p><select id="tree_select"><option>Select a tree</option></select></p>
+                    <div id="prediction"></div>
+                    <p><a data-menu-item-name="part_2" class="back_or_next button">Back</a> <a class="gray_button button">Next</a></p>
+                </section>
+
+            </form>
+        </main>
+        <script>
+            //var API_URL = "http://127.0.0.1:5000/api/v1/"; // Development
+            var API_URL = "https://data-608-module-5.azurewebsites.net/api/v1/"; // Production 
+
+            $(document).ready(function() {
+                // PART I
+
+                // Text Inverter
+                $('#part_1_text').keyup(function(){
+                    var txt = $(this).val();
+                    var inverted_txt = txt.split("").reverse().join("");
+                    $('#part_1_inverted_text').val(inverted_txt);
+                });
+
+                // First 20 Multiples
+                $('#part_1_number').keyup(function(){
+                    var num = $(this).val();
+                    if(num == ""){
+                        $('#part_1_table').empty(); 
+                    } else {
+                        var td = 0;
+                        var html = "<table>";
+                        for (i = 1; i < 21; i++) {
+                            td++;
+                            if(td > 4){ td = 1; }
+                            if(td == 1){
+                                if(html.length > 7){ html += "</tr>"; }
+                                html += "<tr>";
+                            }
+                            html += "<td>"+(num * i) + "</td>";
+                        } 
+                        html += "</tr></table>";
+                        $('#part_1_table').html(html); 
+                    }
+                });
+
+                // PART II
+                var presidents_table_html_start = "<table id='the_presidents_table'><thead><tr><th>Name</th><th>Height</th><th>Weight</th><th>BMI</th></tr></thead>";    
+
+                function update_president_table(search, search_terms = ""){
+                    var presidents_table_html = presidents_table_html_start;
+                    var matched = 0;
+                    $.each(search, function(id, html){
+                        if(id.includes(search_terms)){
+                            presidents_table_html += html;
+                            matched += 1;
+                        }
+                    });
+                    
+                    if (matched == 0){
+                        presidents_table_html += '<tr id="no_matches"><td colspan=4>No Matches</td></tr>';
+                    } 
+                    
+                    $('#presidents_table').html(presidents_table_html + '</table>');
+                }
+
+                // D3 CSV Parsing
+                var search = {};
+                d3.csv("https://gist.githubusercontent.com/mikeasilva/898d5039b7ac2107292feb2ebad020ea/raw/3f195237f636b929ed40bac325ecbd6d6952d5ef/presidents.csv").then(function(data) {
+                    var presidents_table_html = presidents_table_html_start;
+                    data.forEach(function(row) {
+                        var bmi = Math.round(row['Weight']/Math.pow(row['Height'], 2) * 703 ,1);
+                        var id = row['Name'].toLowerCase();
+                        var html = "<tr id='"+id+"' class='filterable'><td>" + row['Name'] + '</td><td>' + row['Height'] + '</td><td>' + row['Weight'] + '</td><td>' + bmi  + '</td></tr>';
+                        presidents_table_html += html;
+                        search[id] = html;
+                    });
+                    $('#presidents_table').html(presidents_table_html + '</table>');
+                });
+
+                // Search the president's index
+                $('#search_text').keyup(function(){
+                    var search_terms = $(this).val().toLowerCase();
+                    update_president_table(search, search_terms);                        
+                });
+
+                // PART III
+
+                // Build the UI with API calls
+                d3.json(API_URL + "trees").then(function(data) {
+                    data.forEach(function(row) {
+                        $('#tree_select').append(new Option(row['label'], row['key']));
+                    });
+                });
+
+                // Requests data from the API and display it
+                $('#tree_select').change(function(){
+                    $('#prediction').empty();
+                    var tree = $('#tree_select').val();
+                    d3.json(API_URL + "predict/"+tree).then(function(data) {
+                        $('#prediction').html("<br/><h2>There's a " + (data['Probability'] * 100) + "% chance you are in " + data['Borough'] + ".</h2>");
+                    });
+                });
+
+                // UI EVENTS
+
+                // Prevent form submission
+                $("#form").submit(function(event){
+                    event.preventDefault();
+                });
+                
+                // Navigation menu click event handling
+                $('.menu_item').click(function(){
+                    var wrapper_name = $(this).attr('data-section-id');
+                    $('main').attr('class','').addClass(wrapper_name);
+                    $('.menu_item').removeClass('current');
+                    $(this).addClass('current');
+                });
+
+                // Button at the bottom of page click event handling
+                $('.back_or_next').click(function(){
+                    var name = $(this).attr('data-menu-item-name');
+                    $('a[data-section-id='+name+']').click();
+                });
+            });
+        </script>
+    </body>
+</html>
