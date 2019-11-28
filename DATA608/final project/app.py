@@ -7,7 +7,7 @@ Created on Wed Nov 15 08:52:11 2019
 
 import os
 import csv
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__)
@@ -19,8 +19,7 @@ def index():
 
 @app.route("/arrow-menu-down-gray.svg")
 def arrow_menu_down_gray():
-    html = open(os.path.join(APP_ROOT, "arrow-menu-down-gray.svg")).read()
-    return html
+    return send_file(os.path.join(APP_ROOT, "arrow-menu-down-gray.svg"), mimetype='image/svg+xml')
 
 @app.route("/api/v1/all-data")
 def all_data():
