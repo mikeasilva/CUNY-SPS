@@ -44,15 +44,18 @@ def all_data():
 
 @app.route("/api/v1/options")
 def options():
+    seen = set();
     options = {}
     html = ""
     data = csv.DictReader(open(os.path.join(APP_ROOT, "study_data.csv")))
     for row in data:
-        selected = ""
-        if row['geoid'] == "36001":
-            selected = " selected"
-        html = html + '<option value="' + row['geoid'] + '"' + selected + '>' + row['name'].replace(", New York", "") + '</option>\n'
-        options[row['geoid']] = row['name'].replace(", New York", "")
+        if row['geoid'] not in seen:
+            selected = ""
+            if row['geoid'] == "36001":
+                selected = " selected"
+            html = html + '<option value="' + row['geoid'] + '"' + selected + '>' + row['name'].replace(", New York", "") + '</option>\n'
+            options[row['geoid']] = row['name'].replace(", New York", "")
+            seen.add(row['geoid'])
     return html
 
 if __name__ == "__main__":
