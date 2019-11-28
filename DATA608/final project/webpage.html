@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CUNY SPS DATA 608 - Module 5</title>
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet"/>
+        <meta charset="UTF-8" />
+        <meta name="author" content="Michael Silva" />
+        <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+        <style>
+        /* Global Styles */
+        * {
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+            outline: none;
+        }
+        html, body {
+            font-family: "Open Sans", sans-serif;
+            font-size: 15px;
+            color: #808080;
+            letter-spacing: -0.01em;
+            font-weight: 400;
+            margin: 0;
+            padding:0;
+            background-color:#F5F8FA;
+        }
+        h1{
+            color: #04334d;
+            font-weight: 300;
+            margin-bottom: 10px;
+            font-size: 2.4rem;
+        }
+        .no_copy{
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        .left {float: left;}
+        .right {float: right;}
+        .clear {clear: both;}
+
+        .hidden {
+            display: none;
+        }
+        .red_button, .back_or_next{
+            background-color: #B20838;
+            color: white;
+        }
+        .gray_button{
+            color: #999;
+            background-color: #E1E3E5;
+        }
+        .gray_button:hover{
+            cursor: default;
+        }
+        .button {
+            height: 45px;
+            line-height: 45px;
+            text-align: center;
+            padding-left: 30px;
+            padding-right: 30px;
+            border-radius: 45px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            display: inline-block;
+        }
+        section p {
+            margin-top: 20px;
+        }
+        select,
+        input[type="number"], 
+        input[type="text"] {
+            display: block;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            -ms-appearance: none;
+            -o-appearance: none;
+            appearance: none;
+            border-radius: 4px;
+            background-color: white;
+            box-shadow: 0px 1px 1px 0px rgba(0, 0, 0, 0.15);
+            cursor: pointer;
+            height: 45px;
+            line-height: 45px;
+            border: none;
+            outline: none;
+            padding-left: 15px;
+            color: #808080;
+            padding-right: 12px;
+            font-size: 0.9rem;
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        select {
+            background-image: url('arrow-menu-down-gray.svg');
+            background-size: 15px;
+            background-position: calc(100% - 20px) 50%;
+            background-repeat: no-repeat;
+        }
+        /* Header */
+        .github-link {
+            width: 60px;
+            height: 60px;
+            position: absolute;
+            display: block;
+            top: 0;
+            right: 0;
+            z-index: 1000;
+        }
+        .github-link .bg {
+            fill: white;
+            fill-opacity: 0.2;
+        }
+        .github-link:hover .bg {
+            fill-opacity: 0.3;
+        }
+        .github-link .icon {
+            fill: white;
+            fill-opacity: 0.6;
+        }
+        .github-link:hover .icon {
+            fill-opacity: 0.7;
+        }
+        header {
+            background-color: #04334D;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            position: relative;
+            min-height: 60px;
+            z-index: 4;
+        }
+        .branding {
+            display: block;
+            background-image: url('https://buddingdatascientist.files.wordpress.com/2019/10/branding.png');
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: 110px;
+            height: 60px;
+            margin: 0 auto;
+            opacity: 0.7;
+            transition: 0.2s;
+        }
+        .branding:hover {
+            opacity: 1;
+        }
+        /* Navigation */
+        #results_tabs, nav {
+            background: white;
+            z-index: 3;
+            top: 0;
+            width: 100%;
+            height: 70px;
+            display: flex;
+            display: -webkit-flex;
+            align-items: center;
+        }
+        nav {
+            box-shadow: 0px 1px 4px 0px rgba(0, 0, 0, 0.15);
+            position:relative;
+            z-index:3;
+        }
+        .tab,
+        .menu_item {
+            width: 25%;
+            z-index: 2;
+            text-align: center;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: #999;
+            font-size: 0.9rem;
+            border-right: 1px solid #CCC;
+            height: 100%;
+            position: relative;
+            transition: color 0.3s;
+            cursor: pointer;
+            display: flex;
+            display: -webkit-flex;
+            align-items: center;
+            -webkit-align-items: center;
+            justify-content: center;
+            -webkit-justify-content: center;
+        }
+        .menu_item .current_indicator {
+            width: 0%;
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            height: 3px;
+            background: #999;
+            opacity: 1;
+            transition: all 0.4s cubic-bezier(0.86, 0, 0.07, 1);
+        }
+        .menu_item.current, .menu_item:hover {
+            color: #04334D;
+        }
+        .menu_item:not(.current):hover .current_indicator {
+            background: #04334D;
+            opacity: 1;
+            width: 100%;
+            left: 0;
+        }
+        .menu_item.current .current_indicator {
+            opacity: 1;
+            width: 100%;
+            left: 0;
+            background: #B20838;
+        }
+        /* Main Content */
+        main{
+            width: 100%;
+            position: fixed;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            z-index: 1;
+            height: calc(100% - 130px);
+        }
+        main.part_1 section#introduction_wrapper,
+        main.part_2 section#introduction_wrapper,
+        main.part_3 section#introduction_wrapper,
+
+        main.introduction section#part_2_wrapper,
+        main.part_1 section#part_2_wrapper,
+        main.part_3 section#part_2_wrapper,
+
+        main.introduction section#part_1_wrapper,
+        main.part_2 section#part_1_wrapper,
+        main.part_3 section#part_1_wrapper,
+
+        main.introduction section#part_3_wrapper,
+        main.part_2 section#part_3_wrapper,
+        main.part_1 section#part_3_wrapper {
+            display: none;
+        }
+        section{
+            padding: 5%;
+            padding-top: 20px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+            background-color: #04334d;
+            border-radius: 20px;
+        }
+
+        .switch::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background-color: white;
+            top: 1px; // TO GIVE AN EFFECT OF CIRCLE INSIDE SWITCH.
+            left: 1px;
+            transition: all 0.3s;
+        }
+
+        .checkbox:checked+.switch::after {
+            left: 20px;
+        }
+
+        .checkbox:checked+.switch {
+            background-color: #b2bec3;
+        }
+
+        .checkbox {
+            display: none;
+        }
+        
+        </style>
+    </head>
+    <body>
+        <!-- Header -->
+        <header class="no_copy">
+            <!-- Branding -->
+            <a class="branding" href="https://buddingdatascientist.wordpress.com/" target="_blank"></a>
+            <!-- GitHub link -->
+            <a class="github-link" href="https://github.com/mikeasilva/nys-shrinking-middle-class" title="GitHub Repository" target="_blank">
+                <svg xmlns="https://www.w3.org/2000/svg" xmlns:xlink="https://www.w3.org/1999/xlink" viewBox="0 0 60.5 60.5" width="60" height="60">
+                    <polygon class="bg" points="60.5,60.5 0,0 60.5,0"/>
+                    <path class="icon" d="M43.1,5.8c-6.6,0-12,5.4-12,12c0,5.3,3.4,9.8,8.2,11.4c0.6,0.1,0.8-0.3,0.8-0.6c0-0.3,0-1,0-2c-3.3,0.7-4-1.6-4-1.6c-0.5-1.4-1.3-1.8-1.3-1.8c-1.1-0.7,0.1-0.7,0.1-0.7c1.2,0.1,1.8,1.2,1.8,1.2c1.1,1.8,2.8,1.3,3.5,1c0.1-0.8,0.4-1.3,0.8-1.6c-2.7-0.3-5.5-1.3-5.5-5.9c0-1.3,0.5-2.4,1.2-3.2c-0.1-0.3-0.5-1.5,0.1-3.2c0,0,1-0.3,3.3,1.2c1-0.3,2-0.4,3-0.4c1,0,2,0.1,3,0.4c2.3-1.6,3.3-1.2,3.3-1.2c0.7,1.7,0.2,2.9,0.1,3.2c0.8,0.8,1.2,1.9,1.2,3.2c0,4.6-2.8,5.6-5.5,5.9c0.4,0.4,0.8,1.1,0.8,2.2c0,1.6,0,2.9,0,3.3c0,0.3,0.2,0.7,0.8,0.6c4.8-1.6,8.2-6.1,8.2-11.4C55.1,11.2,49.7,5.8,43.1,5.8z"/>
+                </svg>
+            </a>
+        </header>
+        <!-- Nav -->
+        <nav class="no_copy">
+            <a data-section-id="introduction" class="menu_item current">Introduction<span class="current_indicator"></span></a>
+            <a data-section-id="part_1" class="menu_item">NYS Shrinking Middle Class<span class="current_indicator"></span></a>
+            <a data-section-id="part_2" class="menu_item">County Rankings<span class="current_indicator"></span></a>
+            <a data-section-id="part_3" class="menu_item">About This Project<span class="current_indicator"></span></a>
+        </nav>
+        <main class="introduction">
+            <form action="." method="GET" id="form" autocomplete="off">
+
+                <!-- Introduction -->
+                <section id="introduction_wrapper" class="no_copy">
+                    <h1>Introduction</h1>
+                    <p>A recent analysis by the <a href="https://www.aei.org/carpe-diem/three-charts-based-on-todays-census-report-show-that-the-us-middle-class-is-shrinking-because-theyre-moving-up/" target="_blank">American Enterprise Institute</a> found the middle class in the United States is shrinking. They adjusted data from the U.S. Census Bureau for inflation and broke households into three income levels: low-income, middle-income and high-income. They found the share of households in the middle-income level is shrinking over time because not because the low-income class is growing but because they are moving up into the high-income class.</p>
+                    <p>I began to wonder what about New York State? Is the story the same? Or is it different? However I wanted to look at the county level. I followed a similar methodology and created a dataset. Let me share with you what I found.</p>
+                    <p><a class="gray_button button">Back</a> <a data-menu-item-name="part_1" class="back_or_next button">Next</a></p>
+                </section>
+
+                <!-- PART I -->
+                <section id="part_1_wrapper" class="no_copy">
+                    <select id="dropdown"><option value="36001" selected>Please Wait...</option></select>
+                    <div class="viz_container">
+                        <p id="toggle_container">
+                            Auto-advance <input type="checkbox" id="toggle" class="checkbox" />
+                            <label for="toggle" class="switch"></label>
+                        </p>
+                        <div id="viz"></div>
+                    </div>
+                    <p><a data-menu-item-name="introduction" class="back_or_next button">Back</a> <a data-menu-item-name="part_2" class="back_or_next button">Next</a></p>
+                </section>
+
+                <!-- PART II -->
+                <section id="part_2_wrapper" class="no_copy">
+                    <h1>Part 2: Working with CSV's</h1>
+                    <p><a data-menu-item-name="part_1" class="back_or_next button">Back</a> <a data-menu-item-name="part_3" class="back_or_next button">Next</a></p>
+                </section>
+
+                <!-- PART III -->
+                <section id="part_3_wrapper" class="no_copy">
+                    <h1>About This Project</h1>
+                    <p>In creating the data for this analysis I tried to follow the American Enterprise Institute's methodology where I could but had to use different data sources</p>
+                    <p>The original study was based off of CPS data. This study did not use the CPS because it is not designed to produce reliable statistics below the state level. Instead we will be relying on the Decenial Census and American Community Survey (ACS) data. They provide data on the number of households by income class.</p>
+                    <ul>
+                        <li>
+                            <p><strong>1980</strong> - 1980 U.S. Census, General Social and Economic Characteristics, Table 180. Income Characteristics in 1979 for Counties: 1980</p>
+                        </li>
+                        <li>
+                            <p><strong>1990</strong> - 1990 U.S. Census, Social and Economic Characteristics, Table 148. Income in 1989 of Households, Families, and Persons: 1990</p>
+                        </li>
+                        <li>
+                            <p><strong>2000</strong> - 2000 U.S. Census, Table P052. Household Income in 1999</p>
+                        </li>
+                        <li>
+                            <p><strong>2008-2012 &amp; 2013-2017</strong> - American Community Survey, 5 Year Estimates, Table B19001. Household Income in the Past 12 Months</p>
+                        </li>
+                    </ul>
+                    <p>The original study adjusted the income figures for inflation using the <a href="https://www.bls.gov/cpi/research-series/home.htm">CPI-U-RS</a> series. I used the same series to adjust our income figures into 2018 dollars.</p>
+                    <p><a data-menu-item-name="part_2" class="back_or_next button">Back</a> <a class="gray_button button">Next</a></p>
+                </section>
+            </form>
+        </main>
+        <script>
+            $(document).ready(function() {
+                $.get("api/v1/options", function (options) {
+                    $("#dropdown").empty().html(options);
+                    //$("#stacked-viz-dropdown").html(options);
+                });
+
+                // UI EVENTS
+
+                // Prevent form submission
+                $("#form").submit(function(event){
+                    event.preventDefault();
+                });
+                
+                // Navigation menu click event handling
+                $('.menu_item').click(function(){
+                    var wrapper_name = $(this).attr('data-section-id');
+                    $('main').attr('class','').addClass(wrapper_name);
+                    $('.menu_item').removeClass('current');
+                    $(this).addClass('current');
+                });
+
+                // Button at the bottom of page click event handling
+                $('.back_or_next').click(function(){
+                    var name = $(this).attr('data-menu-item-name');
+                    $('a[data-section-id='+name+']').click();
+                });
+            });
+        </script>
+    </body>
+</html>
