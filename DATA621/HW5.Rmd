@@ -1,0 +1,415 @@
+---
+title: "DATA 621 Homework #5"
+subtitle: "From Work by Critical Thinking Group 3"
+author: "Mike Silva"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    toc_depth: 4
+    code_folding: "hide"
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
+library(tidyverse)
+library(kableExtra)
+library(caret)
+library(RColorBrewer)
+library(corrplot)
+library(gridExtra)
+options(scipen = 999)
+```
+
+```{r data, echo=FALSE}
+df <- read.csv("./data/wine-training-data.csv")
+hold_out_data <- read.csv("./data/wine-evaluation-data.csv")
+df <- df[,names(df)[2:length(names(df))]] # Drop the INDEX
+predictors <- names(df)[2:length(names(df))]
+```
+
+## Introduction 
+
+We have been given a dataset with information on `r nrow(df)` commercially available wines.  The variables in the dataset are mostly related to the chemical properties of the wine being sold.  A large wine manufacturer is studying the data in order to predict the number of wine cases ordered based upon the wine characteristics. If the wine manufacturer can predict the number of cases, then that manufacturer will be able to adjust their wine offering to maximize sales.  The objective is explore, analyze and build a count regression model to predict the number of cases of wine that will be sold given certain properties of the wine. 
+
+## Data Exploration & Preparation
+
+As previously stated we have `r nrow(df)` observations for developing the model.  The evaluation dataset (which we will set aside for now) consists of `r nrow(hold_out_data)` observations.  We will begin by taking a look at the modeling data:
+
+```{r}
+summary(df) %>%
+  kable() %>%
+  kable_styling()
+```
+
+Two things jump out about this dataset.  The first thing is that there are variables with negative values.  These negative values don't make sense in the context of chemical properties of wine.  After all, how can you have negative chlorides?  
+
+Second, there are quite a few records with missing values.  We will need to either impute values or drop the records with incomplete data.  These two issues will need to be corrected in the data.
+
+### Correcting Invalid Values
+
+We will begin by correcting the invalid values.  We will assume the negative values were a data entry issue and a negative value was entered when a positive value was desired.  If these negative values were changed into positive numbers, they would be within the range of plausible values based on the other data.
+
+```{r}
+fix_negative_values <- function(df){
+  df %>%
+    mutate(FixedAcidity = abs(FixedAcidity),
+           VolatileAcidity = abs(VolatileAcidity),
+           CitricAcid = abs(CitricAcid),
+           ResidualSugar = abs(ResidualSugar),
+           Chlorides = abs(Chlorides),
+           FreeSulfurDioxide = abs(FreeSulfurDioxide),
+           TotalSulfurDioxide = abs(TotalSulfurDioxide),
+           Sulphates = abs(Sulphates),
+           Alcohol = abs(Alcohol))
+}
+df <- fix_negative_values(df)
+hold_out_data <- fix_negative_values(hold_out_data)
+```
+
+### Missing Values
+
+The instructions indicate that sometimes, the fact that a variable is missing is actually predictive of the target.  Let's see what we can learn about `TARGET` from the missing values.
+
+```{r}
+temp <- df %>%
+  select(TARGET, STARS, Alcohol, ResidualSugar, Chlorides, FreeSulfurDioxide, TotalSulfurDioxide, pH, Sulphates) %>%
+  gather("variable", "value", -TARGET) %>%
+  mutate(na = ifelse(is.na(value), "Yes", "No")) %>%
+  group_by(TARGET, na, variable) %>%
+  tally() %>%
+  ungroup()
+
+ temp <- temp %>%
+    group_by(variable, na) %>%
+    summarise(total = sum(n)) %>%
+    merge(temp) %>%
+    mutate(share = n / total)
+ 
+ ggplot(temp, aes(TARGET, share, fill = na)) +
+   geom_bar(stat = "identity", position = "dodge") +
+   scale_fill_brewer(palette = "Set1") +
+   facet_wrap(~variable, ncol = 4) + 
+   ylab("Percent of Group")
+```
+ 
+We learn that the observations that are missing `STARS` are much more likely to have a zero `TARGET`.  So let's look at how many stars wine with a zero `TARGET` have:
+
+```{r}
+df %>%
+  filter(TARGET == 0) %>%
+  select(STARS) %>%
+  na.omit() %>%
+  group_by(STARS) %>%
+  tally() %>%
+  kable() %>%
+  kable_styling()
+```
+
+Based on this it looks like we should assign 1 for all the missing `STARS`.
+
+There is little to no information encoded in the NAs for `Alcohol`,  `ResidualSugar`, `Chlorides`, `FreeSulfurDioxide`, `TotalSulfurDioxide`, `pH`, and `Sulphates`.  We will impute using the median value.
+
+```{r}
+fix_missing_values <- function(df){
+  df %>%
+    mutate(
+      ResidualSugar = ifelse(is.na(ResidualSugar), median(ResidualSugar, na.rm = T), ResidualSugar),
+      Chlorides = ifelse(is.na(Chlorides), median(Chlorides, na.rm = T), Chlorides),
+      FreeSulfurDioxide = ifelse(is.na(FreeSulfurDioxide), median(FreeSulfurDioxide, na.rm = T), FreeSulfurDioxide),
+      TotalSulfurDioxide = ifelse(is.na(TotalSulfurDioxide), median(TotalSulfurDioxide, na.rm = T), TotalSulfurDioxide),
+      pH = ifelse(is.na(pH), median(pH, na.rm = T), pH),
+      Sulphates = ifelse(is.na(Sulphates), median(Sulphates, na.rm = T), Sulphates),
+      Alcohol = ifelse(is.na(Alcohol), median(Alcohol, na.rm = T), Alcohol),
+      STARS_imputed = ifelse(is.na(STARS), 1, 0),
+      STARS = ifelse(is.na(STARS), 1, STARS)
+    )
+}
+df <- fix_missing_values(df)
+hold_out_data <- fix_missing_values(hold_out_data)
+```
+
+### Training Test Split
+
+Next we will look at splitting the data into a training and testing set at a standard 70-30 split between train and test:
+
+```{r}
+set.seed(42)
+train_index <- createDataPartition(df$TARGET, p = .7, list = FALSE, times = 1)
+train <- df[train_index,]
+test <- df[-train_index,]
+```
+
+### Univariate Analysis
+
+#### Response Variable
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+train %>%
+  group_by(TARGET) %>%
+  tally() %>%
+  ggplot(., aes(x = factor(TARGET), y = n, fill = factor(TARGET))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_fill_brewer(palette = "Set1") + 
+  theme(legend.position = "none") +
+  labs(x="Number of Wine Cases Purchased (TARGET)",y = "Count")
+```
+
+In order to model this as a Poisson process the mean should be equal to the variance
+
+```{r}
+train %>%
+  summarise(mean = mean(TARGET), variance = var(TARGET)) %>%
+  kable() %>%
+  kable_styling()
+```
+
+They are not the same.  The implications of this requirement not being met is the the $\beta$s are correct but the standard errors will be wrong.
+
+#### Predictors
+
+```{r}
+dens <- lapply(predictors, FUN=function(var) {
+  ggplot(df, aes_string(x = var)) + 
+    geom_density(fill = "gray") +
+    geom_vline(aes(xintercept = mean(train[, var])), color = "blue", size=1) +
+    geom_vline(aes(xintercept = median(train[, var])), color = "red", size=1) +
+    geom_vline(aes(xintercept = quantile(train[, var], 0.25)), linetype = "dashed", size = 0.5) + 
+    geom_vline(aes(xintercept = quantile(train[, var], 0.75)), linetype = "dashed", size = 0.5)
+  })
+do.call(grid.arrange, args = c(dens, list(ncol = 3)))
+```
+
+Some of the predictors (the chemical composition variables) are right skewed.
+
+
+### Bivariate Analysis
+
+Now let's examine the correlations between the variables:
+
+```{r}
+corrplot.mixed(cor(train))
+```
+
+Hmm.  This suggests that the chemical makeup of the wine has little bearing on the number of cases sold.  The label appeal, acidity index value and star rating have the strongest correlation.  This also suggests that it may be worth the effort to do a better job filling in the missing values in the `STARS` variable.
+
+## Model Building & Evaluation
+
+### Evaluation Approach
+
+In order to assess the models we will return the the original intent of the exercise: If the wine manufacturer can predict the number of cases, then that manufacturer will be able to adjust their wine offering to maximize sales.  We will evaluate the models based on the number of cases that are likely to be sold.  We will assume that when the model overestimates the cases sold, these cases will never be sold and represent a loss.  When the model underestimates there is also a loss but it is unseen.  It is potential sales that are not realized.  
+
+We will summarize the evaluation by first constructing a confusion matrix like summary looking at what our model predicts vs what actually occured.  We will also summarize the total number of cases that would be sold, the net cases sold (after adjusting for the glut due to overestimating), and a final adjusted net which factors in "losses" from under estimation.
+
+```{r}
+
+evaluate_model <- function(model, test_df, yhat = FALSE){
+  temp <- data.frame(yhat=c(0:8), TARGET = c(0:8), n=c(0))
+  
+  if(yhat){
+    test_df$yhat <- yhat
+  } else {
+    test_df$yhat <- round(predict.glm(model, newdata=test_df, type="response"), 0)
+  }
+  
+  test_df <- test_df %>%
+    group_by(yhat, TARGET) %>%
+    tally() %>%
+    mutate(accuracy = ifelse(yhat > TARGET, "Over", ifelse(yhat < TARGET, "Under", "Accurate"))) %>%
+    mutate(cases_sold = ifelse(yhat > TARGET, TARGET, yhat) * n,
+           glut = ifelse(yhat > TARGET, yhat - TARGET, 0) * n,
+           missed_opportunity = ifelse(yhat < TARGET, TARGET - yhat, 0) * n) %>%
+    mutate(net_cases_sold = cases_sold - glut,
+           adj_net_cases_sold = cases_sold - glut - missed_opportunity)
+  
+  results <- test_df %>%
+    group_by(accuracy) %>%
+    summarise(n = sum(n)) %>%
+    spread(accuracy, n)
+  
+  accurate <- results$Accurate
+  over <- results$Over
+  under <- results$Under
+  
+  cases_sold <- sum(test_df$cases_sold)
+  net_cases_sold <- sum(test_df$net_cases_sold)
+  adj_net_cases_sold <- sum(test_df$adj_net_cases_sold)
+  missed_opportunity <- sum(test_df$missed_opportunity)
+  glut <- sum(test_df$glut)
+  
+  confusion_matrix <- test_df %>%
+    bind_rows(temp) %>%
+    group_by(yhat, TARGET) %>%
+    summarise(n = sum(n)) %>%
+    spread(TARGET, n, fill = 0)
+  
+  return(list("confusion_matrix" = confusion_matrix, "results" = results, "df" = test_df, "accurate" = accurate, "over" = over, "under" = under, "cases_sold" = cases_sold, "net_cases_sold" = net_cases_sold, "adj_net_cases_sold" = adj_net_cases_sold, "glut" = glut, "missed_opportunity" = missed_opportunity))
+}
+```
+
+### Chemical Property Model
+
+We will begin by first constructing a count regression model based on the chemical properties of the wine.  So we will be excluding the label, star rating and the acid index as it is a weighted average of the acidity variables.  Based on our bivariate analysis we would not expect this model to preform well.  Since the mean is not equal to the variance we will be using the quasi-Poisson model.
+
+```{r}
+train1 <- train %>%
+  select(-LabelAppeal, -AcidIndex, -STARS, -STARS_imputed)
+model1 <- glm(TARGET ~ ., family = quasipoisson, train1)
+summary(model1)
+model1_results <- evaluate_model(model1, test)
+```
+
+The following is a confusion matrix like examination of the model with the predicted cases going down the rows and the actual cases going across the columns.
+
+```{r}
+model1_results$confusion_matrix %>% 
+  kable() %>% 
+  kable_styling()
+```
+
+The model is only accurate `r model1_results$accurate` times.  It overestimates `r model1_results$over` times and underestimates `r model1_results$under` times.  If decisions were based off of this model, one would expect to sell `r model1_results$cases_sold`.  If we subtract out the extra cases due to overestimation we would have `r model1_results$net_cases_sold` net cases sold. If we adjust this for the cases that could have been sold if the model didn’t underestimate we would have `r model1_results$adj_net_cases_sold` cases sold.
+
+### Second Chemical Property Model
+
+We will try one more chemical property model but only select the variables that were statistically significant in the preious model (`FixedAcidity`, `VolatileAcidity` and `Alcohol`).
+
+```{r}
+model2 <- glm(TARGET ~ FixedAcidity + VolatileAcidity + Alcohol, family = quasipoisson, train)
+summary(model2)
+model2_results <- evaluate_model(model2, test)
+```
+
+We would expect to have `r model2_results$cases_sold` cases sold using this model (with a net of `r model2_results$net_cases_sold` and adjusted net of `r model2_results$adj_net_cases_sold`). Looking at the confusion matrix we see this model is accurate only `r model2_results$accurate` out of `r nrow(test)` times.
+
+```{r}
+model2_results$confusion_matrix %>% 
+  kable() %>% 
+  kable_styling()
+```
+
+The previous model is slightly better but is still a horible model.  Building a model based off of the chemical properties does not seem like a good solution.  Let's turn our attention to the other variables with stronger correlations.
+
+### Preceived Quality Model
+
+This model relies on the consumer preception of quality based on the label, and the star ratings of the experts.
+
+```{r}
+model3 <- glm(TARGET ~ LabelAppeal + STARS, family = quasipoisson, train)
+summary(model3)
+model3_results <- evaluate_model(model3, test)
+```
+
+Here is a confusion matrix for this model:
+
+```{r}
+model3_results$confusion_matrix %>% 
+  kable() %>% 
+  kable_styling()
+```
+
+### Perceived Quality Plus Model
+
+We will begin with the preceeding model but add in the Acid Index and the flag if the STARS was imputed.
+
+```{r}
+model4 <- glm(TARGET ~ LabelAppeal + STARS + AcidIndex + STARS_imputed, family = quasipoisson, train)
+summary(model4)
+model4_results <- evaluate_model(model4, test)
+```
+
+Let's see how the predictions line up with the reality:
+
+```{r}
+model4_results$confusion_matrix %>% 
+  kable() %>% 
+  kable_styling()
+```
+
+We would expect to have `r model3_results$cases_sold` net cases sold using this model (with a net of `r model3_results$net_cases_sold` and adjusted net of `r model3_results$adj_net_cases_sold`). Looking at the confusion matrix we see this model is accurate only `r model3_results$accurate` out of `r nrow(test)` times.
+
+There are no zero predictions in this model which is not accurate.  We will try to address this in our last model
+
+### Adjusted Perceived Quality Plus Model
+
+We will start with the predictions from preceived quality plus model.  We will then manually override the the predictions that have the stars filled in with a predicted zero.
+
+```{r}
+temp <- test
+temp$yhat <- round(predict.glm(model4, newdata=temp, type="response"), 0)
+temp <- temp %>%
+  mutate(yhat = ifelse(STARS_imputed == 1, 0, yhat))
+model5_results <- evaluate_model(model4, test, temp$yhat)
+```
+
+```{r}
+model5_results$confusion_matrix %>% 
+  kable() %>% 
+  kable_styling()
+```
+
+We see that applying the adjustment based on if the stars are imputed increased the correct number of cases where it should be predicted as a zero.  It also introduced some underestimation.  
+
+We would expect to have `r model4_results$cases_sold` net cases sold using this model (with a net of `r model4_results$net_cases_sold` and adjusted net of `r model4_results$adj_net_cases_sold`). Looking at the confusion matrix we see this model is accurate only `r model4_results$accurate` out of `r nrow(test)` times.
+
+## Model Selection
+
+The following is a summary of the five models
+
+<table>
+<thead>
+  <tr>
+    <th>Model</th>
+    <th>Number of Cases Sold</th>
+    <th>Number of Cases Overestimated to Sell</th>
+    <th>Missed Opportunities</th>
+    <th>Times Accurate</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>Chemical Property Model 1</td>
+    <td>`r model1_results$cases_sold`</td>
+    <td>`r model1_results$glut`</td>
+    <td>`r model1_results$missed_opportunity`</td>
+    <td>`r model1_results$accurate`</td>
+  </tr>
+  <tr>
+    <td>Chemical Property Model 2</td>
+    <td>`r model2_results$cases_sold`</td>
+    <td>`r model2_results$glut`</td>
+    <td>`r model2_results$missed_opportunity`</td>
+    <td>`r model2_results$accurate`</td>
+  </tr>
+  <tr>
+    <td>Perceived Quality Model</td>
+    <td>`r model3_results$cases_sold`</td>
+    <td>`r model3_results$glut`</td>
+    <td>`r model3_results$missed_opportunity`</td>
+    <td>`r model3_results$accurate`</td>
+  </tr>
+  <tr>
+    <td>Perceived Quality Plus Model</td>
+    <td>`r model4_results$cases_sold`</td>
+    <td>`r model4_results$glut`</td>
+    <td>`r model4_results$missed_opportunity`</td>
+    <td>`r model4_results$accurate`</td>
+  </tr>
+  <tr>
+    <td>Adjusted Perceived Quality Plus Model</td>
+    <td>`r model5_results$cases_sold`</td>
+    <td>`r model5_results$glut`</td>
+    <td>`r model5_results$missed_opportunity`</td>
+    <td>`r model5_results$accurate`</td>
+  </tr>
+</tbody>
+</table>
+
+The `Perceived Quality Plus Model` has the most cases sold out of the models.  However the `Adjusted Perceived Quality Plus Model` has the highest accuracy.  One of the reasons why the `Perceived Quality Plus Model` predicted more cases sold is because we forced more zero predictions in the `Adjusted Perceived Quality Plus Model`.  
+
+If we subtract out the waste from overestimation the `Adjusted Perceived Quality Plus Model` is the best model.  This has real business consequences as having extra cases of wine on hand that don't sell becomes a real cost to a business.  For these two reasons it will be the model of choice in producing estimates for the hold out datase.
+
+```{r}
+hold_out_data$TARGET <- round(predict.glm(model4, newdata=hold_out_data, type="response"), 0)
+hold_out_data %>%
+  mutate(TARGET = ifelse(STARS_imputed == 1, 0, TARGET)) %>%
+  write.csv(., "./data/hw5-predictions.csv", row.names = F)
+```
