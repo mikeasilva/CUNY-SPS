@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+app.py
 Created on Wed Nov 15 08:52:11 2019
-
 @author: Michael Silva
 """
 
@@ -17,9 +17,18 @@ def index():
     html = open(os.path.join(APP_ROOT, "webpage.html")).read()
     return html
 
-@app.route("/arrow-menu-down-gray.svg")
-def arrow_menu_down_gray():
-    return send_file(os.path.join(APP_ROOT, "arrow-menu-down-gray.svg"), mimetype='image/svg+xml')
+@app.route("/assets/<file_name>")
+def assets(file_name):
+    file_extension = file_name.split(".")[-1]
+    mime_type = {
+        "css": "text/css",
+        "ico": "image/x-icon",
+        "js": "text/javascript",
+        "png": "image/png",
+        "svg": "image/svg+xml"
+    }
+    file_path = os.path.join(APP_ROOT, "assets/", file_name)
+    return send_file(file_path, mimetype = mime_type[file_extension])
 
 @app.route("/api/v1/all-data")
 def all_data():
@@ -44,7 +53,7 @@ def all_data():
 
 @app.route("/api/v1/options")
 def options():
-    seen = set();
+    seen = set()
     options = {}
     html = ""
     data = csv.DictReader(open(os.path.join(APP_ROOT, "study_data.csv")))
