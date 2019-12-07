@@ -1,6 +1,7 @@
 var all_data;
 var geoid;
 var key = 0;
+var viz_mode = "animated";
 var viz_data;
 var viz_plotly_data;
 
@@ -22,19 +23,23 @@ function x() {
 }
 
 function update_viz() {
-    Plotly.animate("viz", {
-        data: [{ x: x(), }],
-        traces: [0],
-        layout: {}
-    }, {
-        transition: {
-            duration: 500,
-            easing: "cubic-in-out"
-        },
-        frame: {
-            duration: 500
-        }
-    });
+    if(viz_mode == "animated"){
+        Plotly.animate("viz", {
+            data: [{ x: x(), }],
+            traces: [0],
+            layout: {}
+        }, {
+            transition: {
+                duration: 500,
+                easing: "cubic-in-out"
+            },
+            frame: {
+                duration: 500
+            }
+        });
+    } else {
+        plot_stacked_bar_chart();
+    }
 }
 
 function change_dropdown() {
@@ -46,10 +51,10 @@ function change_dropdown() {
     }
 }
 
-function plot_stacked_viz_data() {
+function plot_stacked_bar_chart() {
     var stacked_viz_layout = {
         barmode: "overlay",
-        xaxis: {type: 'category'},
+        xaxis: {type: "category"},
         title: "Are Households Moving Up or Down?"
     };
 
@@ -57,31 +62,31 @@ function plot_stacked_viz_data() {
     var high = {
         x: [],
         y: [],
-        textposition: 'auto',
-        name: 'High',
-        hoverinfo: 'none',
-        marker: {color: '#d63031'},
-        type: 'bar'
+        textposition: "auto",
+        name: "High",
+        hoverinfo: "none",
+        marker: {color: "#d63031"},
+        type: "bar"
     };
 
     var middle = {
         x: [],
         y: [],
-        textposition: 'auto',
-        name: 'Middle',
-        hoverinfo: 'none',
-        marker: {color: '#0984e3'},
-        type: 'bar'
+        textposition: "auto",
+        name: "Middle",
+        hoverinfo: "none",
+        marker: {color: "#0984e3"},
+        type: "bar"
     };
 
     var low = {
         x: [],
         y: [],
-        textposition: 'auto',
-        name: 'Low',
-        hoverinfo: 'none',
-        marker: {color: '#fdcb6e'},
-        type: 'bar'
+        textposition: "auto",
+        name: "Low",
+        hoverinfo: "none",
+        marker: {color: "#fdcb6e"},
+        type: "bar"
     };
 
     low_vals = [];
@@ -89,41 +94,62 @@ function plot_stacked_viz_data() {
     high_vals = [];
 
     $.each(all_data[stacked_viz_geoid], function (index, d) {
-        l = Math.round(d['low_share'] * 100, 0);
-        m = Math.round(d['middle_share'] * 100, 0);
-        h = Math.round(d['upper_share'] * 100, 0);
+        l = Math.round(d["low_share"] * 100, 0);
+        m = Math.round(d["middle_share"] * 100, 0);
+        h = Math.round(d["upper_share"] * 100, 0);
         low_vals[index] = l + "%";
         middle_vals[index] = m + "%";
         high_vals[index] = h + "%";
-        low['x'][index] = middle['x'][index] = high['x'][index] = d['label'];
-        low['y'][index] = l * -1;
-        middle['y'][index] = m;
-        high['y'][index] = m + h;
+        low["x"][index] = middle["x"][index] = high["x"][index] = d["label"];
+        low["y"][index] = l * -1;
+        middle["y"][index] = m;
+        high["y"][index] = m + h;
     });
 
-    low['text'] = low_vals.map(String);
-    middle['text'] = middle_vals.map(String);
-    high['text'] = high_vals.map(String);
+    low["text"] = low_vals.map(String);
+    middle["text"] = middle_vals.map(String);
+    high["text"] = high_vals.map(String);
 
-    Plotly.newPlot("stacked-viz", [high, middle, low], stacked_viz_layout, {responsive: true});
+    Plotly.newPlot("viz", [high, middle, low], stacked_viz_layout, {responsive: true});
 }
 
-function change_year() {
-    var auto_advance = !$("#toggle").prop('checked');
-    if (auto_advance) {
-        key++;
-        if (key == 5) {
+function plot_animated_bar_chart(){
+    viz_plotly_data = [{
+        type: "bar",
+        x: x(),
+        y: ["Low ", "Middle ", "High "],
+        orientation: "h",
+        marker: {color: ["#fdcb6e", "#0984e3", "#d63031"]},
+    }];
+
+    Plotly.newPlot("viz", viz_plotly_data, viz_plotly_layout, viz_plotly_options);
+}
+
+function change_viz() {
+    var auto_advance = !$("#auto_advance_toggle").prop("checked");
+    var chart_showing = $("main").hasClass("part_1");
+    if(chart_showing){
+        if(viz_mode == "animated"){
+            if (auto_advance) {
+                key++;
+                if (key == 5) {
+                    change_dropdown();
+                    key = 0;
+                }
+                $("#slider").val(key);
+                update_viz();
+            } 
+        } else {
             change_dropdown();
-            key = 0;
+            update_viz();
         }
-        $("#slider").val(key);
-        update_viz();
     }
-    setTimeout(change_year, 1000);
+    setTimeout(change_viz, 1000);
 }
 
 
 function init(){
+    viz = $("#viz_container").addClass("viz");
     geoid = $("#dropdown").val();
 
     $.get("api/v1/options", function (options) {
@@ -132,19 +158,9 @@ function init(){
 
     $.getJSON("api/v1/all-data", function (response) {
         all_data = response;
-    
-        viz_plotly_data = [{
-            type: "bar",
-            x: x(),
-            y: ["Low ", "Middle ", "High "],
-            orientation: "h",
-            marker: {color: ["#fdcb6e", "#0984e3", "#d63031"]},
-        }];
-    
-        Plotly.newPlot("viz", viz_plotly_data, viz_plotly_layout, viz_plotly_options);
-        //plot_stacked_viz_data();
+        plot_animated_bar_chart();
         // Start the auto advancer
-        setTimeout(change_year, 1000);
+        setTimeout(change_viz, 1000);
     });
 }
 
@@ -158,11 +174,31 @@ $(document).ready(function () {
         update_viz();
     });
 
+    $("a.chart_options_button").click(function(){
+        viz_mode = $(this).data("viz");
+        $("#chart_options").removeClass().addClass(viz_mode);
+        $('#viz_container').removeClass().addClass(viz_mode);
+        if(viz_mode == "animated"){
+            plot_animated_bar_chart();
+        } else {
+            plot_stacked_bar_chart();
+        }
+    });
+
     $("#dropdown").change(function () {
         key = 0;
         geoid = $("#dropdown").val();
         $("#slider").val(key);
         update_viz();
+    });
+
+    $("#auto_advance_toggle").change(function(){
+        manual_mode = $(this).is(":checked");
+        if(manual_mode){
+            $("#slider").removeClass("slider_inactive").addClass("slider_active");
+        } else {
+            $("#slider").removeClass("slider_active").addClass("slider_inactive");
+        }
     });
 
     // Prevent form submission
@@ -171,17 +207,17 @@ $(document).ready(function () {
     });
 
     // Navigation menu click event handling
-    $('.menu_item').click(function () {
-        var wrapper_name = $(this).attr('data-section-id');
-        $('main').attr('class', '').addClass(wrapper_name);
-        $('.menu_item').removeClass('current');
-        $(this).addClass('current');
+    $(".menu_item").click(function () {
+        var wrapper_name = $(this).attr("data-section-id");
+        $("main").attr("class", "").addClass(wrapper_name);
+        $(".menu_item").removeClass("current");
+        $(this).addClass("current");
     });
 
     // Button at the bottom of page click event handling
-    $('.back_or_next').click(function () {
-        var name = $(this).attr('data-menu-item-name');
-        $('a[data-section-id=' + name + ']').click();
+    $(".back_or_next").click(function () {
+        var name = $(this).attr("data-menu-item-name");
+        $("a[data-section-id=" + name + "]").click();
     });
 
     init();

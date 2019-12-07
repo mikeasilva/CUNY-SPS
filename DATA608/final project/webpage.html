@@ -27,7 +27,7 @@
         <!-- Nav -->
         <nav class="no_copy">
             <a data-section-id="introduction" class="menu_item current">Introduction<span class="current_indicator"></span></a>
-            <a data-section-id="part_1" class="menu_item">NYS Shrinking Middle Class<span class="current_indicator"></span></a>
+            <a data-section-id="part_1" class="menu_item">County Charts<span class="current_indicator"></span></a>
             <a data-section-id="part_2" class="menu_item">County Rankings<span class="current_indicator"></span></a>
             <a data-section-id="part_3" class="menu_item">About This Project<span class="current_indicator"></span></a>
         </nav>
@@ -46,16 +46,26 @@
                 <section id="part_1_wrapper" class="no_copy">
                     <div class="one-third">
                         <h2>New York's Story is Complicated</h2>
-                        <p>The share of middle-income households in most NY counties has shrunk over time. Most experienced their largest drop from 1980 to 1990. The rate of the contraction slowed in from 1990 to 2000.  The share of high-income households have grown, however some of those gains were given back during the Great Recession.</p>
-                        <p id="toggle_container">Auto-advance <input type="checkbox" id="toggle" class="checkbox" />
-                            <label for="toggle" class="switch"></label>
-                        </p>
+                        <p style="margin-bottom: 10px;">The share of middle-income households in most NY counties has shrunk over time. Most experienced their largest drop from 1980 to 1990. The rate of the contraction slowed in from 1990 to 2000.</p>
+                        <h2>Is the High Group Growing?</h2>
+                        <p>Yes, generally the share of high-income households have grown.  However some of those gains were given back during the Great Recession.</p>
+                        <div id="chart_options" class="animated">
+                            <div id="animated_controls">
+                                <p><a name="stacked_chart_button" class="red_button button chart_options_button" data-viz="stacked">Switch to Stacked Bar Chart</a></p>
+                                <p id="toggle_container">Auto-advance <input type="checkbox" id="auto_advance_toggle" class="checkbox" />
+                                    <label for="auto_advance_toggle" class="switch"></label>
+                                </p>
+                            </div>
+                            <div id="stacked_controls">
+                                <p><a name="animated_chart_button" class="red_button button chart_options_button" data-viz="animated">Switch to Animated Bar Chart</a></p>
+                            </div>
+                        </div>
                     </div>
                     <div class="two-thirds">
                         <select id="dropdown"><option value="36001" selected>Please Wait...</option></select>
-                        <div class="viz_container">
+                        <div id="viz_container" data-viz="animated">
                             <div id="slider_container">
-                                <input type="range" min="0" max="4" value="0" class="slider" id="slider"/>
+                                <input type="range" min="0" max="4" value="0" class="slider slider_inactive" id="slider"/>
                                 <div class="slider_ticks">
                                     <p>1980</p>
                                     <p>1990</p>
