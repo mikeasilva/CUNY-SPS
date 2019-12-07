@@ -1,10 +1,169 @@
-$(document).ready(function () {
-    $.get("api/v1/options", function (options) {
-        $("#dropdown").empty().html(options);
-        //$("#stacked-viz-dropdown").html(options);
+var all_data;
+var geoid;
+var key = 0;
+var viz_data;
+var viz_plotly_data;
+
+var viz_plotly_layout = {
+    xaxis: { range: [0, 60] },
+    showlegend: false,
+    title: "Share of Households by Income Level (%)"
+};
+
+var viz_plotly_options = {
+    responsive: true,
+    scrollZoom: false,
+    showLink: false
+};
+
+function x() {
+    viz_data = all_data[geoid];
+    return [Math.round(viz_data[key]["low_share"] * 100, 0), Math.round(viz_data[key]["middle_share"] * 100, 0), Math.round(viz_data[key]["upper_share"] * 100, 0)];
+}
+
+function update_viz() {
+    Plotly.animate("viz", {
+        data: [{ x: x(), }],
+        traces: [0],
+        layout: {}
+    }, {
+        transition: {
+            duration: 500,
+            easing: "cubic-in-out"
+        },
+        frame: {
+            duration: 500
+        }
+    });
+}
+
+function change_dropdown() {
+    if ($("#dropdown option:selected").val() == "36123") {
+        $("#dropdown option:selected").attr("selected", false);
+        $("#dropdown option:first").attr("selected", "selected");
+    } else {
+        $("#dropdown option:selected").attr("selected", false).next().attr("selected", "selected");
+    }
+}
+
+function plot_stacked_viz_data() {
+    var stacked_viz_layout = {
+        barmode: "overlay",
+        xaxis: {type: 'category'},
+        title: "Are Households Moving Up or Down?"
+    };
+
+    stacked_viz_geoid = $("#stacked-viz-dropdown").val();
+    var high = {
+        x: [],
+        y: [],
+        textposition: 'auto',
+        name: 'High',
+        hoverinfo: 'none',
+        marker: {color: '#d63031'},
+        type: 'bar'
+    };
+
+    var middle = {
+        x: [],
+        y: [],
+        textposition: 'auto',
+        name: 'Middle',
+        hoverinfo: 'none',
+        marker: {color: '#0984e3'},
+        type: 'bar'
+    };
+
+    var low = {
+        x: [],
+        y: [],
+        textposition: 'auto',
+        name: 'Low',
+        hoverinfo: 'none',
+        marker: {color: '#fdcb6e'},
+        type: 'bar'
+    };
+
+    low_vals = [];
+    middle_vals = [];
+    high_vals = [];
+
+    $.each(all_data[stacked_viz_geoid], function (index, d) {
+        l = Math.round(d['low_share'] * 100, 0);
+        m = Math.round(d['middle_share'] * 100, 0);
+        h = Math.round(d['upper_share'] * 100, 0);
+        low_vals[index] = l + "%";
+        middle_vals[index] = m + "%";
+        high_vals[index] = h + "%";
+        low['x'][index] = middle['x'][index] = high['x'][index] = d['label'];
+        low['y'][index] = l * -1;
+        middle['y'][index] = m;
+        high['y'][index] = m + h;
     });
 
+    low['text'] = low_vals.map(String);
+    middle['text'] = middle_vals.map(String);
+    high['text'] = high_vals.map(String);
+
+    Plotly.newPlot("stacked-viz", [high, middle, low], stacked_viz_layout, {responsive: true});
+}
+
+function change_year() {
+    var auto_advance = !$("#toggle").prop('checked');
+    if (auto_advance) {
+        key++;
+        if (key == 5) {
+            change_dropdown();
+            key = 0;
+        }
+        $("#slider").val(key);
+        update_viz();
+    }
+    setTimeout(change_year, 1000);
+}
+
+
+function init(){
+    geoid = $("#dropdown").val();
+
+    $.get("api/v1/options", function (options) {
+        $("#dropdown").empty().html(options);
+    });
+
+    $.getJSON("api/v1/all-data", function (response) {
+        all_data = response;
+    
+        viz_plotly_data = [{
+            type: "bar",
+            x: x(),
+            y: ["Low ", "Middle ", "High "],
+            orientation: "h",
+            marker: {color: ["#fdcb6e", "#0984e3", "#d63031"]},
+        }];
+    
+        Plotly.newPlot("viz", viz_plotly_data, viz_plotly_layout, viz_plotly_options);
+        //plot_stacked_viz_data();
+        // Start the auto advancer
+        setTimeout(change_year, 1000);
+    });
+}
+
+
+
+$(document).ready(function () {
+    var geoid = $("#dropdown").val();
     // UI EVENTS
+    $("#slider").change(function () {
+        key = $(this).val();
+        update_viz();
+    });
+
+    $("#dropdown").change(function () {
+        key = 0;
+        geoid = $("#dropdown").val();
+        $("#slider").val(key);
+        update_viz();
+    });
 
     // Prevent form submission
     $("#form").submit(function (event) {
@@ -24,4 +183,6 @@ $(document).ready(function () {
         var name = $(this).attr('data-menu-item-name');
         $('a[data-section-id=' + name + ']').click();
     });
+
+    init();
 });

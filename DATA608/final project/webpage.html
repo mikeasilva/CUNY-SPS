@@ -44,13 +44,28 @@
 
                 <!-- PART I -->
                 <section id="part_1_wrapper" class="no_copy">
-                    <select id="dropdown"><option value="36001" selected>Please Wait...</option></select>
-                    <div class="viz_container">
-                        <p id="toggle_container">
-                            Auto-advance <input type="checkbox" id="toggle" class="checkbox" />
+                    <div class="one-third">
+                        <h2>New York's Story is Complicated</h2>
+                        <p>The share of middle-income households in most NY counties has shrunk over time. Most experienced their largest drop from 1980 to 1990. The rate of the contraction slowed in from 1990 to 2000.  The share of high-income households have grown, however some of those gains were given back during the Great Recession.</p>
+                        <p id="toggle_container">Auto-advance <input type="checkbox" id="toggle" class="checkbox" />
                             <label for="toggle" class="switch"></label>
                         </p>
-                        <div id="viz"></div>
+                    </div>
+                    <div class="two-thirds">
+                        <select id="dropdown"><option value="36001" selected>Please Wait...</option></select>
+                        <div class="viz_container">
+                            <div id="slider_container">
+                                <input type="range" min="0" max="4" value="0" class="slider" id="slider"/>
+                                <div class="slider_ticks">
+                                    <p>1980</p>
+                                    <p>1990</p>
+                                    <p>2000</p>
+                                    <p>2007-12</p>
+                                    <p>2013-17</p>
+                                </div>
+                            </div>
+                            <div id="viz"></div>
+                        </div>
                     </div>
                     <p><a data-menu-item-name="introduction" class="back_or_next button">Back</a> <a data-menu-item-name="part_2" class="back_or_next button">Next</a></p>
                 </section>
