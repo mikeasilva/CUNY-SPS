@@ -4,6 +4,7 @@ var key = 0;
 var viz_mode = "animated";
 var viz_data;
 var viz_plotly_data;
+var viz_timeout = 1000;
 
 var viz_plotly_layout = {
     xaxis: { range: [0, 60] },
@@ -58,7 +59,7 @@ function plot_stacked_bar_chart() {
         title: "Are Households Moving Up or Down?"
     };
 
-    stacked_viz_geoid = $("#stacked-viz-dropdown").val();
+    geoid = $("#dropdown").val();
     var high = {
         x: [],
         y: [],
@@ -93,7 +94,7 @@ function plot_stacked_bar_chart() {
     middle_vals = [];
     high_vals = [];
 
-    $.each(all_data[stacked_viz_geoid], function (index, d) {
+    $.each(all_data[geoid], function (index, d) {
         l = Math.round(d["low_share"] * 100, 0);
         m = Math.round(d["middle_share"] * 100, 0);
         h = Math.round(d["upper_share"] * 100, 0);
@@ -130,6 +131,7 @@ function change_viz() {
     var chart_showing = $("main").hasClass("part_1");
     if(chart_showing){
         if(viz_mode == "animated"){
+            viz_timeout = 1000;
             if (auto_advance) {
                 key++;
                 if (key == 5) {
@@ -140,11 +142,14 @@ function change_viz() {
                 update_viz();
             } 
         } else {
-            change_dropdown();
+            viz_timeout = 3000;
+            if(auto_advance){
+                change_dropdown();
+            }
             update_viz();
         }
     }
-    setTimeout(change_viz, 1000);
+    setTimeout(change_viz, viz_timeout);
 }
 
 
@@ -160,7 +165,7 @@ function init(){
         all_data = response;
         plot_animated_bar_chart();
         // Start the auto advancer
-        setTimeout(change_viz, 1000);
+        setTimeout(change_viz, viz_timeout);
     });
 }
 
