@@ -45,10 +45,10 @@
                 <!-- PART I -->
                 <section id="part_1_wrapper" class="no_copy">
                     <div class="one-third">
-                        <h2>New York's Story is Complicated</h2>
-                        <p style="margin-bottom: 10px;">The share of middle-income households in most NY counties has shrunk over time. Most experienced their largest drop from 1980 to 1990. The rate of the contraction slowed in from 1990 to 2000.</p>
-                        <h2>Is the High Group Growing?</h2>
-                        <p>Yes, generally the share of high-income households have grown.  However some of those gains were given back during the Great Recession.</p>
+                        <h2>The Shrinking Middle Class</h2>
+                        <p style="margin-bottom: 10px;">The share of middle-income households in most NY counties has shrunk over time. Most experienced their largest drop from 1980 to 1990. The rate of contraction slowed in from 1990 to 2000.</p>
+                        <h2>Where Are They Growing?</h2>
+                        <p>If the middle-income households are shrinking is the low or the high growing?  Or both?  Generally the share of high-income households have grown.  However some of those gains were given back during the Great Recession.  This is easiest to see using the stacked bar chart.</p>
                         <div id="chart_options" class="animated">
                             <p id="animated_controls">
                                 <a name="stacked_chart_button" class="red_button button chart_options_button" data-viz="stacked">Switch to Stacked Bar Chart</a>
@@ -70,7 +70,7 @@
                                     <p>1980</p>
                                     <p>1990</p>
                                     <p>2000</p>
-                                    <p>2007-12</p>
+                                    <p>2008-12</p>
                                     <p>2013-17</p>
                                 </div>
                             </div>
@@ -82,7 +82,24 @@
 
                 <!-- PART II -->
                 <section id="part_2_wrapper" class="no_copy">
-                    <h1>Part 2: Working with CSV's</h1>
+                    <h1>How Do NY Counties Stack Up?</h1>
+                    <div class="one-half">
+                        <select id="year_filter" style="width: calc(100% -4px);">
+                            <option value="show_1980" selected>Show 1980</option>
+                            <option value="show_1990">Show 1990</option>
+                            <option value="show_2000">Show 2000</option>
+                            <option value="show_2008_12">Show 2008-12</option>
+                            <option value="show_2013_17">Show 2013-17</option>
+                        </select>
+                    </div>
+                    <div class="one-half">
+                        <select id="group_filter">
+                            <option value="low">Show Low Income</option>
+                            <option value="middle" selected>Show Middle Income</option>
+                            <option value="high">Show High Income</option>
+                        </select>
+                    </div>
+                    <div id="ranking_tiles_container" class="show_1980 middle"></div>
                     <p><a data-menu-item-name="part_1" class="back_or_next button">Back</a> <a data-menu-item-name="part_3" class="back_or_next button">Next</a></p>
                 </section>
 
@@ -102,7 +119,7 @@
                             <p><strong>2000</strong> - 2000 U.S. Census, Table P052. Household Income in 1999</p>
                         </li>
                         <li>
-                            <p><strong>2008-2012 &amp; 2013-2017</strong> - American Community Survey, 5 Year Estimates, Table B19001. Household Income in the Past 12 Months</p>
+                            <p><strong>2008-12 &amp; 2013-17</strong> - American Community Survey, 5 Year Estimates, Table B19001. Household Income in the Past 12 Months</p>
                         </li>
                     </ul>
                     <p>The original study adjusted the income figures for inflation using the <a href="https://www.bls.gov/cpi/research-series/home.htm">CPI-U-RS</a> series. I used the same series to adjust our income figures into 2018 dollars.</p>

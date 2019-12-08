@@ -5,6 +5,8 @@ var viz_mode = "animated";
 var viz_data;
 var viz_plotly_data;
 var viz_timeout = 1000;
+var year_filter;
+var group_filter;
 
 var viz_plotly_layout = {
     xaxis: { range: [0, 60] },
@@ -152,9 +154,33 @@ function change_viz() {
     setTimeout(change_viz, viz_timeout);
 }
 
+function build_ranking_tiles() {
+    console.log(all_data);
+    $.each(all_data, function (geoid, data) {
+        div = $("<div />").attr("id", geoid).addClass("tile");
+        label = $("<label />").text(data[0]['name']);
+        div.append(label);
+        $.each(data, function(index, d){
+            c = "data_for_" + d["label"].replace("-", "_");
+            l = Math.round(d["low_share"] * 100, 0) + "%";
+            m = Math.round(d["middle_share"] * 100, 0) + "%";
+            h = Math.round(d["upper_share"] * 100, 0) + "%";
+            p = $("<p />").addClass(c);
+            l_span = $("<span />").addClass("low_value percent").text(l);
+            m_span = $("<span />").addClass("mid_value percent").text(m);
+            h_span = $("<span />").addClass("high_value percent").text(h);
+            p.append(l_span).append(m_span).append(h_span);
+            div.append(p);
+        });
+        $('#ranking_tiles_container').append(div);
+    });
+}
+
 
 function init(){
     viz = $("#viz_container").addClass("viz");
+    group_filter = $("#group_filter").val();
+    year_filter = $("#year_filter").val();
     geoid = $("#dropdown").val();
 
     $.get("api/v1/options", function (options) {
@@ -164,12 +190,16 @@ function init(){
     $.getJSON("api/v1/all-data", function (response) {
         all_data = response;
         plot_animated_bar_chart();
+        // Build the ranking tiles
+        build_ranking_tiles();
         // Start the auto advancer
         setTimeout(change_viz, viz_timeout);
     });
 }
 
-
+function shuffle_tiles(){
+    $("#ranking_tiles_container").removeClass().addClass(year_filter).addClass(group_filter);
+}
 
 $(document).ready(function () {
     var geoid = $("#dropdown").val();
@@ -177,6 +207,16 @@ $(document).ready(function () {
     $("#slider").change(function () {
         key = $(this).val();
         update_viz();
+    });
+
+    $("#year_filter").change(function(){
+        year_filter = $(this).val();
+        shuffle_tiles();
+    });
+
+    $("#group_filter").change(function(){
+        group_filter = $(this).val();
+        shuffle_tiles();
     });
 
     $("a.chart_options_button").click(function(){

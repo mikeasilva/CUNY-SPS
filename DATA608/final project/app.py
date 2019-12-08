@@ -41,6 +41,7 @@ def all_data():
             year = str(int(year)-4) + "-" + year[-2:]
         json_data.append({
             "label": year,
+            "name": row['name'].replace(" County, New York", ""),
             "low_share": row["low_class"],
             "middle_share": row["middle_class"],
             "upper_share": row["upper_class"],
