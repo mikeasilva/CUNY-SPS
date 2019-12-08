@@ -358,6 +358,12 @@ section{
 	display: none;
 }
 
+.clearfix::after {
+	content: "";
+	clear: both;
+	display: table;
+  }
+
 #ranking_tiles_container{
 	width: 100%;
 	margin: 0;
@@ -376,7 +382,6 @@ section{
 	color: #808080;
 	width: calc(100% / 8);
 	float: left;
-	margin-bottom: 8px;
 }
 
 .tile p {
@@ -388,23 +393,30 @@ section{
 	margin-right: 2px;
 }
 
-.one-half {
-	width: 50%;
+#group_filter {
+	width: calc(50% - 2px);
 	float: left;
+	margin-left:2px;
+}
+
+#year_filter {
+	width: calc(50% - 2px);
+	float: left;
+	margin-right: 2px;
 }
 
 .tile label{
 	border-top-left-radius: 4px;
 	border-top-right-radius: 4px;
 	background-color: white;
+	padding-top: 10px;
+	padding-bottom: 2px;
 	box-shadow2: 0px 1px 1px 0px rgba(0, 0, 0, 0.15);
 	cursor: pointer;
 	margin: 2px;
-	margin-top: 10px;
+	margin-top: 8px;
 	margin-bottom: 0;
 	font-size: 0.9rem;
-	line-height: 1.5rem;
-	height: 1.5rem;
 	display: block;
 	font-weight: bold;
 	text-align: center;
@@ -461,4 +473,8 @@ section{
 	text-align: center;
 	vertical-align: middle;
 	font-size: 2.25rem;
+	padding-bottom: 10px;
+	border-bottom-left-radius: 4px;
+	border-bottom-left-radius: 4px;
+	box-shadow: 0px 1px 1px 0px rgba(0, 0, 0, 0.15);
 }

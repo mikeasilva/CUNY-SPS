@@ -8,6 +8,7 @@ Created on Wed Nov 15 08:52:11 2019
 import os
 import csv
 from flask import Flask, jsonify, request, send_file
+import pandas as pd
 
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__)
@@ -51,6 +52,29 @@ def all_data():
         })
         json[row['geoid']] = json_data
     return jsonify(json)
+
+@app.route("/api/v1/rankings")
+def rankings():
+    df = pd.read_csv(os.path.join(APP_ROOT, "study_data.csv"))
+    df["low_rank"] = df.groupby("year")["low_class"].rank("dense", ascending=False)
+    df["middle_rank"] = df.groupby("year")["middle_class"].rank("dense", ascending=False)
+    df["high_rank"] = df.groupby("year")["upper_class"].rank("dense", ascending=False)
+
+    rankings = {}
+    for index, row in df.iterrows():
+        geoid = row['geoid']
+        year = str(row['year'])
+        low_rank = int(row['low_rank'])
+        middle_rank = int(row['middle_rank'])
+        high_rank = int(row['high_rank'])
+        if int(year) > 2000:
+            year = str(int(year) - 4) + "_" + year[-2:]
+        year = "show_" + year
+        r = rankings.get(geoid, dict())
+        r[year] = {"low": low_rank, "middle": middle_rank, "high": high_rank}
+        rankings[geoid] = r
+
+    return jsonify(rankings)
 
 @app.route("/api/v1/options")
 def options():

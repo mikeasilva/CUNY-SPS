@@ -82,24 +82,21 @@
 
                 <!-- PART II -->
                 <section id="part_2_wrapper" class="no_copy">
-                    <h1>How Do NY Counties Stack Up?</h1>
-                    <div class="one-half">
-                        <select id="year_filter" style="width: calc(100% -4px);">
-                            <option value="show_1980" selected>Show 1980</option>
-                            <option value="show_1990">Show 1990</option>
-                            <option value="show_2000">Show 2000</option>
-                            <option value="show_2008_12">Show 2008-12</option>
-                            <option value="show_2013_17">Show 2013-17</option>
-                        </select>
-                    </div>
-                    <div class="one-half">
-                        <select id="group_filter">
-                            <option value="low">Show Low Income</option>
-                            <option value="middle" selected>Show Middle Income</option>
-                            <option value="high">Show High Income</option>
-                        </select>
-                    </div>
+                    <select id="year_filter">
+                        <option value="show_1980" selected>Show 1980</option>
+                        <option value="show_1990">Show 1990</option>
+                        <option value="show_2000">Show 2000</option>
+                        <option value="show_2008_12">Show 2008-12</option>
+                        <option value="show_2013_17">Show 2013-17</option>
+                    </select>
+                        
+                    <select id="group_filter">
+                        <option value="low">Show Low Income</option>
+                        <option value="middle" selected>Show Middle Income</option>
+                        <option value="high">Show High Income</option>
+                    </select>
                     <div id="ranking_tiles_container" class="show_1980 middle"></div>
+                    <div class="clearfix"></div>
                     <p><a data-menu-item-name="part_1" class="back_or_next button">Back</a> <a data-menu-item-name="part_3" class="back_or_next button">Next</a></p>
                 </section>
 

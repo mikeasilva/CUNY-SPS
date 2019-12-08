@@ -7,6 +7,7 @@ var viz_plotly_data;
 var viz_timeout = 1000;
 var year_filter;
 var group_filter;
+var rankings;
 
 var viz_plotly_layout = {
     xaxis: { range: [0, 60] },
@@ -155,7 +156,6 @@ function change_viz() {
 }
 
 function build_ranking_tiles() {
-    console.log(all_data);
     $.each(all_data, function (geoid, data) {
         div = $("<div />").attr("id", geoid).addClass("tile");
         label = $("<label />").text(data[0]['name']);
@@ -173,6 +173,11 @@ function build_ranking_tiles() {
             div.append(p);
         });
         $('#ranking_tiles_container').append(div);
+    });
+
+    $.getJSON("api/v1/rankings", function (response) {
+        rankings = response;
+        shuffle_tiles();
     });
 }
 
@@ -198,6 +203,10 @@ function init(){
 }
 
 function shuffle_tiles(){
+    $.each(rankings, function (geoid, d) {
+        rank = "rank_" + d[year_filter][group_filter];
+        $('#'+geoid).removeClass().addClass("tile").addClass(rank);
+    });
     $("#ranking_tiles_container").removeClass().addClass(year_filter).addClass(group_filter);
 }
 
