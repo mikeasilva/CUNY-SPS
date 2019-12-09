@@ -368,6 +368,8 @@ section{
 	width: 100%;
 	margin: 0;
 	padding: 0;
+	position: relative;
+	margin-top: 45px;
 }
 
 .tile {
@@ -381,7 +383,8 @@ section{
 	outline: none;
 	color: #808080;
 	width: calc(100% / 8);
-	float: left;
+	position: absolute;
+	transition: all 0.2s 0.1s;
 }
 
 .tile p {
@@ -475,4 +478,56 @@ section{
 	border-bottom-left-radius: 4px;
 	border-bottom-left-radius: 4px;
 	box-shadow: 0px 1px 1px 0px rgba(0, 0, 0, 0.15);
+}
+
+/* Title Verticle Position */
+.rank_1, .rank_2, .rank_3, .rank_4, .rank_5, .rank_6, .rank_7, .rank_8 {
+	top: 0px;
+}
+.rank_9, .rank_10, .rank_11, .rank_12, .rank_13, .rank_14, .rank_15, .rank_16 {
+	top: 100px;
+}
+.rank_17, .rank_18, .rank_19, .rank_20, .rank_21, .rank_22, .rank_23, .rank_24 {
+	top: 200px;
+}
+.rank_25, .rank_26, .rank_27, .rank_28, .rank_29, .rank_30, .rank_31, .rank_32 {
+	top: 300px;
+}
+.rank_33, .rank_34, .rank_35, .rank_36, .rank_37, .rank_38, .rank_39, .rank_40 {
+	top: 400px;
+}
+.rank_41, .rank_42, .rank_43, .rank_44, .rank_45, .rank_46, .rank_47, .rank_48 {
+	top: 500px;
+}
+.rank_49, .rank_50, .rank_51, .rank_52, .rank_53, .rank_54, .rank_55, .rank_56 {
+	top: 600px;
+}
+.rank_57, .rank_58, .rank_59, .rank_60, .rank_61, .rank_62 {
+	top: 700px;
+}
+
+/* Tile Horizontal Position */
+.rank_1 , .rank_9, .rank_17, .rank_25, .rank_33, .rank_41, .rank_49, .rank_57 {
+	left: 0px;
+}
+.rank_2 , .rank_10, .rank_18, .rank_26, .rank_34, .rank_42, .rank_50, .rank_58 {
+	left: calc(calc(100% / 8) * 1);
+}
+.rank_3 , .rank_11, .rank_19, .rank_27, .rank_35, .rank_43, .rank_51, .rank_59 {
+	left: calc(calc(100% / 8) * 2);
+}
+.rank_4 , .rank_12, .rank_20, .rank_28, .rank_36, .rank_44, .rank_52, .rank_60 {
+	left: calc(calc(100% / 8) * 3);
+}
+.rank_5 , .rank_13, .rank_21, .rank_29, .rank_37, .rank_45, .rank_53, .rank_61 {
+	left: calc(calc(100% / 8) * 4);
+}
+.rank_6, .rank_14, .rank_22, .rank_30, .rank_38, .rank_46, .rank_54, .rank_62 {
+	left: calc(calc(100% / 8) * 5);
+}
+.rank_7, .rank_15, .rank_23, .rank_31, .rank_39, .rank_47, .rank_55 {
+	left: calc(calc(100% / 8) * 6);
+}
+.rank_8 , .rank_16, .rank_24, .rank_32, .rank_40, .rank_48, .rank_56 {
+	left: calc(calc(100% / 8) * 7);
 }
