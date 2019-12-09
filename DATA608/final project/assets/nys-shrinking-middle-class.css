@@ -369,7 +369,6 @@ section{
 	margin: 0;
 	padding: 0;
 	position: relative;
-	margin-top: 45px;
 }
 
 .tile {
@@ -504,6 +503,11 @@ section{
 }
 .rank_57, .rank_58, .rank_59, .rank_60, .rank_61, .rank_62 {
 	top: 700px;
+}
+#ranking_tiles_container p.buttons{
+	left: 0px;
+	top: 800px;	
+	position: absolute;
 }
 
 /* Tile Horizontal Position */
