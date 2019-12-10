@@ -395,14 +395,30 @@ section{
 	margin-right: 2px;
 }
 
-#group_filter {
-	width: calc(50% - 2px);
+#highlight_me {
+	width: calc(33% - 2px);
 	float: left;
 	margin-left:2px;
 }
 
+.highlighted label{
+	border: 2px solid #008FCC;
+	border-bottom: 0;
+}
+.highlighted p{
+	border: 2px solid #008FCC;
+	border-top: 0;
+}
+
+#group_filter {
+	width: calc(33% - 4px);
+	float: left;
+	margin-left:2px;
+	margin-right: 2px;
+}
+
 #year_filter {
-	width: calc(50% - 2px);
+	width: calc(33% - 2px);
 	float: left;
 	margin-right: 2px;
 }

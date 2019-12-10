@@ -8,6 +8,7 @@ var viz_timeout = 1000;
 var year_filter;
 var group_filter;
 var rankings;
+var highlight_me;
 
 var viz_plotly_layout = {
     xaxis: { range: [0, 60] },
@@ -186,10 +187,13 @@ function init(){
     viz = $("#viz_container").addClass("viz");
     group_filter = $("#group_filter").val();
     year_filter = $("#year_filter").val();
+    highlight_me = $("#highlight_me").val();
     geoid = $("#dropdown").val();
 
     $.get("api/v1/options", function (options) {
         $("#dropdown").empty().html(options);
+        $("#highlight_me").append(options);
+        $('#highlight_me option[value="none"]').prop('selected', true)
     });
 
     $.getJSON("api/v1/all-data", function (response) {
@@ -208,11 +212,22 @@ function shuffle_tiles(){
         $('#'+geoid).removeClass().addClass("tile").addClass(rank);
     });
     $("#ranking_tiles_container").removeClass().addClass(year_filter).addClass(group_filter);
+    if(highlight_me != "none"){
+        $("#" + highlight_me).addClass("highlighted");
+    }
 }
 
 $(document).ready(function () {
     var geoid = $("#dropdown").val();
     // UI EVENTS
+    $("#highlight_me").change(function(){
+        $(".highlighted").removeClass("highlighted");
+        highlight_me = $("#highlight_me").val();
+        if(highlight_me != "none"){
+            $("#" + highlight_me).addClass("highlighted");
+        }
+    });
+
     $("#slider").change(function () {
         key = $(this).val();
         update_viz();
