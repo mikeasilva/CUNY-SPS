@@ -1,0 +1,304 @@
+---
+title: "A Logistic Regression Approach to CoIL Challenge 2000"
+author: "Corey Arnouts, Adam Douglas, Jason Givens-Doyle, Michael Silva"
+bibliography: "Manuscript.bib"
+output: 
+  word_document:
+    reference_docx: word-template.docx
+---
+
+```{r echo=FALSE, message=FALSE}
+temp <- read.delim("data/ticdata2000.txt", header = FALSE, nrows = 1)
+df_cols <- length(names(temp))
+source("CoIL.R")
+library(pander)
+knitr::opts_chunk$set(comment = NA, echo = FALSE)
+knitr::knit_hooks$set(inline = function(x) { if(!is.numeric(x)){ x }else{ prettyNum(round(x,2), big.mark=",") } })
+```
+
+# Abstract
+
+<!-- In the abstract, the authors should explain the major objective of the study in an objective section, explain how the study was done in a Methods section, describe the findings in a Results section, and report whether the major goal was met in a Conclusion. In general, the reader should ask, If I could not read the entire manuscript, would the abstract adequately summarize it? -->
+
+This paper describes a logistic regression based solution to the CoIL Challenge 2000. The challenge consists of correctly identifying potential customers for an insurance product, and describing their characteristics. Models were trained on over sampled data.  The model out preformed other's attemps at solving this classification problem.
+
+*Key words: CoIL Challenge, Logistic Regression*
+
+# Introduction
+
+<!-- Readers need to understand all the reasons for performing the study, the assumptions underlying the methodology, and the nuances of the performance of the study. The purposes of the Introduction are, first, to provide the rationale for the study and, second, to explain the study's goals. The Introduction should include a problem statement that conveys the important issues and provides the context for the study. -->
+
+Businesses use data science to extract insights from data.  One pratical application is identifying households to include in a marketing campaign.  In this paper we set out to identify potential customers for an insurance product using real world data from the Computational Intelligence and Learning (CoIL) Challenge. Specifically we are predicting if a customer is likely candidate for a caravan (mobile home/camper) insurance policy.  This is particularly challenging because the data is imballanced (only `r sum(as.numeric(as.character(df$CARAVAN)))` of the `r nrow(df)` records for model training/testing are policy holders).
+
+# Literature Review
+
+<!--Discuss how other researchers have addressed similar problems, what their achievements are, and what the advantage and drawbacks of each reviewed approach are. Explain how your investigation is similar or different to the state-of-the-art. Please cite the relevant papers where appropriate.-->
+
+Fourty-three other research teams have attempted to identify potential insurance policy customers [@Putten].  They used a variety of approaches including: Boosted Decision Tree [@McKone], Classification and Regression Tree (CART) [@Simmonds], Classification Trees with Bagging [@White], C4.5 [@Rickets; @Seewald], Evolutionary Algorithm [@Koudijs], Fuzzy Classifier [@Abonyi; @Kaymak], Genetic Algorithms and Hill-climbers [@Carter], Inductive Learning by Logic Minimization (ILLM) [@Gamberger; @Smuc], Instance Based Reasoning (iBARET) [@Miksovsky], K-Means [@Vesanto], KXEN [@Bera], LOGIT [@Doornik], Mask Perceptron with Boosting [@Leckie], Midos Algorithm [@Krogel], N-Tuple Classifier [@Jorgensen], Naïve Bayes [@Elkan; @Kontkanen], Neural Networks[@Brierley; @Crocoll; @Kim; @Shtovba_Mashnitskiy], Phase Intervals and Genetic Algorithms [@Shtovba], Scoring System [@Lewandowski], Support Vector Machines[@Keerthi], and XCS [@Greenyer].
+
+The maximum number of potential policy owners that could be found is 238.  Previous researchers identified 95 policy owners on average.  The best preforming model [@Elkan] during the initial challenge identified 121 policy owners.  It was a Naïve Bayes, suggesting that probabilities of some of the variables will be useful in identifing potential customers.
+
+A meta analysis of the initial researchers found that simpler algorithms tended to outpreform more complicated ones [@Putten].  With the benefit of these findings, we set out to create a simple logistic regression model that preforms as well or better than the original CoIL Challenge cohort.  In the end, our model outpreformed the orignal researcher's model in correctly predicting the customers that would purchase the insurance policy.
+
+```{r}
+# Similar the chart found on page 2 of http://liacs.leidenuniv.nl/~puttenpwhvander/library/cc2000/PUTTEN~1.pdf
+prediction_scores <- data.frame(score = c(38, 46, 53, 58, 65, 72, 74, 80, 83, 86, 91, 94, 95, 96, 97, 99, 101, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 115, 121), n = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 3, 1, 2, 1, 1, 1, 3, 1, 2, 2, 4, 2, 2, 2, 1, 1))
+ggplot(data = prediction_scores, aes(x = score, y = n)) +
+  geom_bar(stat = "identity", fill = "#377eb8") +
+  xlab(element_blank()) +
+  ylab(element_blank()) + 
+  xlim(37, 250) +
+  annotate("text", x = 65, y = 4, label = "Previous Researchers") +
+  geom_vline(xintercept = 238, color = "#e41a1c", linetype="dashed") +
+  annotate("text", x = 220, y = 4, label = "Maximum") +
+  geom_vline(xintercept = final_model$correct, color = "#4daf4a") +
+  annotate("text", x = final_model$correct - 20, y = 4, label = "Our Model") +
+  ggtitle("Number of Customers Correctly Predicted")
+```
+
+# Methodology
+
+<!-- Discuss the key aspects of your problem, data set and regression model(s). Given that you are working on real-world data, explain at a high-level your exploratory data analysis, how you prepared the data for regression modeling, your process for building regression models, and your model selection. -->
+
+The CoIL Challenge dataset is composed of `r df_cols` variables accross `r nrow(df)` observations.  An evaluation dataset is provided with `r nrow(eval)` observations. Five of the predictors are categorical and the remainder are numeric.  Most of the predictors have little to no correlation with the variable of interest (CARAVAN).
+
+## Experimentation and Results
+
+<!-- Describe the specifics of what you did (data exploration, data preparation, model building, model selection, model evaluation, etc.), and what you found out (statistical analyses, interpretation and discussion of the results, etc.). 
+
+Needs to systematically and clearly articulate the study findings. If the results are unclear, the reviewer must decide whether the analysis of the data was poorly executed or whether the Results section is poorly organized. -->
+
+We split the data into training/test sets using a 70/30 split.  We corrected the imballance by oversampling the minority class (caravan policy holders).  Given the large number of possible predictors we used a random forest to aid in variable selection.  A logistic regression model was trained on the oversampled training set using the top five variables selected by the random forest (MOSTYPE, PPERSAUT, MOSHOOFD, PBRAND, APERSAUT). 
+
+The MOSTYPE variable has 40 customer types.  Not all customer types were statiscally significant predictors.  We identified those in the oversampled dataset with a probability greater than 0.5 to purchase the insurance product as the LIKELY_CUSTOMER variable.  A figure in the appendix shows all 40 customer types and the probability that they purched the insurance policy in the oversampled dataset.  
+
+We fit our second model to the LIKELY_CUSTOMER and PPERSAUT variables. Although it only has two variables, the model preformed well.  This seemed in-line with expectations that simple models preform best.
+
+The third model was fit the same as the second model other than the driven growers variable, which is a variable derived from MOSHOOFD variable, specifically it is when the MOSHOOFD variable is equal to 2, which means the specific customer's main type is "Driven Grower" hence the variable name. We chose this because when running decision trees we noticed this specific factor of MOSHOOFD variable often stood out in the decision trees.
+
+In evaluating the models we examined we focused on the specificity.  The goal of the CoIL challenge was to accurately predict those would would purchase the insurance policy, so focusing on the model's specificity was the best evaluation metric.  In order to get a better sense of how well the model generalizes, we repeatedly retrained and evaluated the model using diffrent samplings of the training dataset.  The following figure summarizes the distribution of the specificty the models produced on the test dataset.  The dashed line is how our model preformed:
+
+```{r}
+temp <- rbind(data.frame("Model" = c("1"), "Specificity" = model1_robust_results$specificity),
+              data.frame("Model" = c("2"), "Specificity" = model2_robust_results$specificity))
+temp <- 
+  rbind(temp, data.frame("Model" = c("3"), "Specificity" = model3_robust_results$specificity))%>%
+  mutate(Model = as.factor(Model))
+
+ggplot(temp, aes(x = Specificity, fill = Model)) +
+  geom_density(alpha = 0.5, color = NA) +
+  ylab("Density") +
+  scale_fill_brewer(palette = "Set1") +
+  theme(legend.position = "bottom") +
+  geom_vline(xintercept = mean(model1_results$specificity), linetype="dashed", color = "#e41a1c") +
+  geom_vline(xintercept = mean(model2_results$specificity), linetype="dashed", color = "#377eb8") +
+  geom_vline(xintercept = mean(model3_results$specificity), linetype="dashed", color = "#4daf4a") 
+```
+
+## Discussion
+
+<!-- Should state whether their hypotheses were verified or proven untrue or, if no hypotheses were given, whether their research questions were answered. The authors should also comment on their results in light of previous studies and explain what differences (if any) exist between their findings and those reported by others and attempt to provide an explanation for the discrepancies.-->
+
+Our model outpreforms the original cohort of CoIL Challenge researchers.  We found that the being a member of one of the following customer types to be a significant predictor of purchasing the insurance produce (listed in order of the probability of purchasing with the MOSTYPE in parenthesis):
+
+* Affluent young families (12), 
+* Middle class families (8), 
+* Career and childcare (6), 
+* Double income no kids (7), 
+* High Income, expensive child (1), 
+* Very Important Provincials (2), 
+* Couples with teens 'Married with children' (36), 
+* High status seniors (3), 
+* Mixed small town dwellers (37), 
+* Stable family (10), 
+* Ethnically diverse (20), 
+* Traditional families (38), 
+* Family starters (11)
+
+People at the top of the list (most likely to buy) are generally those who are well to do.  This is further reinforced in the model with the inclusion of PPERSAUT or the contribution to car policies.  Those with higher contribution levels are more likely to purchase caravan insurance.
+
+"Driven Growers" are made up of the Career and childcare, Double income no kids, and Middle class families customer types.  Once again these customer types generally have more disposible income and are likely customers.
+
+These findings are similar to what the winner of the CoIL challenge found [@Elkan].  They found that a high PPERSAUT (meaning a level 6) or having two car policies to be the strongest single predictors of having caravan insurance.  They found the other most statistically significant predictors are:
+
+* "purchasing power class" is high (5 or higher, especially 7 or higher)
+* a private third party insurance policy
+* a boat policy
+* a social security insurance policy
+* a single fire policy with higher contribution (level 4)
+
+Elkan explain that "Intuitively, these predictors identify customers who have a car and are wealthier than average, and who in general carry more insurance coverage than average. It is not surprising that these are the people who are most likely to have caravan insurance."  Our findings are inline with this, although we arrived at this conclusion by examining other variables.
+
+# Conclusions
+
+<!-- Conclude your findings, limitations, and suggest areas for future work. -->
+
+This paper set out to define a model that was effective at identifying potential customers for an insurance policy.  We found that a simple logistic regression model with three variables (two which we derived) outpreformed previous research.  In general terms the three variables correlate with the wealth of the household.  Thus customers that are wealthier than average are most likely candidates to purchase insurance.  
+
+Areas for future work include building an ensemble model using the specification of the third model.  Our repeated modeling has a distribution where the mean number of correct predictions is `r round(mean(model3_robust_results$correct), 0)` which is higher than the `r model3_results$correct`.  It appears that incorporating downsampling into the ensemble might have limited impact on the performance as the mean number of correct predictions is `r round(mean(model3_down_robust_results$correct), 0)`.
+
+\newpage
+
+# Appendix
+
+## Probability of Purchasing Product (in blue) by Customer Type
+
+```{r, fig.width=10, fig.height=11}
+temp <- up_train %>%
+  group_by(MOSTYPE) %>%
+  tally() %>%
+  rename(total = n)
+
+temp <- up_train %>%
+  filter(CARAVAN == 1) %>%
+  group_by(MOSTYPE) %>%
+  tally() %>%
+  merge(temp, ., all.x = TRUE) %>%
+  mutate(share_1 = ifelse(is.na(n), 0, n / total)) %>%
+  mutate(order = row_number(share_1)) %>%
+  select(-n) %>%
+  merge(temp)
+
+temp <- up_train %>%
+  group_by(CARAVAN, MOSTYPE) %>%
+  tally() %>%
+  merge(temp) %>%
+  mutate(share = n / total)
+
+ggplot(temp, aes(x = reorder(MOSTYPE, order), y = share, fill = CARAVAN))+
+  geom_bar(stat="identity") +
+  scale_fill_brewer(palette = "Set1") +
+  coord_flip() +
+  xlab(element_blank()) +
+  ylab(element_blank()) +
+  geom_hline(yintercept = 0.5, color = "white", linetype = "dashed") +
+  theme_minimal() +
+  theme(legend.position = "none") 
+```
+
+\newpage
+
+## Correlation Coefficients for Variables of Interest
+```{r}
+vars <- c("CARAVAN", "MOSTYPE", "PPERSAUT", "PBRAND", "MOSHOOFD", "APERSAUT", "LIKELY_CUSTOMERS", "DRIVEN_GROWERS")
+temp <- up_train %>%
+  mutate(CARAVAN = as.numeric(as.character(CARAVAN)),
+         LIKELY_CUSTOMERS = as.numeric(as.character(LIKELY_CUSTOMERS)))
+temp <- temp[vars]
+
+numeric_vars <- unlist(lapply(temp, is.numeric))  
+
+pander(cor(temp[numeric_vars], temp[numeric_vars]))
+```
+
+## Data Dictionary for Variables of Interest
+
+```{r, results='asis'}
+data_dictionary <- data.frame(
+  Name = c("CARAVAN", "MOSTYPE", "MAANTHUI", "MGEMOMV", "MGEMLEEF", "MOSHOOFD", "MGODRK",
+           "MGODPR", "MGODOV", "MGODGE", "MRELGE", "MRELSA", "MRELOV",
+           "MFALLEEN", "MFGEKIND", "MFWEKIND", "MOPLHOOG", "MOPLMIDD",
+           "MOPLLAAG", "MBERHOOG", "MBERZELF", "MBERBOER", "MBERMIDD",
+           "MBERARBG", "MBERARBO", "MSKA", "MSKB1", "MSKB2", "MSKC", "MSKD",
+           "MHHUUR", "MHKOOP", "MAUT1", "MAUT2", "MAUT0", "MZFONDS", "MZPART",
+           "MINKM30", "MINK3045", "MINK4575", "MINK7512", "MINK123M", "MINKGEM",
+           "MKOOPKLA", "PWAPART", "PWABEDR", "PWAAND", "PPERSAUT", "PBESAUT",
+           "PMOTSCO", "PVRAAUT", "PAANHANG", "PTRACTOR", "PWERKT", "PBROM",
+           "PLEVEN", "PPERSONG", "PGEZONG", "PWAOREG", "PBRAND", "PZEILPL",
+           "PPLEZIER", "PFIETS", "PINBOED", "PBYSTAND", "AWAPART", "AWABEDR",
+           "AWALAND", "APERSAUT", "ABESAUT", "AMOTSCO", "AVRAAUT", "AAANHANG",
+           "ATRACTOR", "AWERKT", "ABROM", "ALEVEN", "APERSONG", "AGEZONG",
+           "AWAOREG", "ABRAND", "AZEILPL", "APLEZIER", "AFIETS", "AINBOED",
+           "ABYSTAND", "LIKELY_CUSTOMERS", "DRIVEN_GROWERS"),
+  Description = c("Number of mobile home policy",
+                  "Customer Subtype", "Number of houses", "Avg size household",
+                  "Avg age", "Customer main type", "Roman catholic",
+                  "Protestant", "Other religion", "No religion", "Married",
+                  "Living together", "Other relation", "Singles",
+                  "Household without children", "Household with children",
+                  "High level education", "Medium level education",
+                  "Lower level education", "High status", "Entrepreneur",
+                  "Farmer", "Middle management", "Skilled labourers",
+                  "Unskilled labourers", "Social class A", "Social class B1",
+                  "Social class B2", "Social class C", "Social class D",
+                  "Rented house", "Home owners", "1 car", "2 cars", "No car",
+                  "National Health Service", "Private health insurance",
+                  "Income < 30.000", "Income 30-45.000", "Income 45-75.000",
+                  "Income 75-122.000", "Income >123.000", "Average income",
+                  "Purchasing power class",
+                  "Contribution private third party insurance",
+                  "Contribution third party insurance (firms)",
+                  "Contribution third party insurane (agriculture)",
+                  "Contribution car policies",
+                  "Contribution delivery van policies",
+                  "Contribution motorcycle/scooter policies",
+                  "Contribution lorry policies",
+                  "Contribution trailer policies",
+                  "Contribution tractor policies",
+                  "Contribution agricultural machines policies",
+                  "Contribution moped policies",
+                  "Contribution life insurances",
+                  "Contribution private accident insurance policies",
+                  "Contribution family accidents insurance policies",
+                  "Contribution disability insurance policies",
+                  "Contribution fire policies",
+                  "Contribution surfboard policies",
+                  "Contribution boat policies",
+                  "Contribution bicycle policies",
+                  "Contribution property insurance policies",
+                  "Contribution social security insurance policies",
+                  "Number of private third party insurance",
+                  "Number of third party insurance (firms)",
+                  "Number of third party insurane (agriculture)",
+                  "Number of car policies",
+                  "Number of delivery van policies",
+                  "Number of motorcycle/scooter policies",
+                  "Number of lorry policies",
+                  "Number of trailer policies", "Number of tractor policies",
+                  "Number of agricultural machines policies",
+                  "Number of moped policies", "Number of life insurances",
+                  "Number of private accident insurance policies",
+                  "Number of family accidents insurance policies",
+                  "Number of disability insurance policies",
+                  "Number of fire policies", "Number of surfboard policies",
+                  "Number of boat policies", "Number of bicycle policies",
+                  "Number of property insurance policies",
+                  "Number of social security insurance policies",
+                  "MOSTYPE = 12, 8, 6, 7, 1, 2, 36, 3, 37, 10, 20, 38, or 11",
+                  "MOSHOOFD = 2"))
+temp <- data_dictionary[data_dictionary$Name %in% vars,]
+row.names(temp) <- NULL
+pander(temp)
+```
+
+\newpage
+
+## Model Summary
+
+```{r}
+summary(model3)
+```
+
+\newpage
+
+## Confusion Matrix and Statistics for our Model
+
+```{r}
+final_model$cm
+```
+
+## R statistical programming code.
+
+```{r}
+conn <- file("CoIL.r", open = "r")
+lines <- readLines(conn)
+n_lines <- length(lines)
+for (i in 1:n_lines) {
+  cat(lines[i], "\n")
+}
+close(conn)
+```
+
+\newpage
+
+## References
