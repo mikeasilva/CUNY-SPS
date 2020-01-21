@@ -16,4 +16,4 @@ Mike Silva's Masters in Data Science Course Work for [DATA 621 - Business Analyt
 
 ## Final Project
 
-[A Logistic Regression Approach to CoIL Challenge 2000](https://github.com/mikeasilva/CUNY-SPS/tree/master/DATA621/Final Project.pdf) ([Source Code](https://github.com/mikeasilva/CUNY-SPS/blob/master/DATA621/Manuscript.Rmd))
+[A Logistic Regression Approach to CoIL Challenge 2000](https://github.com/mikeasilva/CUNY-SPS/tree/master/DATA621/Final_Project.pdf) ([Source Code](https://github.com/mikeasilva/CUNY-SPS/blob/master/DATA621/Manuscript.Rmd))
