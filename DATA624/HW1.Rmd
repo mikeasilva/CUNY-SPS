@@ -1,0 +1,92 @@
+---
+title: "DATA 624 Homework 1"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    toc_depth: 3
+    code_folding: "show"
+---
+
+
+```{r setup, echo=FALSE, cache=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
+library(tidyverse)
+library(kableExtra)
+library(fpp2)
+```
+
+## 2.1 
+
+Use the help function to explore what the series `gold`, `woolyrnq` and `gas` represent.
+
+a. Use `autoplot()` to plot each of these in separate plots.
+
+b. What is the frequency of each series? Hint: apply the `frequency()` function.
+
+c. Use `which.max()` to spot the outlier in the gold series. Which observation was it?
+
+## 2.2 
+
+Download the file `tute1.csv` from the book website, open it in Excel (or some other spreadsheet application), and review its contents. You should find four columns of information. Columns B through D each contain a quarterly series, labelled Sales, AdBudget and GDP. Sales contains the quarterly sales for a small company over the period 1981-2005. AdBudget is the advertising budget and GDP is the gross domestic product. All series have been adjusted for inflation.
+
+a. You can read the data into R with the following script:
+
+```{r}
+download.file("http://otexts.com/fpp2/extrafiles/tute1.csv", "tute1.csv")
+tute1 <- read.csv("tute1.csv", header=TRUE)
+View(tute1)
+```
+
+b. Convert the data to time series
+
+```{r}
+mytimeseries <- ts(tute1[,-1], start=1981, frequency=4)
+```
+
+(The [,-1] removes the first column which contains the quarters as we don’t need them now.)
+
+c. Construct time series plots of each of the three series
+
+```{r}
+autoplot(mytimeseries, facets=TRUE)
+```
+
+Check what happens when you don’t include facets=TRUE.
+
+```{r}
+autoplot(mytimeseries)
+```
+
+## 2.3
+
+Download some monthly Australian retail data from the book website. These represent retail sales in various categories for different Australian states, and are stored in a MS-Excel file.
+
+a. You can read the data into R with the following script:
+
+```{r}
+download.file("https://otexts.com/fpp2/extrafiles/retail.xlsx", "retail.xlsx")
+retaildata <- readxl::read_excel("retail.xlsx", skip=1)
+```
+
+The second argument (skip=1) is required because the Excel sheet has two header rows.
+
+b. Select one of the time series as follows (but replace the column name with your own chosen column):
+
+```{r}
+myts <- ts(retaildata[,"A3349873A"], frequency=12, start=c(1982,4))
+```
+
+c. Explore your chosen retail time series using the following functions:
+
+`autoplot()`, `ggseasonplot()`, `ggsubseriesplot()`, `gglagplot()`, `ggAcf()`
+
+Can you spot any seasonality, cyclicity and trend? What do you learn about the series?
+
+## 2.6
+
+Use the following graphics functions: `autoplot()`, `ggseasonplot()`, `ggsubseriesplot()`, `gglagplot()`, `ggAcf()` and explore features from the following time series: `hsales`, `usdeaths`, `bricksq`, `sunspotarea`, `gasoline`.
+
+* Can you spot any seasonality, cyclicity and trend?
+
+* What do you learn about the series?
