@@ -5,35 +5,58 @@ output:
   rmdformats::readthedown:
     highlight: kate
     toc_depth: 3
-    code_folding: "show"
+    code_folding: "hide"
 ---
 
 
-```{r setup, echo=FALSE, cache=FALSE}
+```{r setup, echo=FALSE, cache=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
 library(tidyverse)
 library(kableExtra)
 library(fpp2)
+library(gridExtra)
 ```
 
-## 2.1 
+## Question 2.1 
 
 Use the help function to explore what the series `gold`, `woolyrnq` and `gas` represent.
 
+**`gold` is the daily morning gold prices in US dollars from 1 Jan 1985 to 31 March 1989.  `woolyrnq` is the quarterly production of woolen yarn in Australia in tons from March 1965 to September 1994.  `gas` is monthly gas production in Australia from 1956-1995.**
+
 a. Use `autoplot()` to plot each of these in separate plots.
+
+```{r}
+autoplot(gold)
+autoplot(woolyrnq)
+autoplot(gas)
+```
 
 b. What is the frequency of each series? Hint: apply the `frequency()` function.
 
+```{r}
+frequency(gold)
+frequency(woolyrnq)
+frequency(gas)
+```
+
 c. Use `which.max()` to spot the outlier in the gold series. Which observation was it?
 
-## 2.2 
+```{r}
+goldoutlier <- which.max(gold)
+```
+
+**It is the `r goldoutlier` observation.  The price of gold was `r gold[goldoutlier]`**
+
+## Queston 2.2 
 
 Download the file `tute1.csv` from the book website, open it in Excel (or some other spreadsheet application), and review its contents. You should find four columns of information. Columns B through D each contain a quarterly series, labelled Sales, AdBudget and GDP. Sales contains the quarterly sales for a small company over the period 1981-2005. AdBudget is the advertising budget and GDP is the gross domestic product. All series have been adjusted for inflation.
 
 a. You can read the data into R with the following script:
 
 ```{r}
-download.file("http://otexts.com/fpp2/extrafiles/tute1.csv", "tute1.csv")
+if(!file.exists("tute1.csv")){
+  download.file("http://otexts.com/fpp2/extrafiles/tute1.csv", "tute1.csv")
+}
 tute1 <- read.csv("tute1.csv", header=TRUE)
 View(tute1)
 ```
@@ -58,14 +81,16 @@ Check what happens when you don’t include facets=TRUE.
 autoplot(mytimeseries)
 ```
 
-## 2.3
+## Question 2.3
 
 Download some monthly Australian retail data from the book website. These represent retail sales in various categories for different Australian states, and are stored in a MS-Excel file.
 
 a. You can read the data into R with the following script:
 
 ```{r}
-download.file("https://otexts.com/fpp2/extrafiles/retail.xlsx", "retail.xlsx")
+if(!file.exists("retail.xlsx")){
+  download.file("https://otexts.com/fpp2/extrafiles/retail.xlsx", "retail.xlsx")
+}
 retaildata <- readxl::read_excel("retail.xlsx", skip=1)
 ```
 
@@ -81,12 +106,88 @@ c. Explore your chosen retail time series using the following functions:
 
 `autoplot()`, `ggseasonplot()`, `ggsubseriesplot()`, `gglagplot()`, `ggAcf()`
 
+```{r}
+autoplot(myts)
+ggseasonplot(myts)
+ggsubseriesplot(myts)
+gglagplot(myts)
+ggAcf(myts)
+```
+
 Can you spot any seasonality, cyclicity and trend? What do you learn about the series?
 
-## 2.6
+**There is a clear seasonality increase in retail sales from October to the end of the year.  This is the Christmas shopping season.  There is also a trend of increasing retail sales over time.  The trend has been rising untill the 2000's where it flatened out for roughly a decade.  Since 2010 it looks like the trend increases again.**
+
+## Question 2.6
 
 Use the following graphics functions: `autoplot()`, `ggseasonplot()`, `ggsubseriesplot()`, `gglagplot()`, `ggAcf()` and explore features from the following time series: `hsales`, `usdeaths`, `bricksq`, `sunspotarea`, `gasoline`.
 
+### hsales
+
 * Can you spot any seasonality, cyclicity and trend?
+
+```{r}
+autoplot(hsales)
+ggseasonplot(hsales)
+ggsubseriesplot(hsales)
+gglagplot(hsales)
+ggAcf(hsales)
+```
+
+* What do you learn about the series?
+
+### usdeaths
+
+* Can you spot any seasonality, cyclicity and trend?
+
+```{r}
+autoplot(usdeaths)
+ggseasonplot(usdeaths)
+ggsubseriesplot(usdeaths)
+gglagplot(usdeaths)
+ggAcf(usdeaths)
+```
+
+* What do you learn about the series?
+
+### bricksq
+
+* Can you spot any seasonality, cyclicity and trend?
+
+```{r}
+autoplot(bricksq)
+ggseasonplot(bricksq)
+ggsubseriesplot(bricksq)
+gglagplot(bricksq)
+ggAcf(bricksq)
+```
+
+* What do you learn about the series?
+
+### sunspotarea
+
+* Can you spot any seasonality, cyclicity and trend?
+
+```{r}
+autoplot(sunspotarea)
+#ggseasonplot(sunspotarea)
+#ggsubseriesplot(sunspotarea)
+gglagplot(sunspotarea)
+ggAcf(sunspotarea)
+```
+
+* What do you learn about the series?
+
+### gasoline
+
+* Can you spot any seasonality, cyclicity and trend?
+
+```{r}
+autoplot(gasoline)
+ggseasonplot(gasoline)
+#ggsubseriesplot(gasoline)
+gglagplot(gasoline)
+ggAcf(gasoline)
+```
 
 * What do you learn about the series?
