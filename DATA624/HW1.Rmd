@@ -5,7 +5,7 @@ output:
   rmdformats::readthedown:
     highlight: kate
     toc_depth: 3
-    code_folding: "hide"
+    code_folding: "show"
 ---
 
 
@@ -38,6 +38,8 @@ frequency(gold)
 frequency(woolyrnq)
 frequency(gas)
 ```
+
+**`gold` is an annual time series, `woolyrnq` is a quarterly time series and `gas` is a monthly time series**
 
 c. Use `which.max()` to spot the outlier in the gold series. Which observation was it?
 
@@ -134,7 +136,11 @@ gglagplot(hsales)
 ggAcf(hsales)
 ```
 
+**One-family home sales in the US tend to be highest in March.  The ACF plot suggests that there is some annual cycle, but it is noisy.**
+
 * What do you learn about the series?
+
+**If I am a realtor I'm not going to be busy in the winter months.  Early spring (march through may) will be my busy time of the year.**
 
 ### usdeaths
 
@@ -148,7 +154,11 @@ gglagplot(usdeaths)
 ggAcf(usdeaths)
 ```
 
+**There appears to be a monthly pattern to the data.**
+
 * What do you learn about the series?
+
+**Accidental deaths in the US tends to be highest in July.**
 
 ### bricksq
 
@@ -162,7 +172,11 @@ gglagplot(bricksq)
 ggAcf(bricksq)
 ```
 
+**There isn't much variation from Q2 through Q4.  The trend was genrally increasing until about the 1980's.**
+
 * What do you learn about the series?
+
+**Q1 is a slow quarter for Australian clay brick producers.  There has been quite a bit more irregularity since 1975.**
 
 ### sunspotarea
 
@@ -176,7 +190,11 @@ gglagplot(sunspotarea)
 ggAcf(sunspotarea)
 ```
 
+**There appears to be a cycle in the data.  It looks like it's about a 10 to 11 year cycle.**
+
 * What do you learn about the series?
+
+**If the pattern holds 2020 should be a year with low sunspot area.**  
 
 ### gasoline
 
