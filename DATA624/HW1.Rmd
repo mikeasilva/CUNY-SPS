@@ -83,6 +83,8 @@ Check what happens when you don’t include facets=TRUE.
 autoplot(mytimeseries)
 ```
 
+**It stacks the visualization instead of having small multiples.**
+
 ## Question 2.3
 
 Download some monthly Australian retail data from the book website. These represent retail sales in various categories for different Australian states, and are stored in a MS-Excel file.
@@ -154,7 +156,7 @@ gglagplot(usdeaths)
 ggAcf(usdeaths)
 ```
 
-**There appears to be a monthly pattern to the data.**
+**There appears to be a seasonal pattern to the data.**
 
 * What do you learn about the series?
 
@@ -203,9 +205,16 @@ ggAcf(sunspotarea)
 ```{r}
 autoplot(gasoline)
 ggseasonplot(gasoline)
-#ggsubseriesplot(gasoline)
+gasoline %>%
+  as.vector()%>%
+  ts(., frequency=52) %>%
+  ggsubseriesplot()
 gglagplot(gasoline)
 ggAcf(gasoline)
 ```
 
+**There is a trend and some seasonality to the data.  I thought you would see some cyclical behavior coinsiding with U.S. regression dates but that is not present.**
+
 * What do you learn about the series?
+
+**The trend of the supply of gasoline has been generally increasing.  It increases slightly during the summer months.**
