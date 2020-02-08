@@ -20,6 +20,8 @@ DATA608/module 2/nyc_pluto_18v2_1_csv/pluto_18v2_1.csv
 DATA608/module 2/nyc_pluto_18v2_1_csv/PLUTODD18v2.1.pdf
 DATA608/module 2/nyc_pluto_18v2_1_csv/PlutoReadme18v2.1.pdf
 *pycache*
+DATA624/*.html
+DATA612/*.html
 *.ipynb_checkpoints
 DATA612/jester*
 CUNY-SPS.code-workspace
