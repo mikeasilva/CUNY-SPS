@@ -1,0 +1,74 @@
+---
+title: "DATA 624 Homework 2"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    toc_depth: 3
+    code_folding: "show"
+---
+
+
+```{r setup, echo=FALSE, cache=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
+library(tidyverse)
+library(kableExtra)
+library(fpp2)
+```
+
+## Question 3.1 
+
+For the following series, find an appropriate Box-Cox transformation in order to stabilise the variance.
+
+* `usnetelec`
+* `usgdp`
+* `mcopper`
+* `enplanements`
+
+## Question 3.2
+
+Why is a Box-Cox transformation unhelpful for the `cangas` data?
+
+## Question 3.3
+
+What Box-Cox transformation would you select for your `retail` data?
+
+## Question 3.8
+
+For your `retail` time series:
+
+Split the data into two parts using
+```{r}
+myts.train <- window(myts, end=c(2010,12))
+myts.test <- window(myts, start=2011)
+```
+
+Check that your data have been split appropriately by producing the following plot.
+
+```{r}
+autoplot(myts) +
+  autolayer(myts.train, series="Training") +
+  autolayer(myts.test, series="Test")
+```
+
+Calculate forecasts using snaive applied to myts.train.
+
+```{r}
+fc <- snaive(myts.train)
+```
+
+Compare the accuracy of your forecasts against the actual values stored in myts.test.
+
+```{r}
+accuracy(fc,myts.test)
+```
+
+Check the residuals.
+
+```{r}
+checkresiduals(fc)
+```
+
+Do the residuals appear to be uncorrelated and normally distributed?
+
+How sensitive are the accuracy measures to the training/test split?
