@@ -8,6 +8,76 @@ import numpy as np
 import pandas as pd
 
 
+def get_baseline_predictions(raw_avg, user_bias, item_bias):
+    """Creates baseline predictions using the user and item biases
+    Args:
+        raw_avg (float): the mean of the user item matrix.
+        user_bias (pandas.Series): A vector with the user biases.
+        item_bias (pandas.Series): A vector with the item bises.
+    Returns:
+        baseline_predictions (DataFrame): The predictions.
+    """
+    # Create a data farme by repeating the raw avg
+    baseline = pd.DataFrame(
+        raw_avg, index=np.arange(len(user_bias)), columns=item_bias.index
+    )
+    # Create a data frame by repeating the user bias series
+    user = pd.concat([pd.DataFrame(user_bias)] * len(item_bias), axis=1)
+    user.columns = item_bias.index
+    # Create a data frame by repeating the item bias series
+    item = pd.concat([pd.DataFrame(item_bias)] * len(user_bias), axis=1)
+    item.columns = user_bias.index
+    item = item.transpose()
+    # Bring the three components together to make the baseline predictions
+    baseline_predictions = baseline + user + item
+    # Round the values to the nearest integer between -10 and 10
+    baseline_predictions = (
+        baseline_predictions.round(0).astype("Int64").applymap(valid_val)
+    )
+    return baseline_predictions
+
+def get_biases(user_item_df, predictor):
+    """Calculates the user and item biases for the dataframe
+    Args:
+        user_item_df (DataFrame): the pandas dataframe of that is a user item matrix.
+        predictor (float): the predicted value.
+    Returns:
+        user_bias (pandas.Series): The biases for all of the rows.  
+        item_bias (pandas.Series): The biases for all of the columns.
+    """
+    user_mean = user_item_df.mean(axis=1)
+    item_mean = user_item_df.mean(axis=0)
+    user_bias = user_mean - predictor
+    item_bias = item_mean - predictor
+    return (user_bias, item_bias)
+
+def get_RMSE(user_item_df, predictor):
+    """Calculates the RMSE for the predictor for the dataframe
+    Args:
+        user_item_df (DataFrame): the pandas dataframe of that is a user item matrix.
+        predictor (float): the predicted value.
+    Returns:
+        RMSE_df (DataFrame): a data frame with the RMSE values.
+    """
+    predictors = user_item_df.applymap(one_or_na) * predictor
+    errors = user_item_df - predictors
+    squared_errors = errors ** 2
+    mean_squared_errors = squared_errors.stack().mean()
+    RMSE = mean_squared_errors ** (1 / 2)
+    return RMSE
+
+def one_or_na(x):
+    """Returns NA if it's an NA or 1.
+    Args:
+        x (mixed): value from pandas dataframe
+    Returns:
+        one_or_na (mixed): Either 1 or NA
+    """
+    if np.isnan(x):
+        return x
+    else:
+        return 1
+
 def train_test_split(user_item_df, train_proportion=0.8, random_seed=42):
     """Splits a data frame into two data frames.
     Args:
@@ -41,77 +111,16 @@ def train_test_split(user_item_df, train_proportion=0.8, random_seed=42):
             test_df.at[row_id, col_id] = val
     return (train_df, test_df)
 
-
-def one_or_na(x):
-    """Returns NA if it's an NA or 1.
-    Args:
-        x (mixed): value from pandas dataframe
-    Returns:
-        one_or_na (mixed): Either 1 or NA
-    """
-    if np.isnan(x):
-        return x
-    else:
-        return 1
-
-
-def get_RMSE(user_item_df, predictor):
-    """Calculates the RMSE for the predictor for the dataframe
-    Args:
-        user_item_df (DataFrame): the pandas dataframe of that is a user item matrix.
-        predictor (float): the predicted value.
-    Returns:
-        RMSE_df (DataFrame): a data frame with the RMSE values.
-    """
-    predictors = user_item_df.applymap(one_or_na) * predictor
-    errors = user_item_df - predictors
-    squared_errors = errors ** 2
-    mean_squared_errors = squared_errors.stack().mean()
-    RMSE = mean_squared_errors ** (1 / 2)
-    return RMSE
-
-
-def get_biases(user_item_df, predictor):
-    """Calculates the user and item biases for the dataframe
-    Args:
-        user_item_df (DataFrame): the pandas dataframe of that is a user item matrix.
-        predictor (float): the predicted value.
-    Returns:
-        user_bias (vector): The biases for all of the rows.  
-        item_bias (vector): The biases for all of the columns.
-    """
-    user_mean = user_item_df.mean(axis=1)
-    item_mean = user_item_df.mean(axis=0)
-    user_bias = user_mean - predictor
-    item_bias = item_mean - predictor
-    return (user_bias, item_bias)
-
-
 def valid_val(x):
+    """Validates the predicted rating
+    Args:
+        x (float): the predicted rating to validate.
+    Returns:
+        valid_rating (float): a number between -10 and 10.
+    """
     if x > 10:
         return 10
     elif x < -10:
         return -10
     else:
         return x
-
-
-def get_baseline_predictions(raw_avg, user_bias, item_bias):
-    # Create a data farme by repeating the raw avg
-    baseline = pd.DataFrame(
-        raw_avg, index=np.arange(len(user_bias)), columns=item_bias.index
-    )
-    # Create a data frame by repeating the user bias series
-    user = pd.concat([pd.DataFrame(user_bias)] * len(item_bias), axis=1)
-    user.columns = item_bias.index
-    # Create a data frame by repeating the item bias series
-    item = pd.concat([pd.DataFrame(item_bias)] * len(user_bias), axis=1)
-    item.columns = user_bias.index
-    item = item.transpose()
-    # Bring the three components together to make the baseline predictions
-    baseline_predictions = baseline + user + item
-    # Round the values to the nearest integer between -10 and 10
-    baseline_predictions = (
-        baseline_predictions.round(0).astype("Int64").applymap(valid_val)
-    )
-    return baseline_predictions
