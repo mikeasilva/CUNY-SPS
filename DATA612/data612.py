@@ -17,9 +17,9 @@ def get_baseline_predictions(raw_avg, user_bias, item_bias):
     Returns:
         baseline_predictions (DataFrame): The predictions.
     """
-    # Create a data farme by repeating the raw avg
+    # Create a data frame by repeating the raw avg
     baseline = pd.DataFrame(
-        raw_avg, index=np.arange(len(user_bias)), columns=item_bias.index
+        raw_avg, index=user_bias.index, columns=item_bias.index
     )
     # Create a data frame by repeating the user bias series
     user = pd.concat([pd.DataFrame(user_bias)] * len(item_bias), axis=1)
@@ -30,10 +30,6 @@ def get_baseline_predictions(raw_avg, user_bias, item_bias):
     item = item.transpose()
     # Bring the three components together to make the baseline predictions
     baseline_predictions = baseline + user + item
-    # Round the values to the nearest integer between -10 and 10
-    baseline_predictions = (
-        baseline_predictions.round(0).astype("Int64").applymap(valid_val)
-    )
     return baseline_predictions
 
 def get_biases(user_item_df, predictor):
@@ -65,6 +61,18 @@ def get_RMSE(user_item_df, predictor):
     mean_squared_errors = squared_errors.stack().mean()
     RMSE = mean_squared_errors ** (1 / 2)
     return RMSE
+
+def get_valid_jester_predictions(baseline_predictions):
+    """Round the values to the nearest integer between -10 and 10
+    Args:
+        baseline_predictions (DataFrame): the pandas dataframe of predictions.
+    Returns:
+        baseline_predictions (DataFrame): a data frame with valid predictions.
+    """
+    baseline_predictions = (
+        baseline_predictions.round(0).astype("Int64").applymap(valid_jester_val)
+    )
+    return baseline_predictions
 
 def one_or_na(x):
     """Returns NA if it's an NA or 1.
@@ -111,8 +119,8 @@ def train_test_split(user_item_df, train_proportion=0.8, random_seed=42):
             test_df.at[row_id, col_id] = val
     return (train_df, test_df)
 
-def valid_val(x):
-    """Validates the predicted rating
+def valid_jester_val(x):
+    """Validates the jester predicted rating
     Args:
         x (float): the predicted rating to validate.
     Returns:
