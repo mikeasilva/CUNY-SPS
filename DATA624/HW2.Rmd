@@ -14,24 +14,76 @@ knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
 library(tidyverse)
 library(kableExtra)
 library(fpp2)
+library(gridExtra)
+library(readxl)
 ```
 
 ## Question 3.1 
 
 For the following series, find an appropriate Box-Cox transformation in order to stabilise the variance.
 
-* `usnetelec`
-* `usgdp`
-* `mcopper`
-* `enplanements`
+**I will answer these questions with side by side visualizations of the data.  The appropriate Box-Cox transformation will be on the right hand side with the lambda in the title.**
+
+```{r}
+side_by_side <- function(x, y){
+  lambda <- BoxCox.lambda(x)
+  plot1 <- autoplot(x) +
+    ggtitle("Original") +
+    ylab(y) + 
+    theme(axis.title.x = element_blank())
+  plot2 <- autoplot(BoxCox(x, lambda)) +
+    ggtitle(paste0("Box-Cox Transformed (lambda=", round(lambda, 4),")")) +
+    theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank()) 
+  grid.arrange(plot1, plot2, ncol = 2)
+}
+```
+
+### usnetelec
+
+```{r}
+side_by_side(usnetelec, "US Net Electricity Generation")
+```
+
+### usgdp
+
+```{r}
+side_by_side(usgdp, "US GDP")
+```
+
+### mcopper
+
+```{r}
+side_by_side(mcopper, "Monthly Copper Prices")
+```
+
+### enplanements
+
+```{r}
+side_by_side(enplanements, "Monthly US Domestic Enplanements")
+```
 
 ## Question 3.2
 
 Why is a Box-Cox transformation unhelpful for the `cangas` data?
 
+```{r}
+side_by_side(cangas, "Monthly Canadian Gas Production")
+```
+
+**The Box-Cox transformation does not help with this timeseries because the variation is initially small, then gets large, then gets small again.  Box-Cox was not designed to handle this case.  It was designed for cases where the variance increases or decreases over time.**
+
 ## Question 3.3
 
 What Box-Cox transformation would you select for your `retail` data?
+
+```{r}
+retaildata <- read_excel("retail.xlsx", skip = 1)
+myts <- ts(retaildata[, "A3349873A"], frequency = 12, start = c(1982, 4))
+side_by_side(myts, "Retail Sales")
+```
+
+**The variation was increasing over time in the original data.  It has become significantly more uniform once it is transformed with a lambda of 0.13.  Because the variance was increasing over time this was an effective transformation.**
 
 ## Question 3.8
 
@@ -39,16 +91,16 @@ For your `retail` time series:
 
 Split the data into two parts using
 ```{r}
-myts.train <- window(myts, end=c(2010,12))
-myts.test <- window(myts, start=2011)
+myts.train <- window(myts, end = c(2010, 12))
+myts.test <- window(myts, start = 2011)
 ```
 
 Check that your data have been split appropriately by producing the following plot.
 
 ```{r}
 autoplot(myts) +
-  autolayer(myts.train, series="Training") +
-  autolayer(myts.test, series="Test")
+  autolayer(myts.train, series = "Training") +
+  autolayer(myts.test, series = "Test")
 ```
 
 Calculate forecasts using snaive applied to myts.train.
@@ -60,7 +112,7 @@ fc <- snaive(myts.train)
 Compare the accuracy of your forecasts against the actual values stored in myts.test.
 
 ```{r}
-accuracy(fc,myts.test)
+accuracy(fc, myts.test)
 ```
 
 Check the residuals.
@@ -71,4 +123,8 @@ checkresiduals(fc)
 
 Do the residuals appear to be uncorrelated and normally distributed?
 
+**They do appear to be normally distributed however with a sligh positve skew.  The residuals do no appear to be uncorrelated.  The Ljung-Box test has a p value that is less than 0.05.  This suggests there is more information that can be discovered and that the seasonal naive model is not the best model.**
+
 How sensitive are the accuracy measures to the training/test split?
+
+**The accuracy measures are quite sensitive to the training/test split. The values are significantly different between the two.  This would suggest that the model does not generalize well.**
