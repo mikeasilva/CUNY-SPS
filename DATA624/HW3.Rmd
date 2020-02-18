@@ -1,0 +1,67 @@
+---
+title: "DATA 624 Homework 3"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    toc_depth: 3
+    code_folding: "show"
+---
+
+
+```{r setup, echo=FALSE, cache=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
+library(tidyverse)
+library(kableExtra)
+library(fpp2)
+library(forcats)
+```
+
+## Question 6.2
+
+The `plastics` data set consists of the monthly sales (in thousands) of product A for a plastics manufacturer for five years.
+
+* Plot the time series of sales of product A. Can you identify seasonal fluctuations and/or a trend-cycle?
+
+```{r}
+autoplot(plastics)
+```
+
+***The `plastics` data has has an increasing trend and a cycle of 1 year***
+
+* Use a classical multiplicative decomposition to calculate the trend-cycle and seasonal indices.
+
+```{r}
+decompose_plastics <- decompose(plastics, type="multiplicative")
+
+decompose_plastics %>% 
+  autoplot() +
+  ggtitle("Multiplicative Decomposition of Plastic Product A Sales")
+```
+
+```{r, eval=FALSE, echo=FALSE}
+trend_cycle_component <- ma(ma(plastics, order = 12, centre = TRUE), order = 2)
+detrended_plastics <- plastics / trend_cycle_component
+seasonal_component <- tapply(detrended_plastics, cycle(detrended_plastics), mean)
+
+decompose(plastics)
+```
+
+* Do the results support the graphical interpretation from part a?
+
+**Yes**
+
+* Compute and plot the seasonally adjusted data.
+
+```{r}
+seasonally_adjusted_plastics <- plastics - decompose_plastics$seasonal
+autoplot(seasonally_adjusted_plastics)
+```
+
+* Change one observation to be an outlier (e.g., add 500 to one observation), and recompute the seasonally adjusted data. What is the effect of the outlier?
+
+* Does it make any difference if the outlier is near the end rather than in the middle of the time series?
+
+## Question 6.3
+
+Recall your retail time series data (from Exercise 3 in Section 2.10). Decompose the series using X11. Does it reveal any outliers, or unusual features that you had not noticed previously?
