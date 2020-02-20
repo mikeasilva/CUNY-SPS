@@ -12,9 +12,10 @@ output:
 ```{r setup, echo=FALSE, cache=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
 library(tidyverse)
-library(kableExtra)
 library(fpp2)
 library(forcats)
+library(readxl)
+library(seasonal)
 ```
 
 ## Question 6.2
@@ -27,7 +28,7 @@ The `plastics` data set consists of the monthly sales (in thousands) of product 
 autoplot(plastics)
 ```
 
-***The `plastics` data has has an increasing trend and a cycle of 1 year***
+***The `plastics` data has has an increasing trend and a seasonal component where sales are higher in the summer and lower in the winter.***
 
 * Use a classical multiplicative decomposition to calculate the trend-cycle and seasonal indices.
 
@@ -42,26 +43,78 @@ decompose_plastics %>%
 ```{r, eval=FALSE, echo=FALSE}
 trend_cycle_component <- ma(ma(plastics, order = 12, centre = TRUE), order = 2)
 detrended_plastics <- plastics / trend_cycle_component
-seasonal_component <- tapply(detrended_plastics, cycle(detrended_plastics), mean)
+seasonal_component <- tapply(detrended_plastics, cycle(detrended_plastics), mean, na.rm=TRUE)
+seasonal_component
 
-decompose(plastics)
+decompose(plastics, type = "multiplicative")
 ```
 
 * Do the results support the graphical interpretation from part a?
 
-**Yes**
+**Yes.  The trend is increasing and there's a seasonal component.**
 
 * Compute and plot the seasonally adjusted data.
 
 ```{r}
-seasonally_adjusted_plastics <- plastics - decompose_plastics$seasonal
-autoplot(seasonally_adjusted_plastics)
+seasonally_adjusted_plastics <- plastics / decompose_plastics$seasonal
+autoplot(plastics, series = "original data") +
+  autolayer(seasonally_adjusted_plastics, series = "seasonally adjusted") +
+  ylab("Sales (thousands)") +
+  ggtitle("Plastic Product A Sales") +
+  scale_color_brewer(palette = "Set1")
 ```
 
 * Change one observation to be an outlier (e.g., add 500 to one observation), and recompute the seasonally adjusted data. What is the effect of the outlier?
 
+```{r}
+plastics_with_outlier <- plastics
+plastics_with_outlier[20] <- plastics_with_outlier[20] + 500
+decompose_plastics_with_outlier <- decompose(plastics_with_outlier, type="multiplicative")
+seasonally_adjusted_plastics_with_outlier <- plastics_with_outlier / decompose_plastics_with_outlier$seasonal
+
+autoplot(plastics, series = 'original data') +
+  autolayer(seasonally_adjusted_plastics, series = 'without outlier') +
+  autolayer(seasonally_adjusted_plastics_with_outlier, series = 'with outlier') +
+  ylab("Sales (thousands)") +
+  ggtitle("Seasonally Adjusted Plastic Product A Sales") +
+  scale_color_brewer(palette = "Set1")
+```
+
+**The outlier causes the series to be slighly larger, and the troughs to be overstated.**
+
 * Does it make any difference if the outlier is near the end rather than in the middle of the time series?
+
+```{r}
+plastics_with_outlier_near_the_end <- plastics
+plastics_with_outlier_near_the_end[50] <- plastics_with_outlier_near_the_end[50] + 500
+decompose_plastics_with_outlier_near_the_end <- decompose(plastics_with_outlier_near_the_end, type="multiplicative")
+seasonally_adjusted_plastics_with_outlier_near_the_end <- plastics_with_outlier_near_the_end / decompose_plastics_with_outlier_near_the_end$seasonal
+
+plastics_with_outlier_in_the_middle <- plastics
+plastics_with_outlier_in_the_middle[30] <- plastics_with_outlier_in_the_middle[30] + 500
+decompose_plastics_with_outlier_in_the_middle <- decompose(plastics_with_outlier_in_the_middle, type="multiplicative")
+seasonally_adjusted_plastics_with_outlier_in_the_middle <- plastics_with_outlier_in_the_middle / decompose_plastics_with_outlier_in_the_middle$seasonal
+
+autoplot(plastics, series = 'original data') +
+  autolayer(seasonally_adjusted_plastics_with_outlier_near_the_end, series = 'with outlier near the end') +
+  autolayer(seasonally_adjusted_plastics_with_outlier_in_the_middle, series = 'with outlier in the middle') +
+  ylab("Sales (thousands)") +
+  ggtitle("Seasonally Adjusted Plastic Product A Sales") +
+  scale_color_brewer(palette = "Set1")
+```
+
+**The outlier has less of an impact if it's in the middle of the series as opposed to near the end.  It's interesting that when the outlier is near the end the seasonal adjustment doesn't adjust out the troughs of the orignal series.  When it's in the middle it seems to just introduce some noise.**
 
 ## Question 6.3
 
 Recall your retail time series data (from Exercise 3 in Section 2.10). Decompose the series using X11. Does it reveal any outliers, or unusual features that you had not noticed previously?
+
+```{r}
+retaildata <- read_excel("retail.xlsx", skip = 1)
+retail <- ts(retaildata[, "A3349337W"], frequency = 12, start = c(1982, 4))
+x11_retail <- seas(retail, x11="")
+autoplot(x11_retail) +
+  ggtitle("X11 Decomposition of Retail Sales Data")
+```
+
+**There are some spikes in the remainder early on (circa 1983) and around 2000.  I also find it interesting to see the seasonal component is decreasing over time in the X11 decomposition.**
