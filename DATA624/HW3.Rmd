@@ -80,21 +80,24 @@ autoplot(plastics, series = 'original data') +
   scale_color_brewer(palette = "Set1")
 ```
 
-**The outlier causes the series to be slighly larger, and the troughs to be overstated.**
+**The outlier causes the series to be slighly higher than the seasonally adjusted series without an outlier.  There are also some troughs in the series with an outlier that don't exist in the series without an outlier.  So the addition of the outlier causes the model to find troughs in the data it wouldn't otherwise, and slighly overstate the level of the seasonal component.**
 
 * Does it make any difference if the outlier is near the end rather than in the middle of the time series?
 
 ```{r}
+# Near the End
 plastics_with_outlier_near_the_end <- plastics
 plastics_with_outlier_near_the_end[50] <- plastics_with_outlier_near_the_end[50] + 500
 decompose_plastics_with_outlier_near_the_end <- decompose(plastics_with_outlier_near_the_end, type="multiplicative")
 seasonally_adjusted_plastics_with_outlier_near_the_end <- plastics_with_outlier_near_the_end / decompose_plastics_with_outlier_near_the_end$seasonal
 
+# In the Middle
 plastics_with_outlier_in_the_middle <- plastics
 plastics_with_outlier_in_the_middle[30] <- plastics_with_outlier_in_the_middle[30] + 500
 decompose_plastics_with_outlier_in_the_middle <- decompose(plastics_with_outlier_in_the_middle, type="multiplicative")
 seasonally_adjusted_plastics_with_outlier_in_the_middle <- plastics_with_outlier_in_the_middle / decompose_plastics_with_outlier_in_the_middle$seasonal
 
+# Plot both series
 autoplot(plastics, series = 'original data') +
   autolayer(seasonally_adjusted_plastics_with_outlier_near_the_end, series = 'with outlier near the end') +
   autolayer(seasonally_adjusted_plastics_with_outlier_in_the_middle, series = 'with outlier in the middle') +
@@ -117,4 +120,4 @@ autoplot(x11_retail) +
   ggtitle("X11 Decomposition of Retail Sales Data")
 ```
 
-**There are some spikes in the remainder early on (circa 1983) and around 2000.  I also find it interesting to see the seasonal component is decreasing over time in the X11 decomposition.**
+**There are some spikes in the remainder early on (circa 1983) and around 2000.  That indicates the presense of some outliers.**
