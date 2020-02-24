@@ -1,0 +1,51 @@
+---
+title: "DATA 624 Homework 4"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    toc_depth: 3
+    code_folding: "show"
+---
+
+
+```{r setup, echo=FALSE, cache=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
+library(tidyverse)
+library(fpp2)
+library(forecast)
+library(readxl)
+library(seasonal)
+```
+
+## Question 3.1
+
+The UC Irvine Machine Learning Repository contains a data set related to glass identification.  The data  consists of 214 glass samples labeled as one of sever class categories.  There are nine predictiors, including the refractive index and percentages of eight elements: Na, Mg, Al, Si, K, Ca, Ba, and Fe.  The data can be accessed via:
+
+```{r}
+library(mlbench)
+data(Glass)
+str(Glass)
+```
+
+(a) Using visualizations, explore the predictor variables to understand their distributions as well as the relationships between predictors
+
+(b) Do there appear to be any outliers in the data?  Are any predictors skewed?
+
+(c) Are there any relevant transformations of one or more predictors that might improve the classification model?
+
+## Question 3.2
+
+The soybean data can also be found at the UC Irvine Machine Learning Repository.  Data were collected to predict disease in 683 soybeans.  The 35 predictors are mostly categorical and include information on the environemental conditions (e.g. temperature, precipitation) and plant conditions (e.g., left spots, mold growth).  The outcome labels consist of 19 distinct classes.  The data can be loaded via:
+
+```{r}
+library(mlbench)
+data(Soybean)
+## See ?Soybean for details
+```
+
+(a) Investigate the frequency distributions for the categhorical predictors.  Are any of the distributions degenerate in the ways discussed earlier in this chapter?
+
+(b) Roughly 18% of the data are missing.  Are there particular predictors that are more likely to be missing?  Is the pattern of missing data related to the classes?
+
+(c) Develop a strategy for handling missing data, either by eliminating predictors or imputation.
