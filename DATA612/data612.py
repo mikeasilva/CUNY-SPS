@@ -4,6 +4,7 @@ Created on Sun Feb  1 08:25:31 2020
 
 @author: Michael Silva
 """
+import re
 import numpy as np
 import pandas as pd
 
@@ -74,6 +75,20 @@ def get_valid_jester_predictions(baseline_predictions):
     )
     return baseline_predictions
 
+def is_plus_or_minus_five(x):
+    """Returns a value between -5 and 5.
+    Args:
+        x (int): value that may be outside of the -5 to 5 range
+    Returns:
+        valid_x (int): x within the -5 to 5 range
+    """
+    if x > 5:
+        return 5
+    elif x < -5:
+        return -5
+    else:
+        return x
+
 def one_or_na(x):
     """Returns NA if it's an NA or 1.
     Args:
@@ -86,6 +101,43 @@ def one_or_na(x):
     else:
         return 1
 
+def read_joke(n):
+    """Reads in the text of the jester joke
+    Args:
+        n (int): the joke number (1 to 100)
+    Returns:
+        joke_text (str): the content of the joke in one line
+    """
+    joke_text = ""
+    joke_begin = False
+    with open('jokes/init'+str(n)+'.html') as f:
+        for line in f.readlines():
+            if "end of joke" in line:
+                joke_begin = False
+            if joke_begin:
+                joke_text += line.strip() + " "
+            elif "begin of joke" in line:
+                joke_begin = True
+    # Strip all html tags
+    html = re.compile('<.*?>')
+    joke_text = re.sub(html, '', joke_text).strip()
+    # Remove all the extra spaces
+    joke_text = ' '.join(joke_text.split())
+    return joke_text
+
+def rescale_jester_ratings(df):
+    """Convert data to a -5 to 5 integer scale
+    Args:
+        df (DataFrame): the pandas dataframe of jester ratings.
+    Returns:
+        rescaled_df (DataFrame): a data frame with valid rescaled ratings.
+    """
+    df = df / 2
+    rescaled_df = (
+        df.round(0).astype("Int64").applymap(is_plus_or_minus_five)
+    )
+    return rescaled_df
+    
 def train_test_split(user_item_df, train_proportion=0.8, random_seed=42):
     """Splits a data frame into two data frames.
     Args:
