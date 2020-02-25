@@ -9,6 +9,42 @@ import numpy as np
 import pandas as pd
 
 
+def bag_of_words(sentences, case_sensitive=False, na_fill=0):
+    """Transforms a list of sentences into a bag of words matrix
+    Args:
+        sentences (list): A list of sentences
+        case_sensitive (bool): Should the bag of words be case sensitive (Optional - False default)
+        na_fill (mixed): What should fill the NA's? (Optional - 0 default)
+    Returns:
+        bag_of_words_df (DataFrame): Dataframe with word counts by sentence.
+    """
+    # Get the count of words in each sentence
+    bag = dict()
+    n = 0
+    for sentence in sentences:
+        n += 1
+        for word in sentence.split():
+            if not case_sensitive:
+                # Make bag of words case insensitive
+                word = word.lower()
+            # Use a tuple as the key holding the word and the sentence index number
+            key = (word, n)
+            # Count the word
+            bag[key] = bag.get(key, 0) + 1
+    # Convert the count into a long data frame
+    bag_of_words_data = list()
+    for k in bag.keys():
+        row = {"word": k[0], "index": k[1], "count": bag[k]}
+        bag_of_words_data.append(row)
+    bag_of_words_df = pd.DataFrame(bag_of_words_data)
+    # Convert from long to wide dataframe
+    bag_of_words_df = bag_of_words_df.pivot_table(
+        index="index", columns="word", values="count", fill_value=na_fill
+    )
+
+    return bag_of_words_df
+
+
 def get_baseline_predictions(raw_avg, user_bias, item_bias):
     """Creates baseline predictions using the user and item biases
     Args:
@@ -19,9 +55,7 @@ def get_baseline_predictions(raw_avg, user_bias, item_bias):
         baseline_predictions (DataFrame): The predictions.
     """
     # Create a data frame by repeating the raw avg
-    baseline = pd.DataFrame(
-        raw_avg, index=user_bias.index, columns=item_bias.index
-    )
+    baseline = pd.DataFrame(raw_avg, index=user_bias.index, columns=item_bias.index)
     # Create a data frame by repeating the user bias series
     user = pd.concat([pd.DataFrame(user_bias)] * len(item_bias), axis=1)
     user.columns = item_bias.index
@@ -32,6 +66,7 @@ def get_baseline_predictions(raw_avg, user_bias, item_bias):
     # Bring the three components together to make the baseline predictions
     baseline_predictions = baseline + user + item
     return baseline_predictions
+
 
 def get_biases(user_item_df, predictor):
     """Calculates the user and item biases for the dataframe
@@ -48,6 +83,7 @@ def get_biases(user_item_df, predictor):
     item_bias = item_mean - predictor
     return (user_bias, item_bias)
 
+
 def get_RMSE(user_item_df, predictor):
     """Calculates the RMSE for the predictor for the dataframe
     Args:
@@ -63,6 +99,7 @@ def get_RMSE(user_item_df, predictor):
     RMSE = mean_squared_errors ** (1 / 2)
     return RMSE
 
+
 def get_valid_jester_predictions(baseline_predictions):
     """Round the values to the nearest integer between -10 and 10
     Args:
@@ -74,6 +111,7 @@ def get_valid_jester_predictions(baseline_predictions):
         baseline_predictions.round(0).astype("Int64").applymap(valid_jester_val)
     )
     return baseline_predictions
+
 
 def is_plus_or_minus_five(x):
     """Returns a value between -5 and 5.
@@ -89,6 +127,7 @@ def is_plus_or_minus_five(x):
     else:
         return x
 
+
 def one_or_na(x):
     """Returns NA if it's an NA or 1.
     Args:
@@ -101,6 +140,7 @@ def one_or_na(x):
     else:
         return 1
 
+
 def read_joke(n):
     """Reads in the text of the jester joke
     Args:
@@ -110,7 +150,7 @@ def read_joke(n):
     """
     joke_text = ""
     joke_begin = False
-    with open('jokes/init'+str(n)+'.html') as f:
+    with open("jokes/init" + str(n) + ".html") as f:
         for line in f.readlines():
             if "end of joke" in line:
                 joke_begin = False
@@ -119,11 +159,12 @@ def read_joke(n):
             elif "begin of joke" in line:
                 joke_begin = True
     # Strip all html tags
-    html = re.compile('<.*?>')
-    joke_text = re.sub(html, '', joke_text).strip()
+    html = re.compile("<.*?>")
+    joke_text = re.sub(html, "", joke_text).strip()
     # Remove all the extra spaces
-    joke_text = ' '.join(joke_text.split())
+    joke_text = " ".join(joke_text.split())
     return joke_text
+
 
 def rescale_jester_ratings(df):
     """Convert data to a -5 to 5 integer scale
@@ -133,11 +174,10 @@ def rescale_jester_ratings(df):
         rescaled_df (DataFrame): a data frame with valid rescaled ratings.
     """
     df = df / 2
-    rescaled_df = (
-        df.round(0).astype("Int64").applymap(is_plus_or_minus_five)
-    )
+    rescaled_df = df.round(0).astype("Int64").applymap(is_plus_or_minus_five)
     return rescaled_df
-    
+
+
 def train_test_split(user_item_df, train_proportion=0.8, random_seed=42):
     """Splits a data frame into two data frames.
     Args:
@@ -170,6 +210,7 @@ def train_test_split(user_item_df, train_proportion=0.8, random_seed=42):
             # Save it to the test set
             test_df.at[row_id, col_id] = val
     return (train_df, test_df)
+
 
 def valid_jester_val(x):
     """Validates the jester predicted rating
