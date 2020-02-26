@@ -4,17 +4,22 @@ Created on Sun Feb  1 08:25:31 2020
 
 @author: Michael Silva
 """
-import re
+import contractions
+import nltk
 import numpy as np
 import pandas as pd
+import re
+import sklearn.preprocessing
+import sklearn.metrics.pairwise
+import string
 
 
-def bag_of_words(sentences, case_sensitive=False, na_fill=0):
+def bag_of_words(sentences, na_fill=0, normalize=False):
     """Transforms a list of sentences into a bag of words matrix
     Args:
         sentences (list): A list of sentences
-        case_sensitive (bool): Should the bag of words be case sensitive (Optional - False default)
         na_fill (mixed): What should fill the NA's? (Optional - 0 default)
+        normalize: If the bag of words should be normalized (Optional - False default)
     Returns:
         bag_of_words_df (DataFrame): Dataframe with word counts by sentence.
     """
@@ -23,10 +28,8 @@ def bag_of_words(sentences, case_sensitive=False, na_fill=0):
     n = 0
     for sentence in sentences:
         n += 1
+        sentence = sentence.lower()
         for word in sentence.split():
-            if not case_sensitive:
-                # Make bag of words case insensitive
-                word = word.lower()
             # Use a tuple as the key holding the word and the sentence index number
             key = (word, n)
             # Count the word
@@ -41,8 +44,34 @@ def bag_of_words(sentences, case_sensitive=False, na_fill=0):
     bag_of_words_df = bag_of_words_df.pivot_table(
         index="index", columns="word", values="count", fill_value=na_fill
     )
+    if normalize:
+        normalized_bag_of_words = sklearn.preprocessing.normalize(bag_of_words_df)
+        bag_of_words_df = pd.DataFrame(
+            normalized_bag_of_words,
+            columns=bag_of_words_df.columns,
+            index=bag_of_words_df.index,
+        )
 
     return bag_of_words_df
+
+
+def cosine_similarity(bag_of_words, return_difference=False):
+    """Measures the cosine similarity or difference of a term frequency matrix
+    Args:
+        bag_of_words (DataFrame): The term frequency matrix
+        return_difference (bool): Do you want the cosine difference returned? (Optional False default)
+    Returns:
+        cosine_df (DataFrame): The cosine similarity or difference in data frame form
+    """
+    bag_of_words_cosine_metric = sklearn.metrics.pairwise.cosine_similarity(
+        bag_of_words
+    )
+    if return_difference:
+        bag_of_words_cosine_metric = 1 - bag_of_words_cosine_metric
+    cosine_df = pd.DataFrame(
+        bag_of_words_cosine_metric, index=bag_of_words.index, columns=bag_of_words.index
+    )
+    return cosine_df
 
 
 def get_baseline_predictions(raw_avg, user_bias, item_bias):
@@ -139,6 +168,52 @@ def one_or_na(x):
         return x
     else:
         return 1
+
+
+def preprocess_jokes(
+    list_of_jokes,
+    remove_contractions=False,
+    remove_numbers=False,
+    remove_punctuation_marks=False,
+    remove_stop_words=False,
+    stem_words=False,
+    lemmatize_words=False,
+):
+    """Various text preprocessing tools for the jester jokes
+    Args:
+        list_of_jokes (list): A list containing the character string that makes up the joke
+        remove_contractions (bool): Should we remove the contractions? (Optional - False default) 
+        remove_numbers (bool): Should we remove the numbers? (Optional - False default)
+        remove_punctuation_marks (bool): Should we remove all punctuation marks? (Optional - False default)
+        remove_stop_words (bool): Should we remove all stop words? (Optional - False default)
+        stem_words (bool): Should we stem all words? (Optional - False default) 
+        lemmatize_words (bool): Should we lemmatize the words? (Optional - False default)
+    Returns:
+        preprocessed_jokes (list): A list containing the character strings after preprocessing
+    """
+    preprocessed_jokes = list()
+    for joke in list_of_jokes:
+        joke = joke.lower()
+        if remove_contractions:
+            joke = contractions.fix(joke)
+        if remove_punctuation_marks:
+            joke = joke.translate(str.maketrans(dict.fromkeys(string.punctuation)))
+        if remove_numbers:
+            joke = "".join([i for i in joke if not i.isdigit()])
+        if remove_stop_words or stem_words or lemmatize_words:
+            word_list = nltk.word_tokenize(joke)
+            if remove_stop_words:
+                stop_words = set(nltk.corpus.stopwords.words("english"))
+                joke = " ".join([word for word in word_list if word not in stop_words])
+            if stem_words:
+                porter_stemmer = nltk.stem.porter.PorterStemmer()
+                joke = " ".join([porter_stemmer.stem(word) for word in word_list])
+            if lemmatize_words:
+                lemmatizer = nltk.stem.WordNetLemmatizer()
+                joke = " ".join([lemmatizer.lemmatize(w) for w in word_list])
+
+        preprocessed_jokes.append(joke)
+    return preprocessed_jokes
 
 
 def read_joke(n):
