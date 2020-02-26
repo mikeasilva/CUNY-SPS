@@ -12,10 +12,6 @@ output:
 ```{r setup, echo=FALSE, cache=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
 library(tidyverse)
-library(fpp2)
-library(forecast)
-library(readxl)
-library(seasonal)
 ```
 
 ## Question 3.1
@@ -44,7 +40,7 @@ data(Soybean)
 ## See ?Soybean for details
 ```
 
-(a) Investigate the frequency distributions for the categhorical predictors.  Are any of the distributions degenerate in the ways discussed earlier in this chapter?
+(a) Investigate the frequency distributions for the categorical predictors.  Are any of the distributions degenerate in the ways discussed earlier in this chapter?
 
 (b) Roughly 18% of the data are missing.  Are there particular predictors that are more likely to be missing?  Is the pattern of missing data related to the classes?
 
