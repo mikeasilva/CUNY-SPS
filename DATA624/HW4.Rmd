@@ -12,11 +12,13 @@ output:
 ```{r setup, echo=FALSE, cache=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
 library(tidyverse)
+library(corrplot)
+library(kableExtra)
 ```
 
 ## Question 3.1
 
-The UC Irvine Machine Learning Repository contains a data set related to glass identification.  The data  consists of 214 glass samples labeled as one of sever class categories.  There are nine predictiors, including the refractive index and percentages of eight elements: Na, Mg, Al, Si, K, Ca, Ba, and Fe.  The data can be accessed via:
+The UC Irvine Machine Learning Repository contains a data set related to glass identification.  The data  consists of 214 glass samples labeled as one of several class categories.  There are nine predictors, including the refractive index and percentages of eight elements: Na, Mg, Al, Si, K, Ca, Ba, and Fe.  The data can be accessed via:
 
 ```{r}
 library(mlbench)
@@ -25,6 +27,52 @@ str(Glass)
 ```
 
 (a) Using visualizations, explore the predictor variables to understand their distributions as well as the relationships between predictors
+
+**First we will take a look at the distribution of the predictors:**
+
+```{r}
+Glass %>%
+  pivot_longer(-Type, names_to = "Element", values_to = "Value", values_drop_na = TRUE) %>%
+  mutate(Element = as.factor(Element)) %>%
+  ggplot(aes(Value, color = Element, fill = Element)) +
+  geom_histogram(binwidth = 1) +
+  facet_wrap(~ Element, ncol=3) +
+  scale_fill_brewer(palette = "Set1") +
+  scale_color_brewer(palette = "Set1") +
+  theme_light() +
+  theme(legend.position = "none") +
+  ggtitle("Distribution of Predictor Variables")
+```
+
+**Next let's look at the correlation plot.**
+
+```{r}
+col <- colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))
+
+Glass %>%
+  select(-Type) %>%
+  cor() %>%
+  round(., 2) %>%
+  corrplot(., method="color", col=col(200), type="upper", order="hclust", addCoef.col = "black", tl.col="black", tl.srt=45, diag=FALSE )
+```
+
+```{r}
+Glass %>%
+  pivot_longer(-Type, names_to = "Element", values_to = "Value", values_drop_na = TRUE) %>%
+  mutate(Element = as.factor(Element)) %>%
+  group_by(Element) %>%
+  summarise(Min = min(Value),
+            Median = median(Value),
+            Mean = mean(Value),
+            Max = max(Value)) %>%
+  kable() %>%
+  kable_styling()
+#1st Qu. and 3rd Qu.
+```
+
+**RI is the refractive index.  All other predictors are elements.  Elements unit of measurement, according to [UCI documentation](http://archive.ics.uci.edu/ml/datasets/Glass+Identification) is the "weight percent in corresponding oxide."  There is no documentation on the refractive index provided by UCI.**
+
+**It is not suprising that Silicon has the highest weight percentage in the glass samples.**
 
 (b) Do there appear to be any outliers in the data?  Are any predictors skewed?
 
