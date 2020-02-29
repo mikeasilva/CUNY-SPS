@@ -13,7 +13,9 @@ output:
 knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
 library(tidyverse)
 library(corrplot)
+library(Amelia)
 library(kableExtra)
+library(caret)
 ```
 
 ## Question 3.1
@@ -113,6 +115,49 @@ data(Soybean)
 
 (a) Investigate the frequency distributions for the categorical predictors.  Are any of the distributions degenerate in the ways discussed earlier in this chapter?
 
+**I am assuming the degenerate distibuted variaviables discussed earlier in the chapter referes to section 3.5 on removing predictors.  Here's some frequency tables:**
+
+```{r, results='asis'}
+for (predictor in names(select(Soybean, -Class))){
+  temp <- Soybean %>%
+    group_by(.dots=predictor) %>%
+    tally() %>%
+    arrange(desc(n)) 
+  temp %>%
+    summarise(total = sum(n)) %>%
+    merge(temp) %>%
+    mutate(share = n / total) %>%
+    select(-total) %>%
+    kable() %>%
+    kable_styling() %>%
+    print()
+}
+```
+
+**There's a lot of missing variables. The authors recommended removing variables with near zero variance.  I know that the `caret` package has a function for that.  Here's the output from that function:**
+
+```{r}
+nearZeroVar(Soybean, saveMetrics = T) %>%
+  kable() %>%
+  kable_styling()
+```
+
+**There are three variables (`r names(Soybean)[caret::nearZeroVar(Soybean)]`) that have a near zero variance, and should probably be removed.**
+
 (b) Roughly 18% of the data are missing.  Are there particular predictors that are more likely to be missing?  Is the pattern of missing data related to the classes?
 
+```{r}
+Soybean %>%
+  arrange(Class) %>%
+  missmap(main = "Missing vs Observed")
+```
+
+**There are blocks of observations that are missing.  Since the data are arranged by the classes this suggests that the patterns of missing data are related to the classes.**
+
 (c) Develop a strategy for handling missing data, either by eliminating predictors or imputation.
+
+**In my training it has been encouraged to never get rid of data, so my bias would be towards filling them with imputation.**
+
+**I would first drop all missing variables and run it through a random forest to determine which variables are important.  If the near zero variance variables are not high in the list, I would drop them since they have little informational value.**
+
+**If one of the important variables has a lot of missing data I would use k-means to fill in the holes with this categorical data.  If the variables were quantitative I would probably use the mean or median to fill in the holes.**
