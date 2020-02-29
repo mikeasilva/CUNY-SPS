@@ -11,6 +11,7 @@ import pandas as pd
 import re
 import sklearn.preprocessing
 import sklearn.metrics.pairwise
+import sklearn.feature_extraction.text
 import string
 
 
@@ -55,21 +56,21 @@ def bag_of_words(sentences, na_fill=0, normalize=False):
     return bag_of_words_df
 
 
-def cosine_similarity(bag_of_words, return_difference=False):
-    """Measures the cosine similarity or difference of a term frequency matrix
+def cosine_similarity(df, return_difference=False):
+    """Measures the cosine similarity or difference of a data frame
     Args:
-        bag_of_words (DataFrame): The term frequency matrix
+        df (DataFrame): The data frame of values to compute the cosine similarity/difference 
         return_difference (bool): Do you want the cosine difference returned? (Optional False default)
     Returns:
         cosine_df (DataFrame): The cosine similarity or difference in data frame form
     """
-    bag_of_words_cosine_metric = sklearn.metrics.pairwise.cosine_similarity(
-        bag_of_words
+    cosine_metric = sklearn.metrics.pairwise.cosine_similarity(
+        df
     )
     if return_difference:
-        bag_of_words_cosine_metric = 1 - bag_of_words_cosine_metric
+        cosine_metric = 1 - cosine_metric
     cosine_df = pd.DataFrame(
-        bag_of_words_cosine_metric, index=bag_of_words.index, columns=bag_of_words.index
+        cosine_metric, index=df.index, columns=df.index
     )
     return cosine_df
 
@@ -111,6 +112,26 @@ def get_biases(user_item_df, predictor):
     user_bias = user_mean - predictor
     item_bias = item_mean - predictor
     return (user_bias, item_bias)
+
+
+def get_cosine_based_joke_recommendations(cosine_similarity_df, joke_id, n_recommendations = 10):
+    """Translate a cosine similarity data frame into an ordered list of recommendations.
+    Args:
+        cosine_similarity_df (DataFrame):
+        joke_id (int): the id of the joke (column number)
+        n_recommendations (int): The number of recommendations (Optional - 10 default)
+    Returns:
+        recommendations (list): An ordered list of recommendations
+    """
+    # Transform the row of cosine values into a three column data frame (level_0 = joke_id, level_1 = cosine_similarity_df.columns, 0 = cosine value)
+    temp = cosine_similarity_df[:joke_id].stack().reset_index()
+    # Remove the record for the cosine of itself
+    temp = temp[temp.level_0 != temp.level_1]
+    # Sort the matrix by the values
+    temp = temp.sort_values(by=[0], ascending=False)
+    # Return the list of recommendations
+    recommendations = list(temp[:n_recommendations]['level_1'])
+    return recommendations
 
 
 def get_RMSE(user_item_df, predictor):
@@ -202,16 +223,15 @@ def preprocess_jokes(
             joke = "".join([i for i in joke if not i.isdigit()])
         if remove_stop_words or stem_words or lemmatize_words:
             word_list = nltk.word_tokenize(joke)
-            if remove_stop_words:
-                stop_words = set(nltk.corpus.stopwords.words("english"))
-                joke = " ".join([word for word in word_list if word not in stop_words])
             if stem_words:
                 porter_stemmer = nltk.stem.porter.PorterStemmer()
                 joke = " ".join([porter_stemmer.stem(word) for word in word_list])
             if lemmatize_words:
                 lemmatizer = nltk.stem.WordNetLemmatizer()
                 joke = " ".join([lemmatizer.lemmatize(w) for w in word_list])
-
+            if remove_stop_words:
+                stop_words = set(nltk.corpus.stopwords.words("english"))
+                joke = " ".join([word for word in word_list if word not in stop_words])           
         preprocessed_jokes.append(joke)
     return preprocessed_jokes
 
@@ -251,6 +271,23 @@ def rescale_jester_ratings(df):
     df = df / 2
     rescaled_df = df.round(0).astype("Int64").applymap(is_plus_or_minus_five)
     return rescaled_df
+
+
+def tf_idf(corpus, normalize_results = True):
+    """Compute the TF-IDF on the corpus.
+    Args:
+        corpus (list): a list of text strings
+        normalize_results (bool): Should the TF-IDF results be normalized (Optional - True default)
+    Returns:
+        tfidf_df (DataFrame): a data frame with the TF-IDF values
+    """
+    tfidf = sklearn.feature_extraction.text.TfidfVectorizer()
+    results = tfidf.fit_transform(corpus)
+    results = results.toarray()
+    if normalize_results:
+        results = sklearn.preprocessing.normalize(results)
+    tfidf_df = pd.DataFrame(sklearn.preprocessing.normalize(results), columns = tfidf.get_feature_names(), index=range(1, len(corpus) + 1))
+    return tfidf_df
 
 
 def train_test_split(user_item_df, train_proportion=0.8, random_seed=42):
