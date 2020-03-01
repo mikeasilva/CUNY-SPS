@@ -9,9 +9,9 @@ import nltk
 import numpy as np
 import pandas as pd
 import re
-import sklearn.preprocessing
-import sklearn.metrics.pairwise
-import sklearn.feature_extraction.text
+from sklearn.preprocessing import normalize as sklearn_normalize
+from sklearn.metrics.pairwise import cosine_similarity as sklearn_cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer as sklearn_TfidfVectorizer
 import string
 
 
@@ -46,7 +46,7 @@ def bag_of_words(sentences, na_fill=0, normalize=False):
         index="index", columns="word", values="count", fill_value=na_fill
     )
     if normalize:
-        normalized_bag_of_words = sklearn.preprocessing.normalize(bag_of_words_df)
+        normalized_bag_of_words = sklearn_normalize(bag_of_words_df)
         bag_of_words_df = pd.DataFrame(
             normalized_bag_of_words,
             columns=bag_of_words_df.columns,
@@ -64,14 +64,10 @@ def cosine_similarity(df, return_difference=False):
     Returns:
         cosine_df (DataFrame): The cosine similarity or difference in data frame form
     """
-    cosine_metric = sklearn.metrics.pairwise.cosine_similarity(
-        df
-    )
+    cosine_metric = sklearn_cosine_similarity(df)
     if return_difference:
         cosine_metric = 1 - cosine_metric
-    cosine_df = pd.DataFrame(
-        cosine_metric, index=df.index, columns=df.index
-    )
+    cosine_df = pd.DataFrame(cosine_metric, index=df.index, columns=df.index)
     return cosine_df
 
 
@@ -114,7 +110,29 @@ def get_biases(user_item_df, predictor):
     return (user_bias, item_bias)
 
 
-def get_cosine_based_joke_recommendations(cosine_similarity_df, joke_id, n_recommendations = 10):
+def get_cosine_based_neighbors(cosine_similarity_df, col_id, n_neighbors = 10):
+    """Returns the n_neighbors closest neighbors using cosine similarity.
+    Args:
+        cosine_similarity_df (DataFrame): the data frame of cosine similarity
+        col_id (int): the column id to find neighbors for
+        n_neighbors (int): the number of neighbors (Optional - 10 default)
+    Returns:
+        neighbors (list): ordered list of closest neighbor ids
+    """
+    # Transform the row of cosine values into a three column data frame (level_0 = rows, level_1 = columns, 0 = cosine value)
+    temp = cosine_similarity_df[:col_id].stack().reset_index()
+    # Remove the record for the cosine of itself
+    temp = temp[temp.level_0 != temp.level_1]
+    # Sort the matrix by the values
+    temp = temp.sort_values(by=[0], ascending=False)
+    # Return the list of neighbors
+    neighbors = list(temp[:n_neighbors]["level_1"])
+    return neighbors
+
+
+def get_cosine_based_joke_recommendations(
+    cosine_similarity_df, joke_id, n_recommendations=10
+):
     """Translate a cosine similarity data frame into an ordered list of recommendations.
     Args:
         cosine_similarity_df (DataFrame):
@@ -123,15 +141,7 @@ def get_cosine_based_joke_recommendations(cosine_similarity_df, joke_id, n_recom
     Returns:
         recommendations (list): An ordered list of recommendations
     """
-    # Transform the row of cosine values into a three column data frame (level_0 = joke_id, level_1 = cosine_similarity_df.columns, 0 = cosine value)
-    temp = cosine_similarity_df[:joke_id].stack().reset_index()
-    # Remove the record for the cosine of itself
-    temp = temp[temp.level_0 != temp.level_1]
-    # Sort the matrix by the values
-    temp = temp.sort_values(by=[0], ascending=False)
-    # Return the list of recommendations
-    recommendations = list(temp[:n_recommendations]['level_1'])
-    return recommendations
+    return get_cosine_based_neighbors(cosine_similarity_df, joke_id, n_recommendations)
 
 
 def get_RMSE(user_item_df, predictor):
@@ -231,7 +241,7 @@ def preprocess_jokes(
                 joke = " ".join([lemmatizer.lemmatize(w) for w in word_list])
             if remove_stop_words:
                 stop_words = set(nltk.corpus.stopwords.words("english"))
-                joke = " ".join([word for word in word_list if word not in stop_words])           
+                joke = " ".join([word for word in word_list if word not in stop_words])
         preprocessed_jokes.append(joke)
     return preprocessed_jokes
 
@@ -273,7 +283,7 @@ def rescale_jester_ratings(df):
     return rescaled_df
 
 
-def tf_idf(corpus, normalize_results = True):
+def tf_idf(corpus, normalize_results=True):
     """Compute the TF-IDF on the corpus.
     Args:
         corpus (list): a list of text strings
@@ -281,12 +291,16 @@ def tf_idf(corpus, normalize_results = True):
     Returns:
         tfidf_df (DataFrame): a data frame with the TF-IDF values
     """
-    tfidf = sklearn.feature_extraction.text.TfidfVectorizer()
+    tfidf = sklearn_TfidfVectorizer()
     results = tfidf.fit_transform(corpus)
     results = results.toarray()
     if normalize_results:
-        results = sklearn.preprocessing.normalize(results)
-    tfidf_df = pd.DataFrame(sklearn.preprocessing.normalize(results), columns = tfidf.get_feature_names(), index=range(1, len(corpus) + 1))
+        results = sklearn_normalize(results)
+    tfidf_df = pd.DataFrame(
+        sklearn_normalize(results),
+        columns=tfidf.get_feature_names(),
+        index=range(1, len(corpus) + 1),
+    )
     return tfidf_df
 
 

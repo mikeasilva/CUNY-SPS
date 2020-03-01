@@ -25,3 +25,4 @@ DATA612/*.html
 *.ipynb_checkpoints
 DATA612/jester*
 CUNY-SPS.code-workspace
+DATA612/project_2_user_cosine_similarity.csv
