@@ -30,9 +30,7 @@ str(Glass)
 
 (a) Using visualizations, explore the predictor variables to understand their distributions as well as the relationships between predictors
 
-**Before looking at the relationships I think it would be helpful to know a bit more about the predictors.  T element concentrations predictors' unit of measurement, according to [UCI documentation](http://archive.ics.uci.edu/ml/datasets/Glass+Identification) is the "weight percent in corresponding oxide."  There is no documentation on the refractive index provided by UCI.  But according to Wikipedia, the refractive index measure how much light slows down by passing through a material.  An increasing refractive index corresponds to decreasing speed of light in the material.**
-
-**Now that we have an inkling of what the data represent, we will take a look at the distribution of the predictors:**
+**First we will take a look at the distribution of the predictors:**
 
 ```{r}
 long_glass <- Glass %>%
@@ -52,7 +50,7 @@ long_glass %>%
 
 **Glass is primarly made of silica (Si), soda (Na) and lime (Ca).  Seeing these predictors at higher concentrations is not suprising.**
 
-**Now we will examine how the predictors are related to eachother.  We will do that with a correlation plot.**
+**Now we will examine how the predictors are related to each other.  We will do that with a correlation plot.**
 
 ```{r}
 #ColorBrewer's 5 class spectral color palette
@@ -115,7 +113,7 @@ data(Soybean)
 
 (a) Investigate the frequency distributions for the categorical predictors.  Are any of the distributions degenerate in the ways discussed earlier in this chapter?
 
-**I am assuming the degenerate distibuted variaviables discussed earlier in the chapter referes to section 3.5 on removing predictors.  Here's some frequency tables:**
+**I am assuming the degenerate distibuted variaviables discussed earlier in the chapter refers to section 3.5 on removing predictors.  Here's some frequency tables:**
 
 ```{r, results='asis'}
 for (predictor in names(select(Soybean, -Class))){
@@ -160,4 +158,4 @@ Soybean %>%
 
 **I would first drop all missing variables and run it through a random forest to determine which variables are important.  If the near zero variance variables are not high in the list, I would drop them since they have little informational value.**
 
-**If one of the important variables has a lot of missing data I would use k-means to fill in the holes with this categorical data.  If the variables were quantitative I would probably use the mean or median to fill in the holes.**
+**If one of the important variables has a lot of missing data I would use knn to fill in the holes with this categorical data.  If the variables were quantitative I would probably use the mean or median or k-means to fill in those holes.**
