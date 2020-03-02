@@ -152,8 +152,8 @@ def get_RMSE(user_item_df, predictor):
     Returns:
         RMSE_df (DataFrame): a data frame with the RMSE values.
     """
-    predictors = user_item_df.applymap(one_or_na) * predictor
-    errors = user_item_df - predictors
+    predictions = user_item_df.applymap(one_or_na) * predictor
+    errors = predictions - user_item_df
     squared_errors = errors ** 2
     mean_squared_errors = squared_errors.stack().mean()
     RMSE = mean_squared_errors ** (1 / 2)
