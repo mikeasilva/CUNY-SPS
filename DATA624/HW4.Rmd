@@ -154,8 +154,53 @@ Soybean %>%
 
 (c) Develop a strategy for handling missing data, either by eliminating predictors or imputation.
 
-**In my training it has been encouraged to never get rid of data, so my bias would be towards filling them with imputation.**
+**I will be eliminating the three near zero variance predictiors.  For all other predictors I will be imputing values.  I don't have any domain expertise that would inform the imputations, so I will be using decision trees to (hopefully) produce good imputations.  It has been my experience that decision trees preform really well.  The `dlookr` package integrates well with the tidyverse.**
 
-**I would first drop all missing variables and run it through a random forest to determine which variables are important.  If the near zero variance variables are not high in the list, I would drop them since they have little informational value.**
+```{r}
+library(dlookr)
 
-**If one of the important variables has a lot of missing data I would use knn to fill in the holes with this categorical data.  If the variables were quantitative I would probably use the mean or median or k-means to fill in those holes.**
+Soybean_complete <- Soybean %>%
+  # Impute missing values using rpart
+  mutate(
+    date = imputate_na(Soybean, date, Class, method = "rpart", no_attrs = TRUE),
+    plant.stand = imputate_na(Soybean, plant.stand, Class, method = "rpart", no_attrs = TRUE),
+    precip = imputate_na(Soybean, precip, Class, method = "rpart", no_attrs = TRUE),
+    temp = imputate_na(Soybean, temp, Class, method = "rpart", no_attrs = TRUE),
+    hail = imputate_na(Soybean, hail, Class, method = "rpart", no_attrs = TRUE),
+    crop.hist = imputate_na(Soybean, crop.hist, Class, method = "rpart", no_attrs = TRUE),
+    area.dam = imputate_na(Soybean, area.dam, Class, method = "rpart", no_attrs = TRUE),
+    sever = imputate_na(Soybean, sever, Class, method = "rpart", no_attrs = TRUE),
+    seed.tmt = imputate_na(Soybean, seed.tmt, Class, method = "rpart", no_attrs = TRUE),
+    germ = imputate_na(Soybean, germ, Class, method = "rpart", no_attrs = TRUE),
+    plant.growth = imputate_na(Soybean, plant.growth, Class, method = "rpart", no_attrs = TRUE),
+    leaf.halo = imputate_na(Soybean, leaf.halo, Class, method = "rpart", no_attrs = TRUE),
+    leaf.marg = imputate_na(Soybean, leaf.marg, Class, method = "rpart", no_attrs = TRUE),
+    leaf.size = imputate_na(Soybean, leaf.size, Class, method = "rpart", no_attrs = TRUE),
+    leaf.shread = imputate_na(Soybean, leaf.shread, Class, method = "rpart", no_attrs = TRUE),
+    leaf.malf = imputate_na(Soybean, leaf.malf, Class, method = "rpart", no_attrs = TRUE),
+    stem = imputate_na(Soybean, stem, Class, method = "rpart", no_attrs = TRUE),
+    lodging = imputate_na(Soybean, lodging, Class, method = "rpart", no_attrs = TRUE),
+    stem.cankers = imputate_na(Soybean, stem.cankers, Class, method = "rpart", no_attrs = TRUE),
+    canker.lesion = imputate_na(Soybean, canker.lesion, Class, method = "rpart", no_attrs = TRUE),
+    fruiting.bodies = imputate_na(Soybean, fruiting.bodies, Class, method = "rpart", no_attrs = TRUE),
+    ext.decay = imputate_na(Soybean, ext.decay, Class, method = "rpart", no_attrs = TRUE),
+    int.discolor = imputate_na(Soybean, int.discolor, Class, method = "rpart", no_attrs = TRUE),
+    fruit.pods = imputate_na(Soybean, fruit.pods, Class, method = "rpart", no_attrs = TRUE),
+    seed = imputate_na(Soybean, seed, Class, method = "rpart", no_attrs = TRUE),
+    mold.growth = imputate_na(Soybean, mold.growth, Class, method = "rpart", no_attrs = TRUE),
+    seed.discolor = imputate_na(Soybean, seed.discolor, Class, method = "rpart", no_attrs = TRUE),
+    seed.size = imputate_na(Soybean, seed.size, Class, method = "rpart", no_attrs = TRUE),
+    shriveling = imputate_na(Soybean, shriveling, Class, method = "rpart", no_attrs = TRUE),
+    fruit.spots = imputate_na(Soybean, fruit.spots, Class, method = "rpart", no_attrs = TRUE),
+    roots = imputate_na(Soybean, roots, Class, method = "rpart", no_attrs = TRUE)) %>%
+  # Drop the near zero variance predictors
+  select(-leaf.mild, -mycelium, -sclerotia) 
+```
+
+**To prove that it worked I present the following**
+
+```{r}
+Soybean_complete %>%
+  arrange(Class) %>%
+  missmap(main = "Missing vs Observed")
+```
