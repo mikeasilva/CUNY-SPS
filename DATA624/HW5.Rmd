@@ -1,0 +1,75 @@
+---
+title: "DATA 624 Homework 5"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    toc_depth: 3
+    code_folding: "show"
+---
+
+
+```{r setup, echo=FALSE, cache=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
+library(tidyverse)
+library(fpp2)
+```
+
+## Question 7.1
+
+Consider the `pigs` series — the number of pigs slaughtered in Victoria each month.
+
+a. Use the ses() function in R to find the optimal values of $\alpha$ and $\iota_0$, and generate forecasts for the next four months.
+
+b. Compute a 95% prediction interval for the first forecast using  $\hat{y} \pm$ 1.96 $s$ where $s$ is the standard deviation of the residuals. 
+
+c. Compare your interval with the interval produced by R.
+
+## Question 7.5
+
+Data set `books` contains the daily sales of paperback and hardcover books at the same store. The task is to forecast the next four days’ sales for paperback and hardcover books.
+
+a. Plot the series and discuss the main features of the data.
+
+b. Use the `ses()` function to forecast each series, and plot the forecasts.
+
+c. Compute the RMSE values for the training data in each case.
+
+## Question 7.6
+
+We will continue with the daily sales of paperback and hardcover books in data set `books`.
+
+a. Apply Holt’s linear method to the `paperback` and `hardback` series and compute four-day forecasts in each case.
+
+b. Compare the RMSE measures of Holt’s method for the two series to those of simple exponential smoothing in the previous question. (Remember that Holt’s method is using one more parameter than SES.) Discuss the merits of the two forecasting methods for these data sets.
+
+c. Compare the forecasts for the two series using both methods. Which do you think is best?
+
+d. Calculate a 95% prediction interval for the first forecast for each series, using the RMSE values and assuming normal errors. Compare your intervals with those produced using `ses` and `holt`.
+
+## Question 7.7
+
+For this exercise use data set `eggs`, the price of a dozen eggs in the United States from 1900–1993. Experiment with the various options in the `holt()` function to see how much the forecasts change with damped trend, or with a Box-Cox transformation. Try to develop an intuition of what each argument is doing to the forecasts.
+
+[Hint: use `h=100` when calling `holt()` so you can clearly see the differences between the various options when plotting the forecasts.]
+
+Which model gives the best RMSE?
+
+
+## Question 7.8
+
+Recall your retail time series data (from Exercise 3 in Section 2.10).
+
+a. Why is multiplicative seasonality necessary for this series?
+
+b. Apply Holt-Winters’ multiplicative method to the data. Experiment with making the trend damped.
+
+c. Compare the RMSE of the one-step forecasts from the two methods. Which do you prefer?
+
+d. Check that the residuals from the best method look like white noise.
+
+e. Now find the test set RMSE, while training the model to the end of 2010. Can you beat the seasonal naïve approach from Exercise 8 in Section 3.7?
+
+## Question 7.9 
+
+For the same retail data, try an STL decomposition applied to the Box-Cox transformed series, followed by ETS on the seasonally adjusted data. How does that compare with your best previous forecasts on the test set?
