@@ -13,6 +13,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
 library(tidyverse)
 library(fpp2)
+options(scipen=999)
 ```
 
 ## Question 7.1
@@ -21,9 +22,29 @@ Consider the `pigs` series — the number of pigs slaughtered in Victoria each m
 
 a. Use the ses() function in R to find the optimal values of $\alpha$ and $\iota_0$, and generate forecasts for the next four months.
 
+```{r}
+ses_pigs <- ses(pigs, h = 4)
+summary(ses_pigs)
+```
+
+**The `ses` function generates and $\alpha$ of `r ses_pigs$model$par[1]` and a $\iota_0$ of `r ses_pigs$model$par[2]`.**
+
 b. Compute a 95% prediction interval for the first forecast using  $\hat{y} \pm$ 1.96 $s$ where $s$ is the standard deviation of the residuals. 
 
+```{r}
+# Get the first forecast
+y_hat <- ses_pigs$mean[1]
+# Get the standard deviation of the residuals
+s <- sd(ses_pigs$residuals)
+lower_ci <- y_hat - 1.96 * s
+upper_ci <- y_hat + 1.96 * s
+```
+
+**The 95% CI is from `r round(lower_ci, 0)` to `r round(upper_ci, 0)`,**
+
 c. Compare your interval with the interval produced by R.
+
+**The 95% CI produced by R is `r round(78611.97, 0)` to `r round(119020.8, 0 )`.R's CI is slightly wider than the CI we computed.**
 
 ## Question 7.5
 
@@ -31,9 +52,38 @@ Data set `books` contains the daily sales of paperback and hardcover books at th
 
 a. Plot the series and discuss the main features of the data.
 
+```{r}
+autoplot(books) + 
+  ggtitle("Daily Sale of Books")
+```
+
+**The series has an upwards trend.  There is only 30 days of data so I can't really speak to an seasonality or weekly effects with much confidence.  The paperback sales lagging hardback, or hardback and paperback being counter cyclical, but I would stress it's really too soon to make these claims.**
+
 b. Use the `ses()` function to forecast each series, and plot the forecasts.
 
+```{r}
+ses_paperback <- ses(books[, 1], h = 4)
+autoplot(ses_paperback) +
+  ylab("Paperback Book Sales")
+```
+
+```{r}
+ses_hardback <- ses(books[, 2], h = 4)
+autoplot(ses_hardback) +
+  ylab("Hardback Book Sales")
+```
+
 c. Compute the RMSE values for the training data in each case.
+
+```{r}
+accuracy(ses_paperback)
+```
+
+```{r}
+accuracy(ses_hardback)
+```
+
+**The RMSE for the paperback model is 33.6 and 31.9 for the hardback model.**
 
 ## Question 7.6
 
