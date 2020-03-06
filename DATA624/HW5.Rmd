@@ -207,28 +207,86 @@ Recall your retail time series data (from Exercise 3 in Section 2.10).
 
 a. Why is multiplicative seasonality necessary for this series?
 
-b. Apply Holt-Winters’ multiplicative method to the data. Experiment with making the trend damped.
+**As we have seen in the previous sections, the variability in the series is increasing over time.  This calls for a method that accounts for multiplicative seasonality.  Here's the plot in case you have forgotten what the time series looks like:**
 
 ```{r}
 retaildata <- read_excel("retail.xlsx", skip = 1)
 retail_ts <- ts(retaildata[, "A3349873A"], frequency = 12, start = c(1982, 4))
+autoplot(retail_ts) + ylab("Retail Sales")
+```
 
+b. Apply Holt-Winters’ multiplicative method to the data. Experiment with making the trend damped.
+
+```{r}
 hw_multiplicative <- hw(retail_ts, seasonal = "multiplicative")
 autoplot(hw_multiplicative) + 
   ggtitle("Multiplicative") + 
   ylab("Retail Sales")
+summary(hw_multiplicative)
 
 hw_multiplicative_damped <- hw(retail_ts, seasonal = "multiplicative", damped = TRUE)
 autoplot(hw_multiplicative_damped) + 
   ggtitle("Multiplicative & Damped") + 
   ylab("Retail Sales")
+summary(hw_multiplicative_damped)
 ```
 
 c. Compare the RMSE of the one-step forecasts from the two methods. Which do you prefer?
 
+```{r}
+cat("RMSE of Multiplicative = ", accuracy(hw_multiplicative)[2])
+```
+
+```{r}
+cat("RMSE of Multiplicative & Damped = ", accuracy(hw_multiplicative_damped)[2])
+```
+
+**The non-damped model is preforming better.**
+
 d. Check that the residuals from the best method look like white noise.
 
+```{r}
+checkresiduals(hw_multiplicative)
+```
+
+**The residuals looks like white noise to me.  They are normally distributed with a mean of zero, with no pattern over time.**
+
 e. Now find the test set RMSE, while training the model to the end of 2010. Can you beat the seasonal naïve approach from Exercise 8 in Section 3.7?
+
+```{r}
+retail_train <- window(retail_ts, end = c(2010, 12))
+retail_test <- window(retail_ts, start = 2011)
+
+get_retail_test_rmse <- function(model){
+  accuracy(model, retail_test)[4]
+}
+
+Model <- c("Seasonal Naïve (Baseline)", 
+           "SES",
+           "Holt's Method",
+           "Damped Holt's Method",
+           "Holt-Winters Additive",
+           "Holt-Winters Multiplicative",
+           "Damped Holt-Winters Additive",
+           "Damped Holt-Winters Multiplicative")
+
+RMSE <- c(get_retail_test_rmse(snaive(retail_train)), 
+          get_retail_test_rmse(ses(retail_train)),
+          get_retail_test_rmse(holt(retail_train)),
+          get_retail_test_rmse(holt(retail_train, damped = TRUE)),
+          get_retail_test_rmse(hw(retail_train, seasonal = "additive")),
+          get_retail_test_rmse(hw(retail_train, seasonal = "multiplicative")),
+          get_retail_test_rmse(hw(retail_train, seasonal = "additive", damped = TRUE)),
+          get_retail_test_rmse(hw(retail_train, seasonal = "multiplicative", damped = TRUE)))
+
+rmse_df <- data.frame(Model, RMSE) 
+
+rmse_df %>%
+  kable() %>%
+  kable_styling()
+```
+
+**This was and interesting exercise.  Some of the more sophisticated approaches preformed less well on the test set than the seasonal naïve model.  In the end the `r rmse_df[rmse_df$RMSE == min(rmse_df$RMSE),]$Model` preformed the best on the test set.**
 
 ## Question 7.9 
 
