@@ -5,7 +5,7 @@ output:
   rmdformats::readthedown:
     highlight: kate
     toc_depth: 3
-    code_folding: "show"
+    code_folding: "hide"
 ---
 
 
@@ -13,8 +13,86 @@ output:
 knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
 library(tidyverse)
 library(kableExtra)
+library(readxl)
+library(fpp2)
 ```
 
-## Directions
+## Introduction
 
-In part A, I want you to forecast how much cash is taken out of 4 different ATM machines for May 2010.  The data is given in a single file.  The variable ‘Cash’ is provided in hundreds of dollars, other than that it is straight forward.   I am being somewhat ambiguous on purpose to make this have a little more business feeling.  Explain and demonstrate your process, techniques used and not used, and your actual forecast.  I am giving you data via an excel file, please provide your written report on your findings, visuals, discussion and your R code via an RPubs link along with the actual.rmd file  Also please submit the forecast which you will put in an Excel readable file.
+I am to forecast how much cash will be taken out of 4 different ATM machines for May 2010.  Data was provided for this project.  The cash is in hundreds of dollars.
+
+## Data Exploration
+
+I will begin by plotting the cash withdrawn by each ATM.
+
+```{r}
+atm <- read_excel("ATM624Data.xlsx") %>%
+  mutate(DATE = as.Date(DATE, origin = "1899-12-30"),
+         ATM = as.factor(ATM))
+
+atm %>%
+  ggplot(aes(DATE, Cash, color=ATM)) +
+  geom_line(lwd=1) +
+  ggtitle("Cash Withdrawal by Date and ATM") +
+  scale_color_brewer(palette = "Set1") + 
+  theme(legend.title = element_blank(),
+        legend.position = "bottom",
+        axis.title = element_blank())
+```
+
+ATM #4 is utilized at a higher rate than every other ATM in the data series.  There is an unusual spike in ATM #4.  According to a [2010 article in Time magazine](https://business.time.com/2010/10/07/more-thevies-are-making-total-atm-withdrawls/) an average sized ATM can hold $200,000.  So the outlier is an implausible figure.  There are some missing ATM labels in the data.  Let's remove ATM #4 and the missing label from the dataset and replot the visualization:
+
+```{r}
+atm %>%
+  filter(ATM != "ATM4") %>%
+  filter(!is.na(ATM)) %>%
+  ggplot(aes(DATE, Cash, color=ATM)) +
+  geom_line(lwd=1) +
+  ggtitle("Cash Withdrawal by Date and ATM") +
+  scale_color_brewer(palette = "Set1") + 
+  theme(legend.title = element_blank(),
+        legend.position = "bottom",
+        axis.title = element_blank())
+```
+
+It looks like ATM #3 was not utilized until recently.  ATM #1 and #2 seem very similar to each other.  It doesn't seem like there is much of a trend in the data.  Let's explore the distributions further with this visualization:
+
+```{r}
+atm %>%
+  na.omit() %>%
+  ggplot(aes(ATM, Cash, color = ATM)) +
+  geom_boxplot() +
+  ggtitle("Cash Withdrawal by ATM") +
+  scale_color_brewer(palette = "Set1") +
+  facet_wrap(.~ATM, nrow = 2, scales = "free") +
+  theme(legend.position = "none",
+        axis.title.y = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+
+atm %>%
+  filter(!is.na(ATM)) %>%
+  group_by(ATM) %>%
+  summarise(Minimum = min(Cash, na.rm = T),
+            `1st Qu.` = quantile(Cash, .25, na.rm = T),
+            Mean = mean(Cash, na.rm = T),
+            Median = median(Cash, na.rm = T),
+            `3rd Qu.` = quantile(Cash, .75, na.rm = T),
+            Maximum = max(Cash, na.rm = T),
+            `NA's` = sum(is.na(Cash))) %>%
+  kable() %>%
+  kable_styling()
+```
+
+### Dealing with Missing Data & Outliers
+
+ATM #1 is missing 3 observations and ATM #2 is missing 2.  I will replace the NA's with the median values.  We will also replace all the outliers in ATM #4 with the $200,000. 
+
+```{r}
+atm <- atm %>% 
+  rowwise() %>%
+  mutate(Cash = if_else(is.na(Cash) & ATM == "ATM1", 91, Cash)) %>%
+  mutate(Cash = if_else(is.na(Cash) & ATM == "ATM2", 67, Cash)) %>%
+  mutate(Cash = if_else(Cash > 2000, 2000, Cash))
+```
