@@ -15,6 +15,7 @@ library(tidyverse)
 library(kableExtra)
 library(readxl)
 library(fpp2)
+library(prophet)
 ```
 
 ## Introduction
@@ -90,9 +91,13 @@ atm %>%
 ATM #1 is missing 3 observations and ATM #2 is missing 2.  I will replace the NA's with the median values.  We will also replace all the outliers in ATM #4 with the $200,000. 
 
 ```{r}
-atm <- atm %>% 
+adjusted_atm <- atm %>% 
   rowwise() %>%
   mutate(Cash = if_else(is.na(Cash) & ATM == "ATM1", 91, Cash)) %>%
   mutate(Cash = if_else(is.na(Cash) & ATM == "ATM2", 67, Cash)) %>%
   mutate(Cash = if_else(Cash > 2000, 2000, Cash))
 ```
+
+## Model Building
+
+I will construct a series of models using different approaches.  I will evaluate each model's preformance on a test set.
