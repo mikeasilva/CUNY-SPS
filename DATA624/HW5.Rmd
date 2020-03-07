@@ -295,13 +295,27 @@ For the same retail data, try an STL decomposition applied to the Box-Cox transf
 ```{r}
 # Window doesn't return a ts object so we need to redefine
 retail_train <- ts(as.vector(retail_ts), start=c(1982,4), end=c(2010,12), frequency = 12)
+# Get the optimal lambda
 lambda <- BoxCox.lambda(retail_train)
+# Preform a Box-Cox transformation
 bc_retail_train <- BoxCox(retail_train, lambda = lambda)
-stl_retail_train <- stl(bc_retail_train, s.window="periodic") # Guessing on s.window setting based on documentation
-stl_time_series <- data.frame(stl_retail_train$time.series)
-sa_retail_train <- bc_retail_train - stl_time_series$seasonal
-
-ets_retail_train <- forecast(sa_retail_train)
-bc_retail_test <- BoxCox(retail_test, lambda = lambda)
-accuracy(ets_retail_train, bc_retail_test)
+# Preform the STL decomposition
+stl_retail_train <- mstl(bc_retail_train)
+## Create a seasonally adjusted series
+sa_stl_retail_train <- stl_retail_train[,1] - stl_retail_train[,3]
+# Reverse the Box-Cox transformation
+sa_retail_train <- InvBoxCox(sa_stl_retail_train, lambda = lambda)
+# Check the output
+autoplot(retail_train) + autolayer(sa_retail_train)
 ```
+```{r}
+ets_retail_train <- forecast(sa_retail_train)
+
+rmse_df %>%
+  mutate(Model = as.character(Model)) %>%
+  rbind(c("ETS on STL Seasonally-Adjusted data", get_retail_test_rmse(ets_retail_train))) %>%
+  kable() %>%
+  kable_styling()
+```
+
+**The ETS model on the transformed data preformed worse than the Seasonal Naïve model.  Again a simpler approach can be a better one.**
