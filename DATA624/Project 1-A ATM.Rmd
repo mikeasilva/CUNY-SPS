@@ -12,10 +12,12 @@ output:
 ```{r setup, echo=FALSE, cache=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
 library(tidyverse)
+library(lubridate)
 library(kableExtra)
 library(readxl)
 library(fpp2)
 library(prophet)
+library(forcats)
 ```
 
 ## Introduction
@@ -29,7 +31,8 @@ I will begin by plotting the cash withdrawn by each ATM.
 ```{r}
 atm <- read_excel("ATM624Data.xlsx") %>%
   mutate(DATE = as.Date(DATE, origin = "1899-12-30"),
-         ATM = as.factor(ATM))
+         ATM = as.factor(ATM)) %>%
+  data.frame()
 
 atm %>%
   ggplot(aes(DATE, Cash, color=ATM)) +
@@ -95,9 +98,83 @@ adjusted_atm <- atm %>%
   rowwise() %>%
   mutate(Cash = if_else(is.na(Cash) & ATM == "ATM1", 91, Cash)) %>%
   mutate(Cash = if_else(is.na(Cash) & ATM == "ATM2", 67, Cash)) %>%
-  mutate(Cash = if_else(Cash > 2000, 2000, Cash))
+  mutate(Cash = if_else(Cash > 2000, 2000, Cash)) %>%
+  ungroup() %>%
+  data.frame()
 ```
 
 ## Model Building
 
-I will construct a series of models using different approaches.  I will evaluate each model's preformance on a test set.
+I will construct a series of models using different approaches. I will start from the most simple approach and move on to more sophisticated ones.  I beleive the "best" model will come from the middle of the pack.  Let's see how it plays out.
+
+Since the task is to predict the cash withdrawls for May 2010 (31 days) we will set up test sets that include the last 31 days.  Each model will be evaluated on how accurate they are in forecasting the test set's values.  I will use the RMSE as the metric to assess the accuracy.
+
+```{r}
+train_test_split <- function(atm_df, atm_number, n_in_test = 31, return_ts=TRUE){
+  ### Splits the data into training and test sets
+  # Args:
+  #     atm_df (data.frame): The ATM data
+  #     atm_number (int): Which ATM do you want the time series for?
+  #     n_in_test (int): The number of observations in the test set taken from the end (optional-31 default)
+  #     return_ts (logical): Should the function return ts objects (optional-TRUE default)
+  # Returns:
+  #     train_test_ts (list): Two ts objects (train and test).
+  
+  # Subset the data frame
+  df <- atm_df %>%
+    filter(ATM == paste0("ATM", atm_number)) %>%
+    select(-ATM)
+  
+  # Split the data frame into training and test sets
+  test <- tail(df, n_in_test)
+  train <- head(df, -n_in_test)
+  
+  # Tranform into ts objects
+  if(return_ts){
+    train_start <- (min(train$DATE))
+    train <- ts(train$Cash, start = decimal_date(as.Date(train_start)), frequency = 365)
+    test_start <- (min(test$DATE))
+    test <- ts(test$Cash, start = decimal_date(as.Date(test_start)), frequency = 365)
+  }
+  
+  # Return the data to the user
+  train_test <- list(train = train, test = test)
+  return(train_test)
+}
+
+atm_1_ts <- train_test_split(adjusted_atm, 1, 31)
+atm_2_ts <- train_test_split(adjusted_atm, 2, 31)
+atm_3_ts <- train_test_split(adjusted_atm, 3, 31)
+atm_4_ts <- train_test_split(adjusted_atm, 4, 31)
+
+atm_1_df <- train_test_split(adjusted_atm, 1, 31, return_ts = FALSE)
+atm_2_df <- train_test_split(adjusted_atm, 2, 31, return_ts = FALSE)
+atm_3_df <- train_test_split(adjusted_atm, 3, 31, return_ts = FALSE)
+atm_4_df <- train_test_split(adjusted_atm, 4, 31, return_ts = FALSE)
+```
+
+### ATM 1 Models
+
+I will start by looking at the training data and the decomposition.  I cannot use the `decompose()` or `stl()` functions to decompose it because I don't have enough data.  Facebook Prophet can decompose it using its Basian process.
+
+```{r}
+atm_prophet <- function(df, forcast_window){
+  m <- df %>%
+    mutate(y = Cash, ds = as.character(DATE)) %>%
+    prophet()
+  future <- make_future_dataframe(m, periods = forcast_window)
+  atm_forecast <- predict(m, future)
+  results = list(
+    model = m,
+    future = future,
+    forecast = atm_forecast
+  )
+  return(results)
+}
+
+atm_1_prophet <- atm_prophet(atm_1_df$train, 31)
+prophet_plot_components(atm_1_prophet$model, atm_1_prophet$forecast)
+```
+
+That is interesting! There appears to be a weekly effect in the data.  Wednesdays and especially Thursdays are low traffic days.  The trend apears to be decreasing but at a very slow rate.
+
