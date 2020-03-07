@@ -286,8 +286,22 @@ rmse_df %>%
   kable_styling()
 ```
 
-**This was and interesting exercise.  Some of the more sophisticated approaches preformed less well on the test set than the seasonal naïve model.  In the end the `r rmse_df[rmse_df$RMSE == min(rmse_df$RMSE),]$Model` preformed the best on the test set.**
+**This was and interesting exercise.  I decided to run it through a buch of models, even some that didn't make sense given this data set.  Some of the more sophisticated approaches preformed less well on the test set than the seasonal naïve model.  In the end the `r rmse_df[rmse_df$RMSE == min(rmse_df$RMSE),]$Model` preformed the best on the test set.**
 
 ## Question 7.9 
 
 For the same retail data, try an STL decomposition applied to the Box-Cox transformed series, followed by ETS on the seasonally adjusted data. How does that compare with your best previous forecasts on the test set?
+
+```{r}
+# Window doesn't return a ts object so we need to redefine
+retail_train <- ts(as.vector(retail_ts), start=c(1982,4), end=c(2010,12), frequency = 12)
+lambda <- BoxCox.lambda(retail_train)
+bc_retail_train <- BoxCox(retail_train, lambda = lambda)
+stl_retail_train <- stl(bc_retail_train, s.window="periodic") # Guessing on s.window setting based on documentation
+stl_time_series <- data.frame(stl_retail_train$time.series)
+sa_retail_train <- bc_retail_train - stl_time_series$seasonal
+
+ets_retail_train <- forecast(sa_retail_train)
+bc_retail_test <- BoxCox(retail_test, lambda = lambda)
+accuracy(ets_retail_train, bc_retail_test)
+```
