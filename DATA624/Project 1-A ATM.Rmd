@@ -155,7 +155,7 @@ atm_4_df <- train_test_split(adjusted_atm, 4, 31, return_ts = FALSE)
 
 ### ATM 1 Models
 
-I will start by looking at the training data and the decomposition.  I cannot use the `decompose()` or `stl()` functions to decompose it because I don't have enough data.  Facebook Prophet can decompose it using its Basian process.
+I will start by looking at the training data and the decomposition.  I cannot use the `decompose()` or `stl()` functions to decompose it because I don't have enough data.  Facebook Prophet can decompose it using its Bayesian estimation process.
 
 ```{r}
 atm_prophet <- function(df, forcast_window){
@@ -178,3 +178,11 @@ prophet_plot_components(atm_1_prophet$model, atm_1_prophet$forecast)
 
 That is interesting! There appears to be a weekly effect in the data.  Wednesdays and especially Thursdays are low traffic days.  The trend apears to be decreasing but at a very slow rate.
 
+```{r}
+plot(atm_1_prophet$model, atm_1_prophet$forecast)
+```
+
+```{r}
+atm_1_prophet$forecast %>%
+  select(ds, yhat)
+```
