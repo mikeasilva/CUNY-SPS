@@ -110,7 +110,19 @@ I will construct a series of models using different approaches. I will start fro
 Since the task is to predict the cash withdrawls for May 2010 (31 days) we will set up test sets that include the last 31 days.  Each model will be evaluated on how accurate they are in forecasting the test set's values.  I will use the RMSE as the metric to assess the accuracy.
 
 ```{r}
-train_test_split <- function(atm_df, atm_number, n_in_test = 31, return_ts=TRUE){
+
+forecast_window <- 31
+
+df_to_ts <- function(df){
+  ### Converts ATM data frames into ts objects
+  # Args:
+  #     df (data.frame): The ATM data frame 
+  # Returns:
+  #     ts (Time-Series): An ATM time series object
+  ts(df$Cash, start = decimal_date(as.Date(min(df$DATE))), frequency = 365)
+}
+
+train_test_split <- function(atm_df, atm_number, n_in_test, return_ts=TRUE){
   ### Splits the data into training and test sets
   # Args:
   #     atm_df (data.frame): The ATM data
@@ -118,39 +130,43 @@ train_test_split <- function(atm_df, atm_number, n_in_test = 31, return_ts=TRUE)
   #     n_in_test (int): The number of observations in the test set taken from the end (optional-31 default)
   #     return_ts (logical): Should the function return ts objects (optional-TRUE default)
   # Returns:
-  #     train_test_ts (list): Two ts objects (train and test).
+  #     train_eval_test_ts (list): Data split into sets (train, eval and test).
   
   # Subset the data frame
   df <- atm_df %>%
     filter(ATM == paste0("ATM", atm_number)) %>%
     select(-ATM)
   
-  # Split the data frame into training and test sets
+  # Split the data frame into training, eval and test sets
   test <- tail(df, n_in_test)
   train <- head(df, -n_in_test)
+  eval_ts <- tail(train, n_in_test)
+  short_train <- head(df, -(2 * n_in_test))
   
   # Tranform into ts objects
   if(return_ts){
-    train_start <- (min(train$DATE))
-    train <- ts(train$Cash, start = decimal_date(as.Date(train_start)), frequency = 365)
-    test_start <- (min(test$DATE))
-    test <- ts(test$Cash, start = decimal_date(as.Date(test_start)), frequency = 365)
+    train <- df_to_ts(train)
+    test <- df_to_ts(test)
+    eval_ts <- df_to_ts(eval_ts)
+    short_train <- df_to_ts(short_train)
   }
   
   # Return the data to the user
-  train_test <- list(train = train, test = test)
-  return(train_test)
+  train_eval_test_ts <- list(train = train, test = test, evaluation = eval_ts, short_train = short_train)
+  
+  return(train_eval_test_ts)
 }
 
-atm_1_ts <- train_test_split(adjusted_atm, 1, 31)
-atm_2_ts <- train_test_split(adjusted_atm, 2, 31)
-atm_3_ts <- train_test_split(adjusted_atm, 3, 31)
-atm_4_ts <- train_test_split(adjusted_atm, 4, 31)
-
-atm_1_df <- train_test_split(adjusted_atm, 1, 31, return_ts = FALSE)
-atm_2_df <- train_test_split(adjusted_atm, 2, 31, return_ts = FALSE)
-atm_3_df <- train_test_split(adjusted_atm, 3, 31, return_ts = FALSE)
-atm_4_df <- train_test_split(adjusted_atm, 4, 31, return_ts = FALSE)
+# Get time series objects
+atm_1_ts <- train_test_split(adjusted_atm, 1, forecast_window)
+atm_2_ts <- train_test_split(adjusted_atm, 2, forecast_window)
+atm_3_ts <- train_test_split(adjusted_atm, 3, forecast_window)
+atm_4_ts <- train_test_split(adjusted_atm, 4, forecast_window)
+# Get data frame objects
+atm_1_df <- train_test_split(adjusted_atm, 1, forecast_window, return_ts = FALSE)
+atm_2_df <- train_test_split(adjusted_atm, 2, forecast_window, return_ts = FALSE)
+atm_3_df <- train_test_split(adjusted_atm, 3, forecast_window, return_ts = FALSE)
+atm_4_df <- train_test_split(adjusted_atm, 4, forecast_window, return_ts = FALSE)
 ```
 
 ### ATM 1 Models
@@ -179,10 +195,41 @@ prophet_plot_components(atm_1_prophet$model, atm_1_prophet$forecast)
 That is interesting! There appears to be a weekly effect in the data.  Wednesdays and especially Thursdays are low traffic days.  The trend apears to be decreasing but at a very slow rate.
 
 ```{r}
+
+atm_1_df$train %>%
+  mutate(`Day of Week` = recode(as.factor(wday(DATE)), "1" = "Sunday", "2" = "Monday", "3" = "Tuesday", "4"="Wednesday", "5"="Thursday", "6"="Friday","7"="Saturday")) %>%
+  ggplot(aes(x=DATE, y=Cash, color=`Day of Week`)) +
+  geom_point() +
+  #geom_line() +
+  facet_wrap(.~`Day of Week`) +
+  theme(legend.position = "None", axis.title = element_blank())
+```
+
+Saturday looks fairly consistent.  Other days (Tuesday and Thursday) show recent changes in their trend.
+
+```{r}
+atm_1_holt <- holt(atm_1_ts$train, h=forecast_window)
+autoplot(atm_1_holt) + autolayer(atm_1_ts$test)
+```
+
+
+```{r}
 plot(atm_1_prophet$model, atm_1_prophet$forecast)
 ```
 
+
 ```{r}
-atm_1_prophet$forecast %>%
-  select(ds, yhat)
+atm_1_mean <- mean(atm_1_df$train)
+atm_1_last_observation <- tail(atm_1_df$train, 1)$Cash
+atm_1_mean <- mean(atm_1_df$train$Cash)
+atm_1_results <- 
+  atm_1_prophet$forecast %>%
+  mutate(DATE = as.Date(ds), prophet_yhat = yhat) %>%
+  select(DATE, prophet_yhat) %>%
+  mutate(naive_yhat = atm_1_last_observation, 
+         mean_yhat = atm_1_mean) %>%
+  merge(atm_1_df$evaluation) %>%
+  rename(actual = Cash)
+atm_1_results$holt <- tail(atm_1_holt$fitted, forecast_window)
 ```
+
