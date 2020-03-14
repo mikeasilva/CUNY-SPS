@@ -18,6 +18,7 @@ library(readxl)
 library(fpp2)
 library(prophet)
 library(forcats)
+options(scipen=999)
 ```
 
 ## Introduction
@@ -38,7 +39,8 @@ atm %>%
   ggplot(aes(DATE, Cash, color=ATM)) +
   geom_line(lwd=1) +
   ggtitle("Cash Withdrawal by Date and ATM") +
-  scale_color_brewer(palette = "Set1") + 
+  scale_color_brewer(palette = "Set1") +
+  facet_wrap(.~ATM, ncol = 2) +
   theme(legend.title = element_blank(),
         legend.position = "bottom",
         axis.title = element_blank())
@@ -52,6 +54,7 @@ atm %>%
   filter(!is.na(ATM)) %>%
   ggplot(aes(DATE, Cash, color=ATM)) +
   geom_line(lwd=1) +
+  facet_wrap(.~ATM, ncol = 2) +
   ggtitle("Cash Withdrawal by Date and ATM") +
   scale_color_brewer(palette = "Set1") + 
   theme(legend.title = element_blank(),
@@ -119,7 +122,8 @@ df_to_ts <- function(df){
   #     df (data.frame): The ATM data frame 
   # Returns:
   #     ts (Time-Series): An ATM time series object
-  ts(df$Cash, start = decimal_date(as.Date(min(df$DATE))), frequency = 365)
+  ts(df$Cash, start = decimal_date(as.Date(min(df$DATE))), frequency = 7)
+  #msts(df$Cash, seasonal.periods=c(7, 365.25))
 }
 
 train_test_split <- function(atm_df, atm_number, n_in_test, return_ts=TRUE){
@@ -138,6 +142,7 @@ train_test_split <- function(atm_df, atm_number, n_in_test, return_ts=TRUE){
     select(-ATM)
   
   # Split the data frame into training, eval and test sets
+  full <- df
   test <- tail(df, n_in_test)
   train <- head(df, -n_in_test)
   eval_ts <- tail(train, n_in_test)
@@ -145,6 +150,7 @@ train_test_split <- function(atm_df, atm_number, n_in_test, return_ts=TRUE){
   
   # Tranform into ts objects
   if(return_ts){
+    full <- df_to_ts(full)
     train <- df_to_ts(train)
     test <- df_to_ts(test)
     eval_ts <- df_to_ts(eval_ts)
@@ -152,7 +158,7 @@ train_test_split <- function(atm_df, atm_number, n_in_test, return_ts=TRUE){
   }
   
   # Return the data to the user
-  train_eval_test_ts <- list(train = train, test = test, evaluation = eval_ts, short_train = short_train)
+  train_eval_test_ts <- list(train = train, test = test, evaluation = eval_ts, short_train = short_train, full = full)
   
   return(train_eval_test_ts)
 }
@@ -208,6 +214,10 @@ atm_1_df$train %>%
 Saturday looks fairly consistent.  Other days (Tuesday and Thursday) show recent changes in their trend.
 
 ```{r}
+autoplot(hw(atm_1_ts$train, h=forecast_window))
+```
+
+```{r}
 atm_1_holt <- holt(atm_1_ts$train, h=forecast_window)
 autoplot(atm_1_holt) + autolayer(atm_1_ts$test)
 ```
@@ -232,4 +242,37 @@ atm_1_results <-
   rename(actual = Cash)
 atm_1_results$holt <- tail(atm_1_holt$fitted, forecast_window)
 ```
+```{r}
+day_of_week_averages <- atm_1_df$train %>%
+  mutate(day_of_week = wday(DATE)) %>%
+  group_by(day_of_week) %>%
+  summarise(yhat = median(Cash))
+temp <- atm_1_df$test %>%
+  mutate(day_of_week = wday(DATE)) %>%
+  merge(day_of_week_averages) %>%
+  arrange(DATE) %>%
+  select(DATE, yhat)
+atm_1_results$day_of_week_model <- temp$yhat
+```
 
+### Random Forest
+
+```{r}
+library(randomForest)
+set.seed(42)
+rf_data <- function(df){
+  df %>%
+    mutate(day_of_week = as.factor(wday(DATE)),
+           DATE = as.numeric(DATE))
+}
+
+rf_fit <- randomForest(Cash~., rf_data(atm_1_df$train))
+predict(rf_fit, rf_data(atm_1_df$test))
+
+atm_1_results$rf <- predict(rf_fit, rf_data(atm_1_df$test))
+```
+
+```{r}
+lm_fit <- lm(Cash~day_of_week, rf_data(atm_1_df$train))
+atm_1_results$lm <- predict(lm_fit, rf_data(atm_1_df$test))
+```
