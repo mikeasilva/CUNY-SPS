@@ -1,0 +1,96 @@
+---
+title: "DATA 624 Homework 6"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    toc_depth: 3
+    code_folding: "show"
+---
+
+```{r setup, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
+library(tidyverse)
+library(fpp2)
+library(kableExtra)
+library(gridExtra)
+library(readxl)
+options(scipen=999)
+```
+
+## Question 8.1
+
+Figure 8.31 shows the ACFs for 36 random numbers, 360 random numbers and 1,000 random numbers.
+
+a. Explain the differences among these figures. Do they all indicate that the data are white noise?
+
+<img src ="https://otexts.com/fpp2/fpp_files/figure-html/wnacfplus-1.png" alt="Left: ACF for a white noise series of 36 numbers. Middle: ACF for a white noise series of 360 numbers. Right: ACF for a white noise series of 1,000 numbers.">
+
+Figure 8.31: Left: ACF for a white noise series of 36 numbers. Middle: ACF for a white noise series of 360 numbers. Right: ACF for a white noise series of 1,000 numbers.
+
+b. Why are the critical values at different distances from the mean of zero? Why are the autocorrelations different in each figure when they each refer to white noise?
+
+## Question 8.2
+
+A classic example of a non-stationary series is the daily closing IBM stock price series (data set `ibmclose`). Use R to plot the daily closing prices for IBM stock and the ACF and PACF. Explain how each plot shows that the series is non-stationary and should be differenced.
+
+## Question 8.3
+
+For the following series, find an appropriate Box-Cox transformation and order of differencing in order to obtain stationary data.
+
+a. `usnetelec`
+
+b. `usgdp`
+
+c. `mcopper`
+
+d. `enplanements`
+
+e. `visitors`
+
+## Question 8.5
+
+For your retail data (from Exercise 3 in Section 2.10), find the appropriate order of differencing (after transformation if necessary) to obtain stationary data.
+
+## Question 8.6
+
+Use R to simulate and plot some data from simple ARIMA models.
+
+a. Use the following R code to generate data from an AR(1) model with $ϕ_1 = 0.6$ and $σ_2 = 1$.  The process starts with $y_1=0$.
+
+```{r}
+y <- ts(numeric(100))
+e <- rnorm(100)
+for(i in 2:100)
+  y[i] <- 0.6*y[i-1] + e[i]
+```
+
+b. Produce a time plot for the series. How does the plot change as you change $ϕ_1$?
+
+c. Write your own code to generate data from an MA(1) model with $θ_1=0.6$ and $σ_2=1$.
+
+d. Produce a time plot for the series. How does the plot change as you change $θ_1$?  
+
+e. Generate data from an ARMA(1,1) model with $ϕ_1=0.6$, $θ_1=0.6$ and $σ_2=1$.
+
+f. Generate data from an AR(2) model with $ϕ_1=−0.8$, $ϕ_2=0.3$ and $σ_2=1$. (Note that these parameters will give a non-stationary series.)
+
+g. Graph the latter two series and compare them.
+
+## Question 8.7
+
+Consider `wmurders`, the number of women murdered each year (per 100,000 standard population) in the United States.
+
+a. By studying appropriate graphs of the series in R, find an appropriate ARIMA(p,d,q) model for these data.
+
+b. Should you include a constant in the model? Explain.
+
+c. Write this model in terms of the backshift operator.
+
+d. Fit the model using R and examine the residuals. Is the model satisfactory?
+
+e. Forecast three times ahead. Check your forecasts by hand to make sure that you know how they have been calculated.
+
+f. Create a plot of the series with forecasts and prediction intervals for the next three periods shown.
+
+g. Does auto.arima() give the same model you have chosen? If not, which model do you think is better?
