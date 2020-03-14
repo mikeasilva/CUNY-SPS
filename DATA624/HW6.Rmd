@@ -15,6 +15,7 @@ library(fpp2)
 library(kableExtra)
 library(gridExtra)
 library(readxl)
+library(urca)
 options(scipen=999)
 ```
 
@@ -22,17 +23,41 @@ options(scipen=999)
 
 Figure 8.31 shows the ACFs for 36 random numbers, 360 random numbers and 1,000 random numbers.
 
-a. Explain the differences among these figures. Do they all indicate that the data are white noise?
-
 <img src ="https://otexts.com/fpp2/fpp_files/figure-html/wnacfplus-1.png" alt="Left: ACF for a white noise series of 36 numbers. Middle: ACF for a white noise series of 360 numbers. Right: ACF for a white noise series of 1,000 numbers.">
 
-Figure 8.31: Left: ACF for a white noise series of 36 numbers. Middle: ACF for a white noise series of 360 numbers. Right: ACF for a white noise series of 1,000 numbers.
+a. Explain the differences among these figures. Do they all indicate that the data are white noise?
+
+**The ACF bands become narrower as the number of numbers increase.   There is no discernable pattern in the bars of the ACF charts and the bars are within the bands, which indicates the data are white noise.**
 
 b. Why are the critical values at different distances from the mean of zero? Why are the autocorrelations different in each figure when they each refer to white noise?
+
+**It's related to the law of large numbers.  As the number of observations increase, the number of large outliers from the mean decreases.  We are more certain that a large observation is really an outlier with more data.**
 
 ## Question 8.2
 
 A classic example of a non-stationary series is the daily closing IBM stock price series (data set `ibmclose`). Use R to plot the daily closing prices for IBM stock and the ACF and PACF. Explain how each plot shows that the series is non-stationary and should be differenced.
+
+```{r}
+ggtsplot <- function(ts, title){
+  # A ggplot2 version of tsdisplay(df)
+  # Args:
+  #    ts (Time-Series): The time series we want to plot
+  #    title (str): The title of the graph
+  grid.arrange( 
+    autoplot(ts) +
+      ggtitle(title) +
+      theme(axis.title = element_blank()),
+    grid.arrange(
+      ggAcf(ts) + 
+        ggtitle(element_blank()), 
+      ggPacf(ts) + 
+        ggtitle(element_blank()), ncol = 2), nrow = 2)
+}
+
+ggtsplot(ibmclose, "IBM Closing Stock Price")
+```
+
+**Time series with trends or with seasonality are not stationary.  It is clear from the top plot that there is a trend in IBM's stock price.  The ACF will drop to zero quickly for a stationary time series.  This ACF does not have that property.  The gradual decrease is a tell that it is not stationary.  The first PACF is almost one which is another sign that the data is not stationary.**
 
 ## Question 8.3
 
@@ -40,7 +65,21 @@ For the following series, find an appropriate Box-Cox transformation and order o
 
 a. `usnetelec`
 
+```{r}
+ggtsplot(diff(usnetelec, 1), "Differenced US Net Electricity Generation (lag=1)")
+```
+
+```{r}
+#ur.kpss(diff(usnetelec, 1)) 
+#Box.test(diff(usnetelec, 1), lag = 1)
+usnetelec %>% diff() %>% ur.kpss() %>% summary()
+```
+
 b. `usgdp`
+
+```{r}
+ggtsdisplay(diff(usgdp), "US GDP")
+```
 
 c. `mcopper`
 
