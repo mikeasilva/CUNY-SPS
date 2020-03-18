@@ -15,7 +15,7 @@ library(fpp2)
 library(kableExtra)
 library(gridExtra)
 library(readxl)
-library(urca)
+library(tseries)
 options(scipen=999)
 ```
 
@@ -76,11 +76,22 @@ autoplot(usnetelec, main = "US Net Electricity Generation") +
 ggtsplot(diff(usnetelec, ndiffs(usnetelec)), paste0("Differenced US Net Electricity Generation (lag=", ndiffs(usnetelec), ")"))
 ```
 
-**It needed to be differenced by `r ndiffs(usnetelec)`.  This is further confirmed using the KPSS Unit Root test below:**
+**It needed to be differenced by `r ndiffs(usnetelec)`, or a first order difference.  Now to check if the data is stationary.**
 
 ```{r}
-usnetelec %>% diff() %>% ur.kpss() %>% summary()
+is_stationary <- function(data){
+  results <- kpss.test(data)
+  if (results$p.value > 0.05){
+    "Data IS Stationary"
+  } else {
+    "Data IS NOT Stationary"
+  }
+}
+
+cat(is_stationary(diff(usnetelec, ndiffs(usnetelec))))
 ```
+
+**The p-value of 0.36 indicates the data are stationary.**
 
 b. `usgdp`
 
@@ -97,9 +108,10 @@ bc_usgdp <- BoxCox(usgdp, lambda = usgdp_lambda)
 ggtsplot(diff(bc_usgdp, ndiffs(bc_usgdp)), paste0("Differenced Quarterly US GDP (lag=", ndiffs(bc_usgdp), ", lambda=",round(usgdp_lambda,2),")"))
 ```
 
+**The Box Cox transformation with a lambda of `r round(usgdp_lambda,2)` and a differencing of `r ndiffs(bc_usgdp)`.**
 
 ```{r}
-bc_usgdp %>% diff() %>% ur.kpss() %>% summary()
+cat(is_stationary(diff(bc_usgdp, ndiffs(bc_usgdp))))
 ```
 
 c. `mcopper`
@@ -109,11 +121,18 @@ autoplot(mcopper, main = "Monthly Grade A Copper Prices") +
   theme(axis.title = element_blank())
 ```
 
+**This has the spike in copper prices that happened late in the the 2000's.**
 
 ```{r}
 mcopper_lambda <- BoxCox.lambda(mcopper)
 bc_mcopper <- BoxCox(mcopper, lambda = mcopper_lambda)
 ggtsplot(diff(bc_mcopper, ndiffs(bc_mcopper)), paste0("Differenced Monthly Grade A Copper Prices (lag=", ndiffs(bc_mcopper), ", lambda=",round(mcopper_lambda,2),")"))
+```
+
+**The Box Cox transformation with a lambda of `r round(mcopper_lambda,2)` and a differencing of `r ndiffs(bc_mcopper)`.**
+
+```{r}
+cat(is_stationary(diff(bc_mcopper, ndiffs(bc_mcopper))))
 ```
 
 d. `enplanements`
@@ -123,11 +142,18 @@ autoplot(enplanements, main = "Monthly US Domestic Enplanements") +
   theme(axis.title = element_blank())
 ```
 
+**The variance is not constant so this series needs a Box-Cox transformation and differencing to be stationary.**
 
 ```{r}
 enplanements_lambda <- BoxCox.lambda(enplanements)
 bc_enplanements <- BoxCox(enplanements, lambda = enplanements_lambda)
 ggtsplot(diff(bc_enplanements, ndiffs(bc_enplanements)), paste0("Differenced Monthly US Domestic Enplanements (lag=", ndiffs(bc_enplanements), ", lambda=",round(enplanements_lambda,2),")"))
+```
+
+**The Box Cox transformation with a lambda of `r round(enplanements_lambda,2)` and a differencing of `r ndiffs(bc_enplanements)` (1st order).**
+
+```{r}
+cat(is_stationary(diff(bc_enplanements, ndiffs(bc_enplanements))))
 ```
 
 e. `visitors`
@@ -137,15 +163,37 @@ autoplot(visitors, main = "Monthly Australian Overseas Visitors") +
   theme(axis.title = element_blank())
 ```
 
+**This series also exhibits an increasing variance and trend so Box-Cox and differencing will be needed.**
+
 ```{r}
 visitors_lambda <- BoxCox.lambda(visitors)
 bc_visitors <- BoxCox(visitors, lambda = visitors_lambda)
 ggtsplot(diff(bc_visitors, ndiffs(bc_visitors)), paste0("Differenced Monthly Australian Overseas Visitors (lag=", ndiffs(bc_visitors), ", lambda=",round(visitors_lambda,2),")"))
 ```
 
+**The Box Cox transformation had a lambda of `r round(visitors_lambda,2)` and a differencing of `r ndiffs(bc_visitors)` (1st order).**
+
+```{r}
+cat(is_stationary(diff(bc_visitors, ndiffs(bc_visitors))))
+```
+
 ## Question 8.5
 
 For your retail data (from Exercise 3 in Section 2.10), find the appropriate order of differencing (after transformation if necessary) to obtain stationary data.
+
+```{r}
+retaildata <- read_excel("retail.xlsx", skip = 1)
+retail <- ts(retaildata[, "A3349873A"], frequency = 12, start = c(1982, 4))
+retail_lambda <- BoxCox.lambda(retail)
+bc_retail <- BoxCox(retail, lambda = retail_lambda)
+ggtsplot(diff(bc_retail, ndiffs(bc_retail)), paste0("Differenced Monthly Retail Sales (lag=", ndiffs(bc_retail), ", lambda=",round(retail_lambda,2),")"))
+```
+
+**The data is differenced with a first order difference and adjusted with a Box Cox transformation with a lambda of `r round(retail_lambda,2)`.  The result:**
+
+```{r}
+cat(is_stationary(diff(bc_retail, ndiffs(bc_retail))))
+```
 
 ## Question 8.6
 
