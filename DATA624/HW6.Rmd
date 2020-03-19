@@ -320,22 +320,43 @@ autoplot(wmurders) +
 ggtsplot(diff(wmurders, ndiffs(wmurders)), "Differenced Women Murdered in the U.S.")
 ```
 
-**The first lag of the PACF is the only spike which indicates the value of p in the ARIMA model should be 1.  The high first value in the ACF indicates that the p is also one.**
+**The first lag of the PACF is the only spike which indicates the value of p in the ARIMA model should be 1.  The high first value in the ACF indicates that the d is also one.**
 
 b. Should you include a constant in the model? Explain.
 
-**No.  Because the differencing term (d) is 2.  We should not include it in the model.**
+**No.  Based on the [blog post](https://robjhyndman.com/hyndsight/arimaconstants/) by the text book author, since the differencing term (d) is 2 if c = 0 the eventual forecast function (EFF) will follow a straight line with intercept and slope determined by the last few observations.  If c != 0 then the EFF  will follow a quadratic trend.  Opting for the simplier model We should not include it in the model.**
 
 c. Write this model in terms of the backshift operator.
 
+**$(1-\phi_1B) (1-B)^2y_t = c + (1 + \theta_1B)e_t$**
+
 d. Fit the model using R and examine the residuals. Is the model satisfactory?
+
+```{r}
+fit <- arima(wmurders, order = c(1, 2, 1))
+checkresiduals(fit)
+```
+
+**The ACF show all autocorrelations are withing acceptable limits, indicating residuals are white noise.  The p-value of the Ljung-Box test also indicate the residuals are white noise.**
 
 e. Forecast three times ahead. Check your forecasts by hand to make sure that you know how they have been calculated.
 
+```{r}
+forecast(fit, h=3) %>%
+  kable() %>%
+  kable_styling()
+```
+
 f. Create a plot of the series with forecasts and prediction intervals for the next three periods shown.
+
+```{r}
+autoplot(forecast(fit, h=3))
+```
 
 g. Does auto.arima() give the same model you have chosen? If not, which model do you think is better?
 
 ```{r}
 auto.arima(wmurders)
 ```
+
+**Yes auto.arima() gives the same model that I have chosen.**
