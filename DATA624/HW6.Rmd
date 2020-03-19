@@ -210,15 +210,97 @@ for(i in 2:100)
 
 b. Produce a time plot for the series. How does the plot change as you change $ϕ_1$?
 
+**In order to see the effects of a change in $ϕ_1$ we will need to modify the code a little bit:**
+
+```{r}
+sim_AR1 <- function(phi){
+  set.seed(42)
+  y <- ts(numeric(100))
+  e <- rnorm(100)
+  for(i in 2:100){
+    y[i] <- phi*y[i-1] + e[i]
+  }
+  return(y)
+}
+
+p <- autoplot(sim_AR1(0.6))
+for(phi in seq(0.1, 0.9, 0.1)){
+  p <- p + autolayer(sim_AR1(phi), series = paste(phi))
+}
+p +
+  labs(title="The effects of changing Phi", color = "Phi") +
+  theme(axis.title = element_blank(), legend.position = "bottom") +
+  scale_color_brewer(palette = "Set1")
+```
+
+**Now with a fixed random number seed we can see the effect.  As $ϕ_1$ increases, the distance from zero increases.  It increases the autocorrelation with the preceeding value.**
+
 c. Write your own code to generate data from an MA(1) model with $θ_1=0.6$ and $σ_2=1$.
+
+```{r}
+sim_MA1 <- function(theta){
+  set.seed(42)
+  y <- ts(numeric(100))
+  e <- rnorm(100)
+  e[1] <- 0
+  for(i in 2:100){
+    y[i] <- theta*e[i-1] + e[i]
+  }
+  return(y)
+}
+```
 
 d. Produce a time plot for the series. How does the plot change as you change $θ_1$?  
 
+```{r}
+p <- autoplot(sim_MA1(0.6))
+for(theta in seq(0.1, 0.9, 0.1)){
+  p <- p + autolayer(sim_MA1(theta), series = paste(theta))
+}
+
+p +
+  labs(title="The effects of changing Theta", color = "Theta") +
+  theme(axis.title = element_blank(), legend.position = "bottom") +
+  scale_color_brewer(palette = "Set1")
+```
+
+**This is a bit harder to see but as $ϕ_1$ increases, the distance from zero again increases.  The $θ_1$ deals with the error so it is not as pronounced as a change in $ϕ_1$ though.**
+
 e. Generate data from an ARMA(1,1) model with $ϕ_1=0.6$, $θ_1=0.6$ and $σ_2=1$.
+
+```{r}
+sim_ARMA <- function(phi, theta){
+  set.seed(42)
+  y <- ts(numeric(100))
+  e <- rnorm(100)
+  e[1] <- 0
+  for(i in 2:100)
+    y[i] <- phi*y[i-1] + theta*e[i-1] + e[i]
+  return(y)
+}
+```
 
 f. Generate data from an AR(2) model with $ϕ_1=−0.8$, $ϕ_2=0.3$ and $σ_2=1$. (Note that these parameters will give a non-stationary series.)
 
+```{r}
+sim_AR2 <- function(phi_1, phi_2){
+  set.seed(42)
+  y <- ts(numeric(100))
+  e <- rnorm(100)
+  for(i in 3:100)
+    y[i] <- phi_1*y[i-1] + phi_2*y[i-2] + e[i]
+  return(y)
+}
+```
+
 g. Graph the latter two series and compare them.
+
+```{r}
+autoplot(sim_ARMA(0.6, 0.6), series = "ARMA(1,1)") +
+  autolayer(sim_AR2(-0.8, 0.3), series = "AR(2)") +
+  theme(axis.title = element_blank(), legend.position = "bottom", legend.title = element_blank()) +
+  scale_color_brewer(palette = "Set1")
+```
 
 ## Question 8.7
 
@@ -226,7 +308,23 @@ Consider `wmurders`, the number of women murdered each year (per 100,000 standar
 
 a. By studying appropriate graphs of the series in R, find an appropriate ARIMA(p,d,q) model for these data.
 
+```{r}
+autoplot(wmurders) +
+  ggtitle("Women Murdered in the U.S.") +
+  theme(axis.title = element_blank())
+```
+
+**The trends (both up and down) suggest that the series should be differenced before moving forward.  `ndiffs` estimates that `r ndiffs(wmurders)` differened are required to make this time series stationary.**
+
+```{r}
+ggtsplot(diff(wmurders, ndiffs(wmurders)), "Differenced Women Murdered in the U.S.")
+```
+
+**The first lag of the PACF is the only spike which indicates the value of p in the ARIMA model should be 1.  The high first value in the ACF indicates that the p is also one.**
+
 b. Should you include a constant in the model? Explain.
+
+**No.  Because the differencing term (d) is 2.  We should not include it in the model.**
 
 c. Write this model in terms of the backshift operator.
 
@@ -237,3 +335,7 @@ e. Forecast three times ahead. Check your forecasts by hand to make sure that yo
 f. Create a plot of the series with forecasts and prediction intervals for the next three periods shown.
 
 g. Does auto.arima() give the same model you have chosen? If not, which model do you think is better?
+
+```{r}
+auto.arima(wmurders)
+```
