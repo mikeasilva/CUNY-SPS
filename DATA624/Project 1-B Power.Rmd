@@ -5,16 +5,110 @@ output:
   rmdformats::readthedown:
     highlight: kate
     toc_depth: 3
-    code_folding: "show"
+    code_folding: "hide"
 ---
 
 
 ```{r setup, echo=FALSE, cache=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
 library(tidyverse)
+library(readxl)
+library(lubridate)
 library(kableExtra)
+library(fpp2)
+library(forcats)
+library(gridExtra)
+options(scipen=999)
 ```
 
-## Directions
+## Introduction
 
-Part B consists of a simple dataset of residential power usage for January 1998 until December 2013.  Your assignment is to model these data and a monthly forecast for 2014.  The data is given in a single file.  The variable ‘KWH’ is power consumption in Kilowatt hours, the rest is straight forward.    Add this to your existing files above. 
+I am to forecast how much power will be consumed by residential customers in kilowatt hours for the next 12 months.  Data was provided for this project spaning January 1998 until December 2013.  
+
+## Data Exploration
+
+I will begin by reading in the data and ploting the series.
+
+```{r}
+KWH <- read_excel("ResidentialCustomerForecastLoad-624.xlsx") %>%
+  select(KWH) %>%
+  ts(start = decimal_date(date("1998-01-01")), frequency = 12)
+
+autoplot(KWH, main = "Residential Power Usage (KWH)") +
+  theme(axis.title = element_blank())
+```
+
+```{r}
+summary(KWH)
+```
+
+We have outliers and missing data.  We will clean them up with `tsclean` from the forcasts package, and replot the data with the ACF and PACF:
+
+```{r}
+KWH <- tsclean(KWH)
+
+ggtsplot <- function(ts, title){
+  # A ggplot2 version of tsdisplay(df)
+  # Args:
+  #    ts (Time-Series): The time series we want to plot
+  #    title (str): The title of the graph
+  grid.arrange( 
+    autoplot(ts) +
+      ggtitle(title) +
+      theme(axis.title = element_blank()),
+    grid.arrange(
+      ggAcf(ts) + 
+        ggtitle(element_blank()), 
+      ggPacf(ts) + 
+        ggtitle(element_blank()), ncol = 2), nrow = 2)
+}
+
+
+ggtsplot(KWH, "Cleaned Residential Power Usage (KWH)")
+```
+
+This looks much better.  There is a seasonal component that looks to be additive.  I will need to use a model that captures seasonality.
+
+## Model Approach
+
+Since the data is highly seasonal, I we will need to use an ARIMA or Holt-Winters model.  Let's fit an models using `auto.arima()` and `hw()` and visualize their projections.
+
+```{r}
+h <- 12
+lambda <- BoxCox.lambda(KWH)
+autoplot(KWH) +
+  autolayer(hw(KWH, h=h), series="Holt-Winters") +
+  autolayer(hw(KWH, h=h, lambda = lambda), series="Holt-Winters (Box-Cox Adjusted)") +
+  autolayer(forecast(auto.arima(KWH), h=h), series="ARIMA") +
+  facet_grid(.~series) +
+  scale_color_brewer(palette = "Set1") +
+  theme(legend.position = "none", axis.title = element_blank())
+```
+
+### Residual Analysis
+
+All models do a good job picking up the seasonality.  Let's look at the residuals to see which model did the best job.
+
+#### Holt-Winters Model
+
+```{r}
+hw_fit <- hw(KWH, h=h)
+checkresiduals(hw_fit)
+```
+
+#### Adjusted Holt-Winters Model
+
+```{r}
+adj_hw_fit <- hw(KWH, h=h, lambda = lambda)
+checkresiduals(adj_hw_fit)
+```
+
+#### ARIMA Model
+
+```{r}
+arima_fit <- auto.arima(KWH)
+#autoplot(forecast(arima_fit, h=h))
+checkresiduals(arima_fit)
+```
+
+
