@@ -30,7 +30,8 @@ I am to forecast how much power will be consumed by residential customers in kil
 I will begin by reading in the data and ploting the series.
 
 ```{r}
-kwh <- read_excel("ResidentialCustomerForecastLoad-624.xlsx") %>%
+raw_data <- read_excel("ResidentialCustomerForecastLoad-624.xlsx")
+kwh <- raw_data %>%
   select(KWH) %>%
   ts(start = decimal_date(date("1998-01-01")), frequency = 12)
 
@@ -96,12 +97,16 @@ hw_fit <- hw(kwh, h = h)
 checkresiduals(hw_fit)
 ```
 
+There are some spikes in the ACF that indicate this is not the best model.
+
 ### Adjusted Holt-Winters Model
 
 ```{r}
 adj_hw_fit <- hw(kwh, h = h, lambda = lambda)
 checkresiduals(adj_hw_fit)
 ```
+
+This is a bit better than the previous model but there are still ACF spikes outside of the bands.
 
 ### Damped & Adjusted Holt-Winters Model
 
@@ -110,12 +115,16 @@ damp_adj_hw_fit <- hw(kwh, h = h, lambda = lambda, damped = TRUE)
 checkresiduals(damp_adj_hw_fit)
 ```
 
+The preformance of this model is about the same as above.
+
 ### ARIMA Model
 
 ```{r}
 arima_fit <- auto.arima(kwh)
 checkresiduals(arima_fit)
 ```
+
+This model seems to be the best.  There is only one ACF spike outside of the threshold and it only by a small amount.  My working theory is this is the model I should use, but I will check this using cross validation.
 
 ## Cross Validation
 
@@ -126,14 +135,42 @@ get_rmse <- function(e) {
   sqrt(mean(e^2, na.rm=TRUE))
 }
 
+arima_forecast <- function(x, h){forecast(Arima(x, order = c(3, 0, 1), seasonal = c(2, 1, 0), include.drift = TRUE), h = h)}
+
 hw_error <- tsCV(kwh, hw, h = h)
 adj_hw_error <- tsCV(kwh, hw, h = h, lambda = lambda)
 damped_adj_hw_error <- tsCV(kwh, hw, h = h, lambda = lambda, damped = TRUE)
-arima_errors <- tsCV(kwh, forecast(auto.arima(kwh), h=h), h = h)
+arima_errors <- tsCV(kwh, arima_forecast, h = h)
 
 data.frame(Model = c("ARIMA", "Holt-Winters", "Adjusted Holt-Winters", "Damped & Adjusted Holt-Winters"),
            RMSE = c(get_rmse(arima_errors[,h]), get_rmse(hw_error[,h]), get_rmse(adj_hw_error[,h]), get_rmse(damped_adj_hw_error[,h]))) %>%
   arrange(RMSE) %>%
   kable() %>%
   kable_styling()
+```
+
+The ARIMA model had the best cross validation results.  
+
+## Model Selection
+
+Given that the ARIMA model minimized the RMSE in the cross validation, I will use it to forecast residential power consumption.
+
+## Forecast
+
+Here's my forcast for the next `r h` months of power usage:
+
+```{r}
+my_forecast <- forecast(arima_fit, h = h)
+autoplot(my_forecast)
+  ggtitle("Forecasted Residential Power Consumption (KWH)") +
+  theme(axis.title = element_blank())
+
+my_forecast %>% 
+  kable() %>% 
+  kable_styling()
+```
+
+```{r}
+data.frame(my_forecast$mean) %>%
+  rename(KWH = my_forecast.mean)
 ```
