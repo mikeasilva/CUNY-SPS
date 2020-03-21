@@ -5,7 +5,7 @@ output:
   rmdformats::readthedown:
     highlight: kate
     toc_depth: 3
-    code_folding: "hide"
+    code_folding: "show"
 ---
 
 
@@ -18,6 +18,7 @@ library(kableExtra)
 library(fpp2)
 library(forcats)
 library(gridExtra)
+library(openxlsx)
 options(scipen = 999)
 ```
 
@@ -30,6 +31,9 @@ I am to forecast how much power will be consumed by residential customers in kil
 I will begin by reading in the data and ploting the series.
 
 ```{r}
+if (!file.exists("ResidentialCustomerForecastLoad-624.xlsx")) {
+  download.file("https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA624/ResidentialCustomerForecastLoad-624.xlsx", "ResidentialCustomerForecastLoad-624.xlsx")
+}
 raw_data <- read_excel("ResidentialCustomerForecastLoad-624.xlsx")
 kwh <- raw_data %>%
   select(KWH) %>%
@@ -132,10 +136,12 @@ In order to understand how well a model is likely to preform at predicting out o
 
 ```{r}
 get_rmse <- function(e) {
-  sqrt(mean(e^2, na.rm=TRUE))
+  sqrt(mean(e^2, na.rm = TRUE))
 }
 
-arima_forecast <- function(x, h){forecast(Arima(x, order = c(3, 0, 1), seasonal = c(2, 1, 0), include.drift = TRUE), h = h)}
+arima_forecast <- function(x, h) {
+  forecast(Arima(x, order = c(3, 0, 1), seasonal = c(2, 1, 0), include.drift = TRUE), h = h)
+}
 
 hw_error <- tsCV(kwh, hw, h = h)
 adj_hw_error <- tsCV(kwh, hw, h = h, lambda = lambda)
@@ -143,7 +149,7 @@ damped_adj_hw_error <- tsCV(kwh, hw, h = h, lambda = lambda, damped = TRUE)
 arima_errors <- tsCV(kwh, arima_forecast, h = h)
 
 data.frame(Model = c("ARIMA", "Holt-Winters", "Adjusted Holt-Winters", "Damped & Adjusted Holt-Winters"),
-           RMSE = c(get_rmse(arima_errors[,h]), get_rmse(hw_error[,h]), get_rmse(adj_hw_error[,h]), get_rmse(damped_adj_hw_error[,h]))) %>%
+           RMSE = c(get_rmse(arima_errors[, h]), get_rmse(hw_error[, h]), get_rmse(adj_hw_error[, h]), get_rmse(damped_adj_hw_error[, h]))) %>%
   arrange(RMSE) %>%
   kable() %>%
   kable_styling()
@@ -161,16 +167,24 @@ Here's my forcast for the next `r h` months of power usage:
 
 ```{r}
 my_forecast <- forecast(arima_fit, h = h)
-autoplot(my_forecast)
+autoplot(my_forecast) +
   ggtitle("Forecasted Residential Power Consumption (KWH)") +
   theme(axis.title = element_blank())
 
-my_forecast %>% 
-  kable() %>% 
+my_forecast %>%
+  kable() %>%
   kable_styling()
 ```
 
 ```{r}
-data.frame(my_forecast$mean) %>%
-  rename(KWH = my_forecast.mean)
+max_case_sequence <- max(raw_data$CaseSequence)
+projections <- data.frame(my_forecast$mean) %>%
+  rename(KWH = my_forecast.mean) %>%
+  mutate(CaseSequence = row_number()) %>%
+  rowwise() %>%
+  mutate(`YYYY-MMM` = format(ymd(paste0("2014", ifelse(CaseSequence < 10, paste0("0", CaseSequence), CaseSequence), "01")), "%Y-%b")) %>%
+  mutate(CaseSequence = CaseSequence + max_case_sequence) %>%
+  ungroup() %>%
+  select(CaseSequence, `YYYY-MMM`, KWH) %>%
+  write.xlsx("2014ResidentialCustomerForecastLoad.xlsx")
 ```
