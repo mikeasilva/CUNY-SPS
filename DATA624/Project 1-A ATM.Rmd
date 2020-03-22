@@ -16,8 +16,8 @@ library(lubridate)
 library(kableExtra)
 library(readxl)
 library(fpp2)
-library(prophet)
 library(forcats)
+library(gridExtra)
 options(scipen=999)
 ```
 
@@ -37,7 +37,7 @@ atm <- read_excel("ATM624Data.xlsx") %>%
 
 atm %>%
   ggplot(aes(DATE, Cash, color=ATM)) +
-  geom_line(lwd=1) +
+  geom_line() +
   ggtitle("Cash Withdrawal by Date and ATM") +
   scale_color_brewer(palette = "Set1") +
   facet_wrap(.~ATM, ncol = 2) +
@@ -53,7 +53,7 @@ atm %>%
   filter(ATM != "ATM4") %>%
   filter(!is.na(ATM)) %>%
   ggplot(aes(DATE, Cash, color=ATM)) +
-  geom_line(lwd=1) +
+  geom_line() +
   facet_wrap(.~ATM, ncol = 2) +
   ggtitle("Cash Withdrawal by Date and ATM") +
   scale_color_brewer(palette = "Set1") + 
@@ -92,187 +92,265 @@ atm %>%
   kable_styling()
 ```
 
-### Dealing with Missing Data & Outliers
+### Is there any Daily Effects?
 
-ATM #1 is missing 3 observations and ATM #2 is missing 2.  I will replace the NA's with the median values.  We will also replace all the outliers in ATM #4 with the $200,000. 
+There is a pattern in the time series but fluctuations are very tight.  I wonder if it is explained by the day of the week.  For example, Friday and Saturday might have heavier usage and a Tuesday night might be calm.  Let's examine this hypothesis:
 
 ```{r}
-adjusted_atm <- atm %>% 
-  rowwise() %>%
-  mutate(Cash = if_else(is.na(Cash) & ATM == "ATM1", 91, Cash)) %>%
-  mutate(Cash = if_else(is.na(Cash) & ATM == "ATM2", 67, Cash)) %>%
-  mutate(Cash = if_else(Cash > 2000, 2000, Cash)) %>%
-  ungroup() %>%
-  data.frame()
+atm %>%
+  na.omit() %>%
+  mutate(`Day of Week` = recode(as.factor(wday(DATE)), "1" = "Sunday", "2" = "Monday", "3" = "Tuesday", "4"="Wednesday", "5"="Thursday", "6"="Friday","7"="Saturday"))  %>%
+  ggplot(aes(`Day of Week`, Cash, color = `Day of Week`)) +
+  geom_boxplot() +
+  facet_grid(ATM ~ `Day of Week`, scales = "free") +
+  scale_color_brewer(palette = "Set1") +
+  theme(legend.position = "none", axis.title = element_blank(), axis.text.x = element_blank(), axis.ticks = element_blank())
 ```
 
-## Model Building
+It looks like there is some varriation based on the day of the week.  Thursday looks to be less busy than the other days of the week.  There is so much variation between the 4 ATMs that each will be modeled seperately.
 
-I will construct a series of models using different approaches. I will start from the most simple approach and move on to more sophisticated ones.  I beleive the "best" model will come from the middle of the pack.  Let's see how it plays out.
+## A Quick Note on Process
 
-Since the task is to predict the cash withdrawls for May 2010 (31 days) we will set up test sets that include the last 31 days.  Each model will be evaluated on how accurate they are in forecasting the test set's values.  I will use the RMSE as the metric to assess the accuracy.
+I will clean up the data to produce the forecasts.  I will then explore some candidate modeling techniques.  Once I have a handful of candidates, I will prefrom a cross-validation on the models and get the RMSE.  The model that minimizes the RMSE during cross-validation will be selected as the model of choice.
+
+## ATM #1
+
+### Data Cleanup
+
+I will begin ATM #1.  There are 3 missing observations that will need to be cleaned up.
 
 ```{r}
+atm1 <- atm %>%
+  filter(ATM == "ATM1")
 
-forecast_window <- 31
+atm1$clean_cash <- c(tsclean(ts(atm1$Cash, start = decimal_date(as.Date(min(atm1$DATE))), frequency = 365)))
+```
 
-df_to_ts <- function(df){
-  ### Converts ATM data frames into ts objects
+Now that we have a complete data set I will create time series objects.  Since there is a weekly effect I will be using a frequency of 7.  This does mess up the dates in the plot however so please pay no reguard to them.
+
+```{r}
+ggtsplot <- function(ts, title) {
+  # A ggplot2 version of tsdisplay(df)
   # Args:
-  #     df (data.frame): The ATM data frame 
-  # Returns:
-  #     ts (Time-Series): An ATM time series object
-  ts(df$Cash, start = decimal_date(as.Date(min(df$DATE))), frequency = 7)
-  #msts(df$Cash, seasonal.periods=c(7, 365.25))
+  #    ts (Time-Series): The time series we want to plot
+  #    title (str): The title of the graph
+  grid.arrange(
+    autoplot(ts) +
+      ggtitle(title) +
+      theme(axis.title = element_blank()),
+    grid.arrange(
+      ggAcf(ts) + ggtitle(element_blank()),
+      ggPacf(ts) + ggtitle(element_blank()), ncol = 2)
+    , nrow = 2)
 }
 
-train_test_split <- function(atm_df, atm_number, n_in_test, return_ts=TRUE){
-  ### Splits the data into training and test sets
-  # Args:
-  #     atm_df (data.frame): The ATM data
-  #     atm_number (int): Which ATM do you want the time series for?
-  #     n_in_test (int): The number of observations in the test set taken from the end (optional-31 default)
-  #     return_ts (logical): Should the function return ts objects (optional-TRUE default)
-  # Returns:
-  #     train_eval_test_ts (list): Data split into sets (train, eval and test).
-  
-  # Subset the data frame
-  df <- atm_df %>%
-    filter(ATM == paste0("ATM", atm_number)) %>%
-    select(-ATM)
-  
-  # Split the data frame into training, eval and test sets
-  full <- df
-  test <- tail(df, n_in_test)
-  train <- head(df, -n_in_test)
-  eval_ts <- tail(train, n_in_test)
-  short_train <- head(df, -(2 * n_in_test))
-  
-  # Tranform into ts objects
-  if(return_ts){
-    full <- df_to_ts(full)
-    train <- df_to_ts(train)
-    test <- df_to_ts(test)
-    eval_ts <- df_to_ts(eval_ts)
-    short_train <- df_to_ts(short_train)
-  }
-  
-  # Return the data to the user
-  train_eval_test_ts <- list(train = train, test = test, evaluation = eval_ts, short_train = short_train, full = full)
-  
-  return(train_eval_test_ts)
+atm1_ts <- ts(atm1$clean_cash, start = decimal_date(as.Date(min(atm1$DATE))), frequency = 7)
+ggtsplot(atm1_ts, "ATM #1")
+```
+
+One readily observes the repeating peaks on every 7th lag.  There also seems to be an interesting negative correlation between the 1st and both the 3rd and the 5th lag.
+
+### Model Creation 
+
+#### STL Decomposition Models
+
+I will try a couple of seasonal decomposition models.  I will set the seasonal window to 7 so it picks up the day of the week variation.  
+
+```{r}
+atm1_ts %>%
+  stl(s.window = 7, robust = TRUE) %>%
+  autoplot()
+```
+
+This seems promising to me.  I will do STL decomposition forecasts using both the ETS and ARIMA models and check their residual plots
+
+#### STL + ETS
+
+```{r}
+h <- 31
+atm1_stl_ets_fit <- atm1_ts %>%
+  stlf(h = h, s.window = 7, robust = TRUE, method="ets")
+checkresiduals(atm1_stl_ets_fit)
+```
+
+This model seems to hold merit and should be taken under consideration.
+
+#### STL + ARIMA
+
+```{r}
+atm1_stl_arima_fit <- atm1_ts %>%
+  stlf(h = h, s.window = 7, robust = TRUE, method="arima") 
+checkresiduals(atm1_stl_arima_fit)
+```
+
+This model also preformed well.  It is definately a candidate for the cross-validation stage.
+
+#### Holt-Winters
+
+```{r}
+atm1_hw_fit <- hw(atm1_ts, h = h)
+checkresiduals(atm1_hw_fit)
+```
+
+This method did a fairly good job.  I will move it on to the next phase.
+
+### Holt-Winters with Box Cox Adjustment
+
+```{r}
+atm1_lambda <- BoxCox.lambda(atm1_ts)
+atm1_adj_hw_fit <- hw(atm1_ts, h = h, lambda = atm1_lambda)
+checkresiduals(atm1_adj_hw_fit)
+```
+
+This seems to be a strong candidate.  We will see how if fares in the cross-validation.
+
+#### ARIMA
+
+```{r}
+atm1_arima_fit <- auto.arima(atm1_ts)
+checkresiduals(atm1_arima_fit)
+```
+
+This model looks like it is preforming well.  Let's see how all of them stack up.
+
+### Cross Validation
+
+In order to understand how well a model is likely to preform at predicting out of sample data, I will use the `tsCV` function and evaluate the models.  As prevously noted my goal is to minimize the RMSE.  First I will get the errors from the cross validation process, then I will compute the RMSE.
+
+```{r}
+get_rmse <- function(e) {
+  sqrt(mean(e^2, na.rm = TRUE))
 }
 
-# Get time series objects
-atm_1_ts <- train_test_split(adjusted_atm, 1, forecast_window)
-atm_2_ts <- train_test_split(adjusted_atm, 2, forecast_window)
-atm_3_ts <- train_test_split(adjusted_atm, 3, forecast_window)
-atm_4_ts <- train_test_split(adjusted_atm, 4, forecast_window)
-# Get data frame objects
-atm_1_df <- train_test_split(adjusted_atm, 1, forecast_window, return_ts = FALSE)
-atm_2_df <- train_test_split(adjusted_atm, 2, forecast_window, return_ts = FALSE)
-atm_3_df <- train_test_split(adjusted_atm, 3, forecast_window, return_ts = FALSE)
-atm_4_df <- train_test_split(adjusted_atm, 4, forecast_window, return_ts = FALSE)
-```
-
-### ATM 1 Models
-
-I will start by looking at the training data and the decomposition.  I cannot use the `decompose()` or `stl()` functions to decompose it because I don't have enough data.  Facebook Prophet can decompose it using its Bayesian estimation process.
-
-```{r}
-atm_prophet <- function(df, forcast_window){
-  m <- df %>%
-    mutate(y = Cash, ds = as.character(DATE)) %>%
-    prophet()
-  future <- make_future_dataframe(m, periods = forcast_window)
-  atm_forecast <- predict(m, future)
-  results = list(
-    model = m,
-    future = future,
-    forecast = atm_forecast
-  )
-  return(results)
+atm1_arima_forecast <- function(x, h) {
+  forecast(Arima(x, order = c(0, 0, 1), seasonal = c(0, 1, 2)), h = h)
 }
 
-atm_1_prophet <- atm_prophet(atm_1_df$train, 31)
-prophet_plot_components(atm_1_prophet$model, atm_1_prophet$forecast)
+stl_ets_errors <- tsCV(atm1_ts, stlf, h = h, s.window = 7, robust = TRUE, method="ets")
+stl_arima_errors <- tsCV(atm1_ts, stlf, h = h, s.window = 7, robust = TRUE, method="arima")
+hw_errors <- tsCV(atm1_ts, hw, h = h)
+adj_hw_errors <- tsCV(atm1_ts, hw, h = h, lambda = atm1_lambda)
+arima_errors <- tsCV(atm1_ts, atm1_arima_forecast, h = h)
+
+data.frame(Model = c("STL ETS", "STL ARIMA", "ARIMA", "Holt-Winters", "Adjusted Holt-Winters"),
+           RMSE = c(get_rmse(stl_ets_errors[, h]), get_rmse(stl_arima_errors[, h]), get_rmse(arima_errors[, h]), get_rmse(hw_errors[, h]), get_rmse(adj_hw_errors[, h]))) %>%
+  arrange(RMSE) %>%
+  kable() %>%
+  kable_styling()
 ```
 
-That is interesting! There appears to be a weekly effect in the data.  Wednesdays and especially Thursdays are low traffic days.  The trend apears to be decreasing but at a very slow rate.
+It looks like the ARIMA model did the best job predicting on the out of sample data set.  
+
+### Model Selection
+
+I will select the ARIMA model to produce the forecast for ATM #1.  I have decided on this because it is the model that preformed the best in the cross validation.
+
+## ATM #2
+
+Now I will repeat the above process for ATM #2.  As this is a repeat I will not include as much explanatory text.
+
+### Data Cleanup
+
+There are 2 missing observations.  This will be cleaned up using the `tsclean` function again.
 
 ```{r}
+atm2 <- atm %>%
+  filter(ATM == "ATM2")
 
-atm_1_df$train %>%
-  mutate(`Day of Week` = recode(as.factor(wday(DATE)), "1" = "Sunday", "2" = "Monday", "3" = "Tuesday", "4"="Wednesday", "5"="Thursday", "6"="Friday","7"="Saturday")) %>%
-  ggplot(aes(x=DATE, y=Cash, color=`Day of Week`)) +
-  geom_point() +
-  #geom_line() +
-  facet_wrap(.~`Day of Week`) +
-  theme(legend.position = "None", axis.title = element_blank())
+atm2$clean_cash <- c(tsclean(ts(atm2$Cash, start = decimal_date(as.Date(min(atm2$DATE))), frequency = 365)))
+
+atm2_ts <- ts(atm2$clean_cash, start = decimal_date(as.Date(min(atm2$DATE))), frequency = 7)
+ggtsplot(atm2_ts, "ATM #2")
 ```
 
-Saturday looks fairly consistent.  Other days (Tuesday and Thursday) show recent changes in their trend.
+Once again the ACF plot has the regular spikes on evry multiple of 7.
+
+### Model Creation 
+
+#### STL Decomposition Models
+
+Again I will try a couple of seasonal decomposition models.  I will set the seasonal window to 7 so it picks up the day of the week variation.  
 
 ```{r}
-autoplot(hw(atm_1_ts$train, h=forecast_window))
+atm2_ts %>%
+  stl(s.window = 7, robust = TRUE) %>%
+  autoplot()
 ```
 
+This seems very similar to ATM #1.
+
+#### STL + ETS
+
 ```{r}
-atm_1_holt <- holt(atm_1_ts$train, h=forecast_window)
-autoplot(atm_1_holt) + autolayer(atm_1_ts$test)
+atm2_stl_ets_fit <- atm2_ts %>%
+  stlf(h = h, s.window = 7, robust = TRUE, method="ets")
+checkresiduals(atm2_stl_ets_fit)
 ```
 
+This model preformed much better than the it did for the ATM #1 time series.  It will be interesting to see how it does in cross-validation
+
+#### STL + ARIMA
 
 ```{r}
-plot(atm_1_prophet$model, atm_1_prophet$forecast)
+atm2_stl_arima_fit <- atm2_ts %>%
+  stlf(h = h, s.window = 7, robust = TRUE, method="arima") 
+checkresiduals(atm2_stl_arima_fit)
 ```
 
+Interesting.  The residuals have a bit more spread but the left tail is shorter than the STL+ETS model.
+
+#### Holt-Winters
 
 ```{r}
-atm_1_mean <- mean(atm_1_df$train)
-atm_1_last_observation <- tail(atm_1_df$train, 1)$Cash
-atm_1_mean <- mean(atm_1_df$train$Cash)
-atm_1_results <- 
-  atm_1_prophet$forecast %>%
-  mutate(DATE = as.Date(ds), prophet_yhat = yhat) %>%
-  select(DATE, prophet_yhat) %>%
-  mutate(naive_yhat = atm_1_last_observation, 
-         mean_yhat = atm_1_mean) %>%
-  merge(atm_1_df$evaluation) %>%
-  rename(actual = Cash)
-atm_1_results$holt <- tail(atm_1_holt$fitted, forecast_window)
-```
-```{r}
-day_of_week_averages <- atm_1_df$train %>%
-  mutate(day_of_week = wday(DATE)) %>%
-  group_by(day_of_week) %>%
-  summarise(yhat = median(Cash))
-temp <- atm_1_df$test %>%
-  mutate(day_of_week = wday(DATE)) %>%
-  merge(day_of_week_averages) %>%
-  arrange(DATE) %>%
-  select(DATE, yhat)
-atm_1_results$day_of_week_model <- temp$yhat
+atm2_hw_fit <- hw(atm2_ts, h = h)
+checkresiduals(atm2_hw_fit)
 ```
 
-### Random Forest
+This method did not preform as well as the others.  I will, however keep it in so I can compare it to ATM #1's statistics.
+
+### Holt-Winters with Box Cox Adjustment
 
 ```{r}
-library(randomForest)
-set.seed(42)
-rf_data <- function(df){
-  df %>%
-    mutate(day_of_week = as.factor(wday(DATE)),
-           DATE = as.numeric(DATE))
+atm2_lambda <- BoxCox.lambda(atm2_ts)
+atm2_adj_hw_fit <- hw(atm2_ts, h = h, lambda = atm2_lambda)
+checkresiduals(atm2_adj_hw_fit)
+```
+
+#### ARIMA
+
+```{r}
+atm2_arima_fit <- auto.arima(atm2_ts)
+checkresiduals(atm2_arima_fit)
+```
+
+This model looks like it is preforming well.  Let's see how all of them stack up.
+
+### Cross Validation
+
+In order to understand how well a model is likely to preform at predicting out of sample data, I will use the `tsCV` function and evaluate the models.  As prevously noted my goal is to minimize the RMSE.  First I will get the errors from the cross validation process, then I will compute the RMSE.
+
+```{r}
+atm2_arima_forecast <- function(x, h) {
+  forecast(Arima(x, order = c(2, 0, 2), seasonal = c(0, 1, 1)), h = h)
 }
 
-rf_fit <- randomForest(Cash~., rf_data(atm_1_df$train))
-predict(rf_fit, rf_data(atm_1_df$test))
+stl_ets_errors <- tsCV(atm2_ts, stlf, h = h, s.window = 7, robust = TRUE, method="ets")
+stl_arima_errors <- tsCV(atm2_ts, stlf, h = h, s.window = 7, robust = TRUE, method="arima")
+hw_errors <- tsCV(atm2_ts, hw, h = h)
+adj_hw_errors <- tsCV(atm2_ts, hw, h = h, lambda = atm2_lambda)
+arima_errors <- tsCV(atm2_ts, atm2_arima_forecast, h = h)
 
-atm_1_results$rf <- predict(rf_fit, rf_data(atm_1_df$test))
+data.frame(Model = c("STL ETS", "STL ARIMA", "ARIMA", "Holt-Winters", "Adjusted Holt-Winters"),
+           RMSE = c(get_rmse(stl_ets_errors[, h]), get_rmse(stl_arima_errors[, h]), get_rmse(arima_errors[, h]), get_rmse(hw_errors[, h]), get_rmse(adj_hw_errors[, h]))) %>%
+  arrange(RMSE) %>%
+  kable() %>%
+  kable_styling()
 ```
 
-```{r}
-lm_fit <- lm(Cash~day_of_week, rf_data(atm_1_df$train))
-atm_1_results$lm <- predict(lm_fit, rf_data(atm_1_df$test))
-```
+Interesting.  It looks like the ARIMA model was the top preformer again.  I find it interesting that the RMSE is higher and more spread out for ATM #2.  ATM #1's RMSEs ranged from roughyl 30 to 39.  The RMSEs for ATM #2 ranged from 34 to 55.  There is more variability in this data that isn't captured by the model.
+
+### Model Selection
+
+As stated in the previous section I will use the ARIMA model to produce the forecast for ATM #2.
+
+## ATM #3
