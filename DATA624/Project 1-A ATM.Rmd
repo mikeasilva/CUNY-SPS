@@ -354,3 +354,128 @@ Interesting.  It looks like the ARIMA model was the top preformer again.  I find
 As stated in the previous section I will use the ARIMA model to produce the forecast for ATM #2.
 
 ## ATM #3
+
+This model is quite different from the two proceeding cases.  You can see it in the plot: 
+
+```{r}
+atm %>%
+  filter(ATM == "ATM3") %>%
+  mutate(nonzero = if_else(Cash == 0, "No", "Yes")) %>%
+  ggplot(aes(DATE, Cash, color=nonzero)) +
+  geom_point() +
+  ggtitle("ATM #3") +
+  scale_color_brewer(palette = "Set1") +
+  theme(axis.title = element_blank(), legend.position = "none")
+```
+
+Most of the values are zeros (points in red above), except for 3 points (shown in blue).  The three non-zero points are the most current.
+
+## ATM #4
+
+This ATM is different too, but not as radically different as ATM #3.  I will be using the same approach used for ATM #1 and #2 with this ATM.
+
+### Data Cleanup
+
+There is one major outlier in the data set.  We will clean it up by simply by using the `tsclean` function once again.
+
+```{r}
+atm4 <- atm %>%
+  filter(ATM == "ATM4")
+
+atm4$clean_cash <- c(tsclean(ts(atm4$Cash, start = decimal_date(as.Date(min(atm4$DATE))), frequency = 365)))
+
+atm4_ts <- ts(atm4$clean_cash, start = decimal_date(as.Date(min(atm4$DATE))), frequency = 7)
+ggtsplot(atm4_ts, "ATM #4")
+```
+
+Once again there is the familiar patter of peaks on the multiples of seven.
+
+### Model Creation 
+
+#### STL Decomposition Models
+
+Again I will try a couple of seasonal decomposition models.  I will set the seasonal window to 7 so it picks up the day of the week variation.  
+
+```{r}
+atm2_ts %>%
+  stl(s.window = 7, robust = TRUE) %>%
+  autoplot()
+```
+
+This seems very similar to ATM #1.
+
+#### STL + ETS
+
+```{r}
+atm4_stl_ets_fit <- atm4_ts %>%
+  stlf(h = h, s.window = 7, robust = TRUE, method="ets")
+checkresiduals(atm4_stl_ets_fit)
+```
+
+This model did a fair job.  There are a couple of ACF spikes that are outside the bands.  Let's see if the ARIMA model does better:
+
+#### STL + ARIMA
+
+```{r}
+atm4_stl_arima_fit <- atm4_ts %>%
+  stlf(h = h, s.window = 7, robust = TRUE, method="arima") 
+checkresiduals(atm4_stl_arima_fit)
+```
+
+This is an improvement over the STL+ETS model.  There are still a couple of spikes on the ACF that falls outside the threshold.
+
+#### Holt-Winters
+
+```{r}
+atm4_hw_fit <- hw(atm4_ts, h = h)
+checkresiduals(atm4_hw_fit)
+```
+
+This method seems to have preformed better than any of the STL models.
+
+### Holt-Winters with Box Cox Adjustment
+
+```{r}
+atm4_lambda <- BoxCox.lambda(atm4_ts)
+atm4_adj_hw_fit <- hw(atm4_ts, h = h, lambda = atm4_lambda)
+checkresiduals(atm4_adj_hw_fit)
+```
+
+This model preformed very well.  It doesn't look like any of the ACF spikes are outside the bands.  This is a contender for sure.
+
+#### ARIMA
+
+```{r}
+atm4_arima_fit <- auto.arima(atm4_ts)
+checkresiduals(atm4_arima_fit)
+```
+
+This model did fairly well, but it seems like the Holt-Winters with Box-Cox adjustment did better.  It's time to cross-validate and see how all of them preform.
+
+### Cross Validation
+
+Once again, I will use the `tsCV` function and evaluate the models.  My goal to minimize the RMSE remains for this dataset. 
+
+```{r}
+atm4_arima_forecast <- function(x, h) {
+  forecast(Arima(x, order = c(0, 0, 3), seasonal = c(1, 0, 0)), h = h)
+}
+
+stl_ets_errors <- tsCV(atm4_ts, stlf, h = h, s.window = 7, robust = TRUE, method="ets")
+stl_arima_errors <- tsCV(atm4_ts, stlf, h = h, s.window = 7, robust = TRUE, method="arima")
+hw_errors <- tsCV(atm4_ts, hw, h = h)
+adj_hw_errors <- tsCV(atm4_ts, hw, h = h, lambda = atm4_lambda)
+arima_errors <- tsCV(atm4_ts, atm4_arima_forecast, h = h)
+
+data.frame(Model = c("STL ETS", "STL ARIMA", "ARIMA", "Holt-Winters", "Adjusted Holt-Winters"),
+           RMSE = c(get_rmse(stl_ets_errors[, h]), get_rmse(stl_arima_errors[, h]), get_rmse(arima_errors[, h]), get_rmse(hw_errors[, h]), get_rmse(adj_hw_errors[, h]))) %>%
+  arrange(RMSE) %>%
+  kable() %>%
+  kable_styling()
+```
+
+That's an unexpected result.  The Adjusted Holt-Winters (the one I thought would preform the best), did not preform as well.  The ARIMA model, once again, rose to the top.
+
+### Model Selection
+
+Once again I will use the forecasts produced by the ARIMA model as the projections for ATM #4.
