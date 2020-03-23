@@ -161,9 +161,9 @@ The ARIMA model had the best cross validation results.
 
 Given that the ARIMA model minimized the RMSE in the cross validation, I will use it to forecast residential power consumption.
 
-## Forecast
+## Summary
 
-Here's my forcast for the next `r h` months of power usage:
+I set out to forecast residential power consumption.  Four modeling techniques were tested for accuracy using cross-validation.  In the end an ARIMA model was selected bercause it minimized the RMSE.  Here's my forcast for the next `r h` months of power usage:
 
 ```{r}
 my_forecast <- forecast(arima_fit, h = h)
@@ -176,15 +176,15 @@ my_forecast %>%
   kable_styling()
 ```
 
-```{r}
+```{r, echo=FALSE}
 max_case_sequence <- max(raw_data$CaseSequence)
-projections <- data.frame(my_forecast$mean) %>%
-  rename(KWH = my_forecast.mean) %>%
+data.frame(KWH = round(my_forecast$mean)) %>%
   mutate(CaseSequence = row_number()) %>%
   rowwise() %>%
   mutate(`YYYY-MMM` = format(ymd(paste0("2014", ifelse(CaseSequence < 10, paste0("0", CaseSequence), CaseSequence), "01")), "%Y-%b")) %>%
   mutate(CaseSequence = CaseSequence + max_case_sequence) %>%
   ungroup() %>%
   select(CaseSequence, `YYYY-MMM`, KWH) %>%
-  write.xlsx("2014ResidentialCustomerForecastLoad.xlsx")
+  rbind(raw_data, .) %>%
+  write.xlsx("Residential_Customer_Load_Forecast.xlsx")
 ```

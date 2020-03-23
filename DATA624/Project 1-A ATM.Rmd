@@ -5,7 +5,7 @@ output:
   rmdformats::readthedown:
     highlight: kate
     toc_depth: 3
-    code_folding: "hide"
+    code_folding: "show"
 ---
 
 
@@ -18,6 +18,7 @@ library(readxl)
 library(fpp2)
 library(forcats)
 library(gridExtra)
+library(openxlsx)
 options(scipen=999)
 ```
 
@@ -30,6 +31,10 @@ I am to forecast how much cash will be taken out of 4 different ATM machines for
 I will begin by plotting the cash withdrawn by each ATM.
 
 ```{r}
+if(!file.exists("ATM624Data.xlsx")) {
+  download.file("https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA624/ATM624Data.xlsx", "ATM624Data.xlsx")
+}
+
 atm <- read_excel("ATM624Data.xlsx") %>%
   mutate(DATE = as.Date(DATE, origin = "1899-12-30"),
          ATM = as.factor(ATM)) %>%
@@ -368,7 +373,20 @@ atm %>%
   theme(axis.title = element_blank(), legend.position = "none")
 ```
 
-Most of the values are zeros (points in red above), except for 3 points (shown in blue).  The three non-zero points are the most current.
+Most of the values are zeros (points in red above), except for 3 points (shown in blue).  The three non-zero points are the most current.  This presents a serious challenge.
+
+### Model Creation/Selection
+
+There is one fundamental question with this dataset.  Are the three points an outlier, or is it the begining of the new normal?  If they are outliers one would expect the cash value to return to zero.  If the three points are an indication of change, then the historical data have little relevance.
+
+I will be assuming the new data are the begining of the new normal.  The challenge is we only have three data points.  In the absense of more data I will calculate the average of these three points and use it for the forecast with the recommendation to revise it frequently. As the average is only based off of three data points it should not be considered stable.
+
+```{r}
+atm3 <- atm %>%
+  filter(ATM == "ATM3", Cash > 0)
+
+atm3_mean <- mean(atm3$Cash)
+```
 
 ## ATM #4
 
@@ -479,3 +497,27 @@ That's an unexpected result.  The Adjusted Holt-Winters (the one I thought would
 ### Model Selection
 
 Once again I will use the forecasts produced by the ARIMA model as the projections for ATM #4.
+
+## Summary
+
+I set out to create predictions for 4 different ATMs.  After testing multiple approaches using cross-validation, I selected ARIMA models for ATM #1, #2 and #4, as it was the modeling technique with the lowest RMSE.  For ATM #3 we used the mean of all non-zero data (3 observations).  This model needs to be updated once more data becomes available. I will finish this project by exporting my forcasts in the same file format as the original data.
+
+```{r, echo=FALSE}
+dates <- seq(ymd('2010-05-01'), ymd('2010-05-31'), by = "1 day")
+
+atm1_forecast <- forecast(atm1_arima_fit, h=h)
+atm2_forecast <- forecast(atm2_arima_fit, h=h)
+atm3_forecast <- rep(atm3_mean, h)
+atm4_forecast <- forecast(atm4_arima_fit, h=h)
+
+forecasts_df <- data.frame("DATE" = dates, "ATM" = c("ATM1"), "Cash" = c(atm1_forecast$mean))
+forecasts_df <- data.frame("DATE" = dates, "ATM" = c("ATM2"), "Cash" = c(atm2_forecast$mean)) %>%
+  rbind(forecasts_df, .)
+forecasts_df <- data.frame("DATE" = dates, "ATM" = c("ATM3"), "Cash" = atm3_forecast) %>%
+  rbind(forecasts_df, .)
+forecasts_df <- data.frame("DATE" = dates, "ATM" = c("ATM4"), "Cash" = c(atm4_forecast$mean)) %>%
+  rbind(forecasts_df, .)
+
+write.xlsx(forecasts_df, "ATM_Forecasts.xlsx")
+```
+
