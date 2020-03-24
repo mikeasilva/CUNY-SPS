@@ -10,7 +10,7 @@ output:
 
 
 ```{r setup, echo=FALSE, cache=FALSE, message=FALSE}
-knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
+knitr::opts_chunk$set(echo = TRUE, comment = NA, message = FALSE, warning = FALSE)
 library(tidyverse)
 library(lubridate)
 library(kableExtra)
@@ -19,7 +19,7 @@ library(fpp2)
 library(forcats)
 library(gridExtra)
 library(openxlsx)
-options(scipen=999)
+options(scipen = 999)
 ```
 
 ## Introduction
@@ -31,7 +31,7 @@ I am to forecast how much cash will be taken out of 4 different ATM machines for
 I will begin by plotting the cash withdrawn by each ATM.
 
 ```{r}
-if(!file.exists("ATM624Data.xlsx")) {
+if (!file.exists("ATM624Data.xlsx")) {
   download.file("https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA624/ATM624Data.xlsx", "ATM624Data.xlsx")
 }
 
@@ -41,7 +41,7 @@ atm <- read_excel("ATM624Data.xlsx") %>%
   data.frame()
 
 atm %>%
-  ggplot(aes(DATE, Cash, color=ATM)) +
+  ggplot(aes(DATE, Cash, color = ATM)) +
   geom_line() +
   ggtitle("Cash Withdrawal by Date and ATM") +
   scale_color_brewer(palette = "Set1") +
@@ -57,11 +57,11 @@ ATM #4 is utilized at a higher rate than every other ATM in the data series.  Th
 atm %>%
   filter(ATM != "ATM4") %>%
   filter(!is.na(ATM)) %>%
-  ggplot(aes(DATE, Cash, color=ATM)) +
+  ggplot(aes(DATE, Cash, color = ATM)) +
   geom_line() +
   facet_wrap(.~ATM, ncol = 2) +
   ggtitle("Cash Withdrawal by Date and ATM") +
-  scale_color_brewer(palette = "Set1") + 
+  scale_color_brewer(palette = "Set1") +
   theme(legend.title = element_blank(),
         legend.position = "bottom",
         axis.title = element_blank())
@@ -104,7 +104,7 @@ There is a pattern in the time series but fluctuations are very tight.  I wonder
 ```{r}
 atm %>%
   na.omit() %>%
-  mutate(`Day of Week` = recode(as.factor(wday(DATE)), "1" = "Sunday", "2" = "Monday", "3" = "Tuesday", "4"="Wednesday", "5"="Thursday", "6"="Friday","7"="Saturday"))  %>%
+  mutate(`Day of Week` = recode(as.factor(wday(DATE)), "1" = "Sunday", "2" = "Monday", "3" = "Tuesday", "4" = "Wednesday", "5" = "Thursday", "6" = "Friday", "7" = "Saturday"))  %>%
   ggplot(aes(`Day of Week`, Cash, color = `Day of Week`)) +
   geom_boxplot() +
   facet_grid(ATM ~ `Day of Week`, scales = "free") +
@@ -174,7 +174,7 @@ This seems promising to me.  I will do STL decomposition forecasts using both th
 ```{r}
 h <- 31
 atm1_stl_ets_fit <- atm1_ts %>%
-  stlf(h = h, s.window = 7, robust = TRUE, method="ets")
+  stlf(h = h, s.window = 7, robust = TRUE, method = "ets")
 checkresiduals(atm1_stl_ets_fit)
 ```
 
@@ -184,7 +184,7 @@ This model seems to hold merit and should be taken under consideration.
 
 ```{r}
 atm1_stl_arima_fit <- atm1_ts %>%
-  stlf(h = h, s.window = 7, robust = TRUE, method="arima") 
+  stlf(h = h, s.window = 7, robust = TRUE, method = "arima")
 checkresiduals(atm1_stl_arima_fit)
 ```
 
@@ -231,8 +231,8 @@ atm1_arima_forecast <- function(x, h) {
   forecast(Arima(x, order = c(0, 0, 1), seasonal = c(0, 1, 2)), h = h)
 }
 
-stl_ets_errors <- tsCV(atm1_ts, stlf, h = h, s.window = 7, robust = TRUE, method="ets")
-stl_arima_errors <- tsCV(atm1_ts, stlf, h = h, s.window = 7, robust = TRUE, method="arima")
+stl_ets_errors <- tsCV(atm1_ts, stlf, h = h, s.window = 7, robust = TRUE, method = "ets")
+stl_arima_errors <- tsCV(atm1_ts, stlf, h = h, s.window = 7, robust = TRUE, method = "arima")
 hw_errors <- tsCV(atm1_ts, hw, h = h)
 adj_hw_errors <- tsCV(atm1_ts, hw, h = h, lambda = atm1_lambda)
 arima_errors <- tsCV(atm1_ts, atm1_arima_forecast, h = h)
@@ -288,7 +288,7 @@ This seems very similar to ATM #1.
 
 ```{r}
 atm2_stl_ets_fit <- atm2_ts %>%
-  stlf(h = h, s.window = 7, robust = TRUE, method="ets")
+  stlf(h = h, s.window = 7, robust = TRUE, method = "ets")
 checkresiduals(atm2_stl_ets_fit)
 ```
 
@@ -298,7 +298,7 @@ This model preformed much better than the it did for the ATM #1 time series.  It
 
 ```{r}
 atm2_stl_arima_fit <- atm2_ts %>%
-  stlf(h = h, s.window = 7, robust = TRUE, method="arima") 
+  stlf(h = h, s.window = 7, robust = TRUE, method = "arima")
 checkresiduals(atm2_stl_arima_fit)
 ```
 
@@ -339,8 +339,8 @@ atm2_arima_forecast <- function(x, h) {
   forecast(Arima(x, order = c(2, 0, 2), seasonal = c(0, 1, 1)), h = h)
 }
 
-stl_ets_errors <- tsCV(atm2_ts, stlf, h = h, s.window = 7, robust = TRUE, method="ets")
-stl_arima_errors <- tsCV(atm2_ts, stlf, h = h, s.window = 7, robust = TRUE, method="arima")
+stl_ets_errors <- tsCV(atm2_ts, stlf, h = h, s.window = 7, robust = TRUE, method = "ets")
+stl_arima_errors <- tsCV(atm2_ts, stlf, h = h, s.window = 7, robust = TRUE, method = "arima")
 hw_errors <- tsCV(atm2_ts, hw, h = h)
 adj_hw_errors <- tsCV(atm2_ts, hw, h = h, lambda = atm2_lambda)
 arima_errors <- tsCV(atm2_ts, atm2_arima_forecast, h = h)
@@ -366,7 +366,7 @@ This model is quite different from the two proceeding cases.  You can see it in 
 atm %>%
   filter(ATM == "ATM3") %>%
   mutate(nonzero = if_else(Cash == 0, "No", "Yes")) %>%
-  ggplot(aes(DATE, Cash, color=nonzero)) +
+  ggplot(aes(DATE, Cash, color = nonzero)) +
   geom_point() +
   ggtitle("ATM #3") +
   scale_color_brewer(palette = "Set1") +
@@ -426,7 +426,7 @@ This seems very similar to ATM #1.
 
 ```{r}
 atm4_stl_ets_fit <- atm4_ts %>%
-  stlf(h = h, s.window = 7, robust = TRUE, method="ets")
+  stlf(h = h, s.window = 7, robust = TRUE, method = "ets")
 checkresiduals(atm4_stl_ets_fit)
 ```
 
@@ -436,7 +436,7 @@ This model did a fair job.  There are a couple of ACF spikes that are outside th
 
 ```{r}
 atm4_stl_arima_fit <- atm4_ts %>%
-  stlf(h = h, s.window = 7, robust = TRUE, method="arima") 
+  stlf(h = h, s.window = 7, robust = TRUE, method = "arima")
 checkresiduals(atm4_stl_arima_fit)
 ```
 
@@ -479,8 +479,8 @@ atm4_arima_forecast <- function(x, h) {
   forecast(Arima(x, order = c(0, 0, 3), seasonal = c(1, 0, 0)), h = h)
 }
 
-stl_ets_errors <- tsCV(atm4_ts, stlf, h = h, s.window = 7, robust = TRUE, method="ets")
-stl_arima_errors <- tsCV(atm4_ts, stlf, h = h, s.window = 7, robust = TRUE, method="arima")
+stl_ets_errors <- tsCV(atm4_ts, stlf, h = h, s.window = 7, robust = TRUE, method = "ets")
+stl_arima_errors <- tsCV(atm4_ts, stlf, h = h, s.window = 7, robust = TRUE, method = "arima")
 hw_errors <- tsCV(atm4_ts, hw, h = h)
 adj_hw_errors <- tsCV(atm4_ts, hw, h = h, lambda = atm4_lambda)
 arima_errors <- tsCV(atm4_ts, atm4_arima_forecast, h = h)
@@ -503,12 +503,12 @@ Once again I will use the forecasts produced by the ARIMA model as the projectio
 I set out to create predictions for 4 different ATMs.  After testing multiple approaches using cross-validation, I selected ARIMA models for ATM #1, #2 and #4, as it was the modeling technique with the lowest RMSE.  For ATM #3 we used the mean of all non-zero data (3 observations).  This model needs to be updated once more data becomes available. I will finish this project by exporting my forcasts in the same file format as the original data.
 
 ```{r, echo=FALSE}
-dates <- seq(ymd('2010-05-01'), ymd('2010-05-31'), by = "1 day")
+dates <- seq(ymd("2010-05-01"), ymd("2010-05-31"), by = "1 day")
 
-atm1_forecast <- forecast(atm1_arima_fit, h=h)
-atm2_forecast <- forecast(atm2_arima_fit, h=h)
+atm1_forecast <- forecast(atm1_arima_fit, h = h)
+atm2_forecast <- forecast(atm2_arima_fit, h = h)
 atm3_forecast <- rep(atm3_mean, h)
-atm4_forecast <- forecast(atm4_arima_fit, h=h)
+atm4_forecast <- forecast(atm4_arima_fit, h = h)
 
 forecasts_df <- data.frame("DATE" = dates, "ATM" = c("ATM1"), "Cash" = c(atm1_forecast$mean))
 forecasts_df <- data.frame("DATE" = dates, "ATM" = c("ATM2"), "Cash" = c(atm2_forecast$mean)) %>%
