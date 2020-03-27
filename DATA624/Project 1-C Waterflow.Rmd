@@ -10,11 +10,306 @@ output:
 
 
 ```{r setup, echo=FALSE, cache=FALSE, message=FALSE}
-knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
+knitr::opts_chunk$set(echo = TRUE, comment = NA, message = FALSE, warning = FALSE)
 library(tidyverse)
+library(lubridate)
 library(kableExtra)
+library(readxl)
+library(fpp2)
+library(forcats)
+library(gridExtra)
+library(openxlsx)
+library(tseries)
+library(scales)
+knitr::knit_hooks$set(inline = function(x) { if(!is.numeric(x)){ x }else{ prettyNum(round(x,2), big.mark=",") } })
+options(scipen = 999)
 ```
 
-## Directions
+## Introduction
 
-Part C consists of two data sets.  These are simple 2 columns sets, however they have different time stamps.  Your optional assignment is to time-base sequence the data and aggregate based on hour (example of what this looks like, follows).  Note for multiple recordings within an hour, take the mean.  Then to determine if the data is stationary and can it be forecast.  If so, provide a week forward forecast and present results via Rpubs and .rmd and the forecast in an Excel readable file.
+For this project I have data on water flows from two pipes.  The data are captured with timestamps.  I am to forecast a week forward.  In the instructions for this project I am given the following hint: For multiple recordings within an hour, take the mean.  I will be on the lookout for data under the hour.
+
+## Data Exploration
+
+I will begin by plotting the datasets:
+
+```{r}
+pipe_1 <- read_excel("Waterflow_Pipe1.xlsx") %>%
+  mutate(`Date Time` = as.POSIXct(`Date Time` * (60 * 60 * 24), origin = "1899-12-30", tz = "GMT"))
+
+pipe_2 <- read_excel("Waterflow_Pipe2.xlsx") %>%
+  mutate(`Date Time` = as.POSIXct(`Date Time` * (60 * 60 * 24), origin = "1899-12-30", tz = "GMT"))
+
+pipes <- pipe_1 %>%
+  mutate(Pipe = "Pipe 1") %>%
+  rbind(mutate(pipe_2, Pipe = "Pipe 2")) 
+
+ggplot(pipes, aes(`Date Time`, WaterFlow, color=Pipe)) +
+  geom_line() +
+  scale_color_brewer(palette = "Set1") +
+  facet_wrap(. ~ Pipe) +
+  theme(legend.position = "none", axis.title = element_blank())
+```
+
+The two pipes are quite different in terms of the data they offer.  Pipe 1 has a median waterflow of about `r round(median(pipe_1$WaterFlow))`, while pipe 2 has a median of `r round(median(pipe_2$WaterFlow))`.  Pipe 1 also has what looks like over a week of data, while pipe 2 has over a month.  Both datasets have 1000 observations.  This suggests that pipe one has more fine grain observations (i.e. multiple observations in a hour or minute) while pipe 2's data captures a longer period of time.  That would explain the difference in median and the length of time covered by the respective data sets.  This also is hinted at in the instructions
+
+### Closer Look at Pipe 1
+
+I will look at the head and tail of pipe 1's data to get a sense of what's included:
+
+```{r}
+head(pipe_1) %>% kable() %>% kable_styling()
+```
+
+There is multiple observations per minute which confirms my suspicions.  I will need to create the averages per minute as directed.
+
+### Closer Look at Pipe 2
+
+I will also take a look at pipe 2's data to see if there is anything I need to be aware of:
+
+```{r}
+head(pipe_2) %>% kable() %>% kable_styling()
+```
+
+Hmmm.  Some of the timestamps are just a bit off from the hour mark.  I will need to clean that up.
+
+## Data Cleanup
+
+### Pipe 1
+
+I will clean up the pipe 1 data by creating the averages per minute.
+
+```{r}
+pipe_1 <- pipe_1 %>%
+  mutate(Date = as.Date(`Date Time`),
+         Time = paste0(format(`Date Time`, "%H"),":00:00")) %>%
+  group_by(Date, Time) %>%
+  summarise(WaterFlow = mean(WaterFlow)) %>%
+  ungroup() %>%
+  mutate(`Date Time` = paste(as.character(Date), Time)) %>%
+  select(`Date Time`, WaterFlow)
+```
+
+After doing this I have `r nrow(pipe_1)` observations.  Not to convert to a time series object and plot it:
+
+```{r}
+pipe_1_ts <- ts(pipe_1$WaterFlow, start = c(2015,10,23), frequency = 24) %>%
+  tsclean
+
+is_stationary <- function(ts){
+  results <- kpss.test(ts)
+  if (results$p.value > 0.05){
+    "data IS stationary"
+  } else {
+    "data is NOT stationary"
+  }
+}
+ 
+ggtsplot <- function(ts, title) {
+  # A ggplot2 version of tsdisplay()
+  # Args:
+  #    ts (Time-Series): The time series we want to plot
+  #    title (str): The title of the graph
+  grid.arrange(
+    autoplot(ts) +
+      scale_y_continuous(labels = comma) +
+      ggtitle(paste0(title, " (", is_stationary(ts),")")) +
+      theme(axis.title = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank()),
+    grid.arrange(
+      ggAcf(ts) + ggtitle(element_blank()),
+      ggPacf(ts) + ggtitle(element_blank()), ncol = 2)
+    , nrow = 2)
+}
+
+ggtsplot(pipe_1_ts, "Pipe #1 Waterflow")
+```
+
+This time series falls within the ACF and the data is stationary.  With stationary data I am done with this data set and can focus on pipe #2.
+
+### Pipe 2
+
+I will clean up pipe 2's `Date Time` field by rounding it to the nearest hour.
+
+```{r}
+pipe_2 <- pipe_2 %>%
+  mutate(Date = as.Date(`Date Time`), 
+         Time = format(round(`Date Time`, units="hours"), format="%H:%M"),
+         `Date Time` = paste(as.character(Date), Time)) %>%
+  select(`Date Time`, WaterFlow)
+```
+
+Now to create the time series object and plot it
+
+```{r}
+pipe_2_ts <- ts(pipe_2$WaterFlow, start = c(2015, 10, 23, 1), frequency = 24) %>%
+  tsclean()
+ggtsplot(pipe_2_ts, "Pipe #2 Water Flow")
+```
+
+The data is stationary so we can begin forecasting.
+
+## Model Creation 
+
+### A Note on Process
+
+I will develop a variety of models using different methods and will validate their performance using cross validation. The model that minimizes the error wil
+
+### Pipe 1 Candidates
+
+#### STL + ETS
+
+```{r}
+h <- 24 * 7
+pipe_1_stl_ets_fit <- pipe_1_ts %>%
+  stlf(h = h, s.window = 10, robust = TRUE, method = "ets")
+checkresiduals(pipe_1_stl_ets_fit)
+```
+
+#### STL + ARIMA
+
+```{r}
+pipe_1_stl_arima_fit <- pipe_1_ts %>%
+  stlf(h = h, s.window = 10, robust = TRUE, method = "arima")
+checkresiduals(pipe_1_stl_arima_fit)
+```
+
+#### Holt-Winters
+
+```{r}
+pipe_1_hw_fit <- hw(pipe_1_ts, h = h)
+checkresiduals(pipe_1_hw_fit)
+```
+
+#### Holt-Winters with Box Cox Adjustment
+
+```{r}
+pipe_1_lambda <- BoxCox.lambda(pipe_1_ts)
+pipe_1_adj_hw_fit <- hw(pipe_1_ts, h = h, lambda = pipe_1_lambda)
+checkresiduals(pipe_1_adj_hw_fit)
+```
+
+#### ARIMA
+
+```{r}
+pipe_1_arima_fit <- auto.arima(pipe_1_ts)
+checkresiduals(pipe_1_arima_fit)
+```
+
+#### Summary
+
+```{r}
+autoplot(pipe_1_ts) +
+  autolayer(pipe_1_stl_ets_fit, series = "STL ETS") +
+  autolayer(pipe_1_stl_arima_fit, series = "STL ARIMA") +
+  autolayer(pipe_1_hw_fit, series = "Holt-Winters") +
+  autolayer(pipe_1_adj_hw_fit, series = "Holt-Winters with Adj.") +
+  autolayer(forecast(pipe_1_arima_fit, h=h), series = "ARIMA") +
+  facet_wrap(.~series) +
+  scale_color_brewer(palette = "Set1") +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.title = element_blank(), legend.position = "none")
+```
+
+### Pipe 2 Candidates
+
+#### STL + ETS
+
+```{r}
+pipe_2_stl_ets_fit <- pipe_2_ts %>%
+  stlf(h = h, s.window = 6, robust = TRUE, method = "ets")
+checkresiduals(pipe_2_stl_ets_fit)
+```
+
+#### STL + ARIMA
+
+```{r}
+pipe_2_stl_arima_fit <- pipe_2_ts %>%
+  stlf(h = h, s.window = 6, robust = TRUE, method = "arima")
+checkresiduals(pipe_2_stl_arima_fit)
+```
+
+#### Holt-Winters
+
+```{r}
+pipe_2_hw_fit <- hw(pipe_2_ts, h = h)
+checkresiduals(pipe_2_hw_fit)
+```
+
+#### Holt-Winters with Box Cox Adjustment
+
+```{r}
+pipe_2_lambda <- BoxCox.lambda(pipe_2_ts)
+pipe_2_adj_hw_fit <- hw(pipe_2_ts, h = h, lambda = pipe_2_lambda)
+checkresiduals(pipe_2_adj_hw_fit)
+```
+
+#### ARIMA
+
+```{r}
+pipe_2_arima_fit <- auto.arima(pipe_2_ts)
+checkresiduals(pipe_2_arima_fit)
+```
+
+#### Summary
+
+```{r}
+autoplot(pipe_2_ts) +
+  autolayer(pipe_2_stl_ets_fit, series = "STL ETS") +
+  autolayer(pipe_2_stl_arima_fit, series = "STL ARIMA") +
+  autolayer(pipe_2_hw_fit, series = "Holt-Winters") +
+  autolayer(pipe_2_adj_hw_fit, series = "Holt-Winters with Adj.") +
+  autolayer(forecast(pipe_2_arima_fit, h=h), series = "ARIMA") +
+  facet_wrap(. ~ series) +
+  scale_color_brewer(palette = "Set1") +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.title = element_blank(), legend.position = "none")
+```
+
+## Cross Validation
+
+### Pipe 1 Models
+
+```{r pipe_1_cv}
+get_rmse <- function(e) {
+  sqrt(mean(e^2, na.rm = TRUE))
+}
+
+pipe_1_arima_forecast <- function(x, h) {
+  forecast(Arima(x), h = h)
+}
+
+stl_ets_errors <- tsCV(pipe_1_ts, stlf, h = h, s.window = 10, robust = TRUE, method = "ets")
+stl_arima_errors <- tsCV(pipe_1_ts, stlf, h = h, s.window = 10, robust = TRUE, method = "arima")
+hw_errors <- tsCV(pipe_1_ts, hw, h = h)
+adj_hw_errors <- tsCV(pipe_1_ts, hw, h = h, lambda = pipe_1_lambda)
+arima_errors <- tsCV(pipe_1_ts, pipe_1_arima_forecast, h = h)
+
+data.frame(Model = c("STL ETS", "STL ARIMA", "ARIMA", "Holt-Winters", "Adjusted Holt-Winters"),
+           RMSE = c(get_rmse(stl_ets_errors[, h]), get_rmse(stl_arima_errors[, h]), get_rmse(arima_errors[, h]), get_rmse(hw_errors[, h]), get_rmse(adj_hw_errors[, h]))) %>%
+  arrange(RMSE) %>%
+  kable() %>%
+  kable_styling()
+```
+
+### Pipe 2 Models
+
+```{r pipe_2_cv}
+pipe_2_arima_forecast <- function(x, h) {
+  forecast(Arima(x, seasonal = c(0,0,1)), h = h)
+}
+
+stl_ets_errors <- tsCV(pipe_2_ts, stlf, h = h, s.window = 6, robust = TRUE, method = "ets")
+stl_arima_errors <- tsCV(pipe_2_ts, stlf, h = h, s.window = 6, robust = TRUE, method = "arima")
+hw_errors <- tsCV(pipe_2_ts, hw, h = h)
+adj_hw_errors <- tsCV(pipe_2_ts, hw, h = h, lambda = pipe_2_lambda)
+arima_errors <- tsCV(pipe_2_ts, pipe_2_arima_forecast, h = h)
+
+data.frame(Model = c("STL ETS", "STL ARIMA", "ARIMA", "Holt-Winters", "Adjusted Holt-Winters"),
+           RMSE = c(get_rmse(stl_ets_errors[, h]), get_rmse(stl_arima_errors[, h]), get_rmse(arima_errors[, h]), get_rmse(hw_errors[, h]), get_rmse(adj_hw_errors[, h]))) %>%
+  arrange(RMSE) %>%
+  kable() %>%
+  kable_styling()
+```
+
+## Model Selection
+
+
+## Forecasts
