@@ -5,7 +5,7 @@ output:
   rmdformats::readthedown:
     highlight: kate
     toc_depth: 3
-    code_folding: "show"
+    code_folding: "hide"
 ---
 
 
@@ -16,9 +16,17 @@ library(lubridate)
 library(kableExtra)
 library(readxl)
 library(fpp2)
-library(forcats)
+library(forecast)
 library(gridExtra)
 library(openxlsx)
+library(scales)
+knitr::knit_hooks$set(inline = function(x) {
+  if (!is.numeric(x)) {
+    x
+  } else {
+    prettyNum(round(x, 2), big.mark = ",")
+  }
+})
 options(scipen = 999)
 ```
 
@@ -45,6 +53,7 @@ atm %>%
   geom_line() +
   ggtitle("Cash Withdrawal by Date and ATM") +
   scale_color_brewer(palette = "Set1") +
+  scale_y_continuous(labels = comma) +
   facet_wrap(.~ATM, ncol = 2) +
   theme(legend.title = element_blank(),
         legend.position = "bottom",
@@ -142,6 +151,7 @@ ggtsplot <- function(ts, title) {
   grid.arrange(
     autoplot(ts) +
       ggtitle(title) +
+      scale_y_continuous(labels = comma) +
       theme(axis.title = element_blank()),
     grid.arrange(
       ggAcf(ts) + ggtitle(element_blank()),

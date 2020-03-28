@@ -5,7 +5,7 @@ output:
   rmdformats::readthedown:
     highlight: kate
     toc_depth: 3
-    code_folding: "show"
+    code_folding: "hide"
 ---
 
 
@@ -19,6 +19,14 @@ library(fpp2)
 library(forcats)
 library(gridExtra)
 library(openxlsx)
+library(scales)
+knitr::knit_hooks$set(inline = function(x) {
+  if (!is.numeric(x)) {
+    x
+  } else {
+    prettyNum(round(x, 2), big.mark = ",")
+  }
+})
 options(scipen = 999)
 ```
 
@@ -40,11 +48,12 @@ kwh <- raw_data %>%
   ts(start = decimal_date(date("1998-01-01")), frequency = 12)
 
 autoplot(kwh, main = "Residential Power Usage (KWH)") +
+  scale_y_continuous(labels = comma) +
   theme(axis.title = element_blank())
 ```
 
 ```{r}
-summary(kwh)
+summary(kwh) %>% kable() %>% kable_styling()
 ```
 
 We have outliers and missing data.  We will clean them up with `tsclean` from the forcasts package, and replot the data with the ACF and PACF:
@@ -59,6 +68,7 @@ ggtsplot <- function(ts, title) {
   #    title (str): The title of the graph
   grid.arrange(
     autoplot(ts) +
+      scale_y_continuous(labels = comma) +
       ggtitle(title) +
       theme(axis.title = element_blank()),
     grid.arrange(
@@ -87,6 +97,7 @@ autoplot(kwh) +
   autolayer(forecast(auto.arima(kwh), h = h), series = "ARIMA") +
   facet_wrap(. ~ series, ncol = 2) +
   scale_color_brewer(palette = "Set1") +
+  scale_y_continuous(labels = comma) +
   theme(legend.position = "none", axis.title = element_blank())
 ```
 

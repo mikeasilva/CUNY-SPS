@@ -5,7 +5,7 @@ output:
   rmdformats::readthedown:
     highlight: kate
     toc_depth: 3
-    code_folding: "show"
+    code_folding: "hide"
 ---
 
 
@@ -21,7 +21,13 @@ library(gridExtra)
 library(openxlsx)
 library(tseries)
 library(scales)
-knitr::knit_hooks$set(inline = function(x) { if(!is.numeric(x)){ x }else{ prettyNum(round(x,2), big.mark=",") } })
+knitr::knit_hooks$set(inline = function(x) {
+  if (!is.numeric(x)) {
+    x
+  } else {
+    prettyNum(round(x, 2), big.mark = ",")
+  }
+})
 options(scipen = 999)
 ```
 
@@ -42,16 +48,16 @@ pipe_2 <- read_excel("Waterflow_Pipe2.xlsx") %>%
 
 pipes <- pipe_1 %>%
   mutate(Pipe = "Pipe 1") %>%
-  rbind(mutate(pipe_2, Pipe = "Pipe 2")) 
+  rbind(mutate(pipe_2, Pipe = "Pipe 2"))
 
-ggplot(pipes, aes(`Date Time`, WaterFlow, color=Pipe)) +
+ggplot(pipes, aes(`Date Time`, WaterFlow, color = Pipe)) +
   geom_line() +
   scale_color_brewer(palette = "Set1") +
   facet_wrap(. ~ Pipe) +
   theme(legend.position = "none", axis.title = element_blank())
 ```
 
-The two pipes are quite different in terms of the data they offer.  Pipe 1 has a median waterflow of about `r round(median(pipe_1$WaterFlow))`, while pipe 2 has a median of `r round(median(pipe_2$WaterFlow))`.  Pipe 1 also has what looks like over a week of data, while pipe 2 has over a month.  Both datasets have 1000 observations.  This suggests that pipe one has more fine grain observations (i.e. multiple observations in a hour or minute) while pipe 2's data captures a longer period of time.  That would explain the difference in median and the length of time covered by the respective data sets.  This also is hinted at in the instructions
+The two pipes are quite different in terms of the data they offer.  Pipe 1 has a median waterflow of about `r round(median(pipe_1$WaterFlow))`, while pipe 2 has a median of `r round(median(pipe_2$WaterFlow))`.  Pipe 1 also has what looks like over a week of data, while pipe 2 has over a month.  Both datasets have 1000 observations.  This suggests that pipe one has more fine grain observations (i.e. multiple observations in a hour or minute) while pipe 2's data captures a longer period of time.  That would explain the difference in median and the length of time covered by the respective data sets.  This also is hinted at in the instructions.
 
 ### Closer Look at Pipe 1
 
@@ -82,23 +88,37 @@ I will clean up the pipe 1 data by creating the averages per minute.
 ```{r}
 pipe_1 <- pipe_1 %>%
   mutate(Date = as.Date(`Date Time`),
-         Time = paste0(format(`Date Time`, "%H"),":00:00")) %>%
+         Time = paste0(format(`Date Time`, "%H"), ":00:00")) %>%
   group_by(Date, Time) %>%
   summarise(WaterFlow = mean(WaterFlow)) %>%
   ungroup() %>%
-  mutate(`Date Time` = paste(as.character(Date), Time)) %>%
+  mutate(`Date Time` = as.POSIXct(paste(as.character(Date), Time)), format = "%Y-%m-%d %H:%M:%OS") %>%
   select(`Date Time`, WaterFlow)
 ```
 
-After doing this I have `r nrow(pipe_1)` observations.  Not to convert to a time series object and plot it:
+After doing this I have `r nrow(pipe_1)` observations.  
+
+#### Sidebar: Is there any pattern in the usage by hour?
+
+I want to pause right here to see if there is any pattern in the the water flow by hour.
 
 ```{r}
-pipe_1_ts <- ts(pipe_1$WaterFlow, start = c(2015,10,23), frequency = 24) %>%
-  tsclean
+pipe_1 %>%
+  mutate(Time = format(`Date Time`, "%H")) %>%
+  ggplot(aes(Time, WaterFlow)) +
+  geom_boxplot() +
+  ggtitle("Pipe #1 Water Flow by Hour") +
+  theme(axis.title = element_blank())
+```
 
-is_stationary <- function(ts){
+There is not a discernable pattern in the water flow by hour.  With that exploration done I will convert the data to a time series object and plot it:
+
+```{r}
+pipe_1_ts <- ts(pipe_1$WaterFlow, start = c(2015, 10, 23), frequency = 24)
+
+is_stationary <- function(ts) {
   results <- kpss.test(ts)
-  if (results$p.value > 0.05){
+  if (results$p.value > 0.05) {
     "data IS stationary"
   } else {
     "data is NOT stationary"
@@ -113,7 +133,7 @@ ggtsplot <- function(ts, title) {
   grid.arrange(
     autoplot(ts) +
       scale_y_continuous(labels = comma) +
-      ggtitle(paste0(title, " (", is_stationary(ts),")")) +
+      ggtitle(paste0(title, " (", is_stationary(ts), ")")) +
       theme(axis.title = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank()),
     grid.arrange(
       ggAcf(ts) + ggtitle(element_blank()),
@@ -132,17 +152,30 @@ I will clean up pipe 2's `Date Time` field by rounding it to the nearest hour.
 
 ```{r}
 pipe_2 <- pipe_2 %>%
-  mutate(Date = as.Date(`Date Time`), 
-         Time = format(round(`Date Time`, units="hours"), format="%H:%M"),
-         `Date Time` = paste(as.character(Date), Time)) %>%
+  mutate(Date = as.Date(`Date Time`),
+         Time = format(round(`Date Time`, units = "hours"), format = "%H:%M"),
+         `Date Time` = as.POSIXct(paste(as.character(Date), Time)), format = "%Y-%m-%d %H:%M:%OS") %>%
   select(`Date Time`, WaterFlow)
 ```
 
-Now to create the time series object and plot it
+#### Sidebar: Is there any pattern in the usage by hour?
+
+I again want to see if there is a pattern in this pipe's usage by hour:
 
 ```{r}
-pipe_2_ts <- ts(pipe_2$WaterFlow, start = c(2015, 10, 23, 1), frequency = 24) %>%
-  tsclean()
+pipe_2 %>%
+  mutate(Time = format(`Date Time`, "%H")) %>%
+  ggplot(aes(Time, WaterFlow)) +
+  geom_boxplot() +
+  ggtitle("Pipe #2 Water Flow by Hour") +
+  theme(axis.title = element_blank())
+```
+
+
+Again there is not a discernable pattern in the water flow by hour.  Now I will convert the data to a time series object and plot it:
+
+```{r}
+pipe_2_ts <- ts(pipe_2$WaterFlow, start = c(2015, 10, 23, 1), frequency = 24)
 ggtsplot(pipe_2_ts, "Pipe #2 Water Flow")
 ```
 
@@ -152,95 +185,59 @@ The data is stationary so we can begin forecasting.
 
 ### A Note on Process
 
-I will develop a variety of models using different methods and will validate their performance using cross validation. The model that minimizes the error wil
+I will develop a variety of models using different methods and will validate their performance using cross validation. The model that minimizes the error will be the model of choice.
 
 ### Pipe 1 Candidates
 
 #### STL + ETS
 
+I will begin with a STL decomposition based model.
+
 ```{r}
 h <- 24 * 7
 pipe_1_stl_ets_fit <- pipe_1_ts %>%
-  stlf(h = h, s.window = 10, robust = TRUE, method = "ets")
+  stlf(h = h, s.window = 24, robust = TRUE, method = "ets")
 checkresiduals(pipe_1_stl_ets_fit)
 ```
 
+This model appears to have preformed fairly well.  The residuals are normal and there's only one minor ACF spike.  I'll see how this preforms in the cross validation stage.
+
 #### STL + ARIMA
+
+Next I will create an ARIMA model on the STL decomposed time series.
 
 ```{r}
 pipe_1_stl_arima_fit <- pipe_1_ts %>%
-  stlf(h = h, s.window = 10, robust = TRUE, method = "arima")
+  stlf(h = h, s.window = 24, robust = TRUE, method = "arima")
 checkresiduals(pipe_1_stl_arima_fit)
 ```
 
-#### Holt-Winters
-
-```{r}
-pipe_1_hw_fit <- hw(pipe_1_ts, h = h)
-checkresiduals(pipe_1_hw_fit)
-```
-
-#### Holt-Winters with Box Cox Adjustment
-
-```{r}
-pipe_1_lambda <- BoxCox.lambda(pipe_1_ts)
-pipe_1_adj_hw_fit <- hw(pipe_1_ts, h = h, lambda = pipe_1_lambda)
-checkresiduals(pipe_1_adj_hw_fit)
-```
+That's strange.  It is a ARIMA(0,0,0) model.  That is a white-noise model.  Let's see if this is an artifact of the STL decomposition or if we get a similar result training the ARIMA model.
 
 #### ARIMA
+
+Last of all I will try an ARIMA model using the `auto.arima` function to define the (p,d,q) parameters.
 
 ```{r}
 pipe_1_arima_fit <- auto.arima(pipe_1_ts)
 checkresiduals(pipe_1_arima_fit)
 ```
 
-#### Summary
-
-```{r}
-autoplot(pipe_1_ts) +
-  autolayer(pipe_1_stl_ets_fit, series = "STL ETS") +
-  autolayer(pipe_1_stl_arima_fit, series = "STL ARIMA") +
-  autolayer(pipe_1_hw_fit, series = "Holt-Winters") +
-  autolayer(pipe_1_adj_hw_fit, series = "Holt-Winters with Adj.") +
-  autolayer(forecast(pipe_1_arima_fit, h=h), series = "ARIMA") +
-  facet_wrap(.~series) +
-  scale_color_brewer(palette = "Set1") +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.title = element_blank(), legend.position = "none")
-```
+Again the best model was an ARIMA(0,0,0) model!  This suggests there is no reliable way to forecast the waterflow.
 
 ### Pipe 2 Candidates
 
-#### STL + ETS
-
-```{r}
-pipe_2_stl_ets_fit <- pipe_2_ts %>%
-  stlf(h = h, s.window = 6, robust = TRUE, method = "ets")
-checkresiduals(pipe_2_stl_ets_fit)
-```
-
 #### STL + ARIMA
+
+I will first check with a STL decomposition and ARIMA to see if it results in a white noise model.
 
 ```{r}
 pipe_2_stl_arima_fit <- pipe_2_ts %>%
-  stlf(h = h, s.window = 6, robust = TRUE, method = "arima")
+  stlf(h = h, s.window = 24, robust = TRUE, method = "arima")
 checkresiduals(pipe_2_stl_arima_fit)
 ```
 
-#### Holt-Winters
-
-```{r}
-pipe_2_hw_fit <- hw(pipe_2_ts, h = h)
-checkresiduals(pipe_2_hw_fit)
-```
-
-#### Holt-Winters with Box Cox Adjustment
-
-```{r}
-pipe_2_lambda <- BoxCox.lambda(pipe_2_ts)
-pipe_2_adj_hw_fit <- hw(pipe_2_ts, h = h, lambda = pipe_2_lambda)
-checkresiduals(pipe_2_adj_hw_fit)
-```
+It did.  Let's see what kind of model `auto.arima` comes up with.
 
 #### ARIMA
 
@@ -249,67 +246,8 @@ pipe_2_arima_fit <- auto.arima(pipe_2_ts)
 checkresiduals(pipe_2_arima_fit)
 ```
 
-#### Summary
+We have another white noise model.  The water flow from pipe 2 cannot be forecasted reliably.
 
-```{r}
-autoplot(pipe_2_ts) +
-  autolayer(pipe_2_stl_ets_fit, series = "STL ETS") +
-  autolayer(pipe_2_stl_arima_fit, series = "STL ARIMA") +
-  autolayer(pipe_2_hw_fit, series = "Holt-Winters") +
-  autolayer(pipe_2_adj_hw_fit, series = "Holt-Winters with Adj.") +
-  autolayer(forecast(pipe_2_arima_fit, h=h), series = "ARIMA") +
-  facet_wrap(. ~ series) +
-  scale_color_brewer(palette = "Set1") +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.title = element_blank(), legend.position = "none")
-```
+## Summary
 
-## Cross Validation
-
-### Pipe 1 Models
-
-```{r pipe_1_cv}
-get_rmse <- function(e) {
-  sqrt(mean(e^2, na.rm = TRUE))
-}
-
-pipe_1_arima_forecast <- function(x, h) {
-  forecast(Arima(x), h = h)
-}
-
-stl_ets_errors <- tsCV(pipe_1_ts, stlf, h = h, s.window = 10, robust = TRUE, method = "ets")
-stl_arima_errors <- tsCV(pipe_1_ts, stlf, h = h, s.window = 10, robust = TRUE, method = "arima")
-hw_errors <- tsCV(pipe_1_ts, hw, h = h)
-adj_hw_errors <- tsCV(pipe_1_ts, hw, h = h, lambda = pipe_1_lambda)
-arima_errors <- tsCV(pipe_1_ts, pipe_1_arima_forecast, h = h)
-
-data.frame(Model = c("STL ETS", "STL ARIMA", "ARIMA", "Holt-Winters", "Adjusted Holt-Winters"),
-           RMSE = c(get_rmse(stl_ets_errors[, h]), get_rmse(stl_arima_errors[, h]), get_rmse(arima_errors[, h]), get_rmse(hw_errors[, h]), get_rmse(adj_hw_errors[, h]))) %>%
-  arrange(RMSE) %>%
-  kable() %>%
-  kable_styling()
-```
-
-### Pipe 2 Models
-
-```{r pipe_2_cv}
-pipe_2_arima_forecast <- function(x, h) {
-  forecast(Arima(x, seasonal = c(0,0,1)), h = h)
-}
-
-stl_ets_errors <- tsCV(pipe_2_ts, stlf, h = h, s.window = 6, robust = TRUE, method = "ets")
-stl_arima_errors <- tsCV(pipe_2_ts, stlf, h = h, s.window = 6, robust = TRUE, method = "arima")
-hw_errors <- tsCV(pipe_2_ts, hw, h = h)
-adj_hw_errors <- tsCV(pipe_2_ts, hw, h = h, lambda = pipe_2_lambda)
-arima_errors <- tsCV(pipe_2_ts, pipe_2_arima_forecast, h = h)
-
-data.frame(Model = c("STL ETS", "STL ARIMA", "ARIMA", "Holt-Winters", "Adjusted Holt-Winters"),
-           RMSE = c(get_rmse(stl_ets_errors[, h]), get_rmse(stl_arima_errors[, h]), get_rmse(arima_errors[, h]), get_rmse(hw_errors[, h]), get_rmse(adj_hw_errors[, h]))) %>%
-  arrange(RMSE) %>%
-  kable() %>%
-  kable_styling()
-```
-
-## Model Selection
-
-
-## Forecasts
+White noise models were recommended when modeling the water flow of both pipes using the `auto.arima` function.  This suggests that there is not a reliable way to model the waterflow.
