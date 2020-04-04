@@ -1,0 +1,29 @@
+---
+title: "DATA 624 Homework 6"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    toc_depth: 3
+    code_folding: "show"
+---
+
+```{r setup, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
+library(tidyverse)
+library(kableExtra)
+library(gridExtra)
+options(scipen=999)
+```
+
+## Question 6.2
+
+Developing a model to predict permeability (See Sect. 1.4) could save significant resources for a pharmaceutical company, while at the same time more rapidly identifying molecules that have a sufficient permeability to become a drug:
+
+(A) Start `R` and use these commands to load the data:
+```{r}
+library(AppliedPredictiveModelings)
+data(permeability)
+```
+
+## Question 6.3
