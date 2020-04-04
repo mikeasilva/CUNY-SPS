@@ -22,8 +22,46 @@ Developing a model to predict permeability (See Sect. 1.4) could save significan
 
 (A) Start `R` and use these commands to load the data:
 ```{r}
-library(AppliedPredictiveModelings)
+library(AppliedPredictiveModeling)
 data(permeability)
 ```
 
+The matrix `fingerprints` contains the 1,107 binary molecular predictors for the 165 compounds, while `permeability` contains permeability response.
+
+(B) The fingerprint predictors indicate the presense or absense of substructures of a molecule and are often sparse meaning that relatively few of the molecules contain each substructure.  Filter out the predictors that have low frequencieis using the `nearZeroVar` function from the `caret` package.  How many are left for modeling?
+
+```{r}
+library(caret)
+length(nearZeroVar(fingerprints))
+```
+
+(C) Split the data into training and test sets, pre-process the data, and tune a PLS model.  How many latent variables are optimal and what is the corresponding resampled estimate of $R^2$?
+
+(D) Predict the response of the test set.  What is the test set estimate of $R^2$?
+
+(E) Try building other models discussed in this chapter.  Do any have better predictive performance?
+
+(F)  Would you recommend any of your models to replace the permeability laboratory experiment?
+
 ## Question 6.3
+
+A chemical manufacturing process for a pharmaceutical produce was discussed in Sect. 1.4.  In this problem, the objective is to understand the relationship between biological measurement of the raw materials (predictors), measurements of the manufacutring process (predictors), and the response of product yield.  Biological predictors cannot be changed but can be used to assess the quality of the raw materials before processing.  On the other hand, manufacturing process predictors can be changed in the manufacturing process.  Improving product yield by 1% will boot revenue by approximately one hundred thousand dollars per batch:
+
+(A) Start `R` and use these commands to laod the data:
+
+```{r}
+library(AppliedPredictiveModeling)
+data(chemicalManufacturing)
+```
+
+the matrix `processPredictors` contains the 57 predictors (12 describing the input biological material and 45 describing the process predictors) for the 176 manufacturing runs, `yield` contains the percent yueld for each run.
+
+(B) A small percentage of cells in the predictor set contain missing values.  Use an imputation function to fill in these missing values (e.g., see Sect. 3.8).
+
+(C) Split the data into a training and a test set, pre-process the data, and tune a model of your choice from this chapter.  What is the optimal value of the performance metric?
+
+(D) Predict the response for the test set.  What is the value of the performance metric and how does this compare with the resampled performance metric on the training set?
+
+(E) Which predictors are most important in the model you have trained?  Do either the biological or process predictors dominate the list?
+
+(F) Explore the relationships between each of the top predictors and the response.  How could this information be helpful in improving yield in future runds of the manufacturing process?
