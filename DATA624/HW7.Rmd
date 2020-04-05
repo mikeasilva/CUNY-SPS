@@ -9,18 +9,32 @@ output:
 ---
 
 ```{r setup, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
-knitr::opts_chunk$set(echo = TRUE, comment=NA, message=FALSE, warning=FALSE)
+knitr::opts_chunk$set(echo = TRUE, comment = NA, message = FALSE, warning = FALSE)
 library(tidyverse)
+library(caret)
 library(kableExtra)
-library(gridExtra)
-options(scipen=999)
+library(glmnet)
+library(pls)
+knitr::knit_hooks$set(inline = function(x) {
+  if (!is.numeric(x)) {
+    x
+  } else {
+    prettyNum(round(x, 2), big.mark = ",")
+  }
+})
+options(scipen = 999)
+# Make this reproducible
+set.seed(42)
 ```
 
 ## Question 6.2
 
 Developing a model to predict permeability (See Sect. 1.4) could save significant resources for a pharmaceutical company, while at the same time more rapidly identifying molecules that have a sufficient permeability to become a drug:
 
-(A) Start `R` and use these commands to load the data:
+### Part A
+
+Start `R` and use these commands to load the data:
+
 ```{r}
 library(AppliedPredictiveModeling)
 data(permeability)
@@ -28,20 +42,156 @@ data(permeability)
 
 The matrix `fingerprints` contains the 1,107 binary molecular predictors for the 165 compounds, while `permeability` contains permeability response.
 
-(B) The fingerprint predictors indicate the presense or absense of substructures of a molecule and are often sparse meaning that relatively few of the molecules contain each substructure.  Filter out the predictors that have low frequencieis using the `nearZeroVar` function from the `caret` package.  How many are left for modeling?
+### Part B
+
+the `fingerprints` predictors indicate the presense or absense of substructures of a molecule and are often sparse meaning that relatively few of the molecules contain each substructure.  Filter out the predictors that have low frequencieis using the `nearZeroVar` function from the `caret` package.  How many are left for modeling?
+
+**`r length(nearZeroVar(fingerprints))`**
+
+### Part C
+
+Split the data into training and test sets, pre-process the data, and tune a PLS model.  How many latent variables are optimal and what is the corresponding resampled estimate of $R^2$?
 
 ```{r}
-library(caret)
-length(nearZeroVar(fingerprints))
+df <- as.data.frame(fingerprints[, nearZeroVar(fingerprints)]) %>%
+  mutate(y = permeability)
+in_train <- createDataPartition(df$y, times = 1, p = .8, list = FALSE)
+train_df <- df[in_train, ]
+test_df <- df[-in_train, ]
+
+pls_model <- train(
+  y ~ ., data = train_df, method = "pls",
+  center = TRUE,
+  trControl = trainControl("cv", number = 10),
+  tuneLength = 25
+)
+
+# Plot model RMSE vs different values of components
+plot(pls_model, main=paste("Training Set RMSE Minimized at", pls_model$bestTune$ncomp, "Components"))
 ```
 
-(C) Split the data into training and test sets, pre-process the data, and tune a PLS model.  How many latent variables are optimal and what is the corresponding resampled estimate of $R^2$?
+```{r}
+pls_model$results %>%
+  filter(ncomp == pls_model$bestTune$ncomp) %>%
+  select(ncomp, RMSE, Rsquared) %>%
+  kable() %>%
+  kable_styling()
+```
 
-(D) Predict the response of the test set.  What is the test set estimate of $R^2$?
 
-(E) Try building other models discussed in this chapter.  Do any have better predictive performance?
+**The optimal number of components in the PLS model is `r pls_model$bestTune$ncomp`.  This captures `r round(pls_model$results$Rsquared[pls_model$bestTune$ncomp],2)*100`% of the variation in the permeability.**
 
-(F)  Would you recommend any of your models to replace the permeability laboratory experiment?
+### Part D
+
+Predict the response of the test set.  What is the test set estimate of $R^2$?
+
+```{r}
+# Make predictions
+pls_predictions <- predict(pls_model, test_df)
+# Model performance metrics
+results <- data.frame(Model = "PLS", RMSE = caret::RMSE(pls_predictions, test_df$y), Rsquared = caret::R2(pls_predictions, test_df$y)) 
+results %>%
+  kable() %>%
+  kable_styling()
+```
+
+**The $R^2$ is `r round(caret::R2(pls_predictions, test_df$y), 2)`.**
+
+### Part E
+
+Try building other models discussed in this chapter.  Do any have better predictive performance?
+
+#### PCR Model
+
+```{r}
+pcr_model <- train(
+  y ~ ., data = train_df, method = "pcr",
+  center = TRUE,
+  trControl = trainControl("cv", number = 10),
+  tuneLength = 25
+)
+
+plot(pcr_model, main = paste("Training Set RMSE Minimized at", pcr_model$bestTune, "Components"))
+
+
+# Make predictions
+pcr_predictions <- predict(pcr_model, test_df)
+# Model performance metrics
+pcr_results <- data.frame(Model = "PCR", RMSE = caret::RMSE(pcr_predictions, test_df$y), Rsquared = caret::R2(pcr_predictions, test_df$y)) 
+pcr_results %>%
+  kable() %>%
+  kable_styling()
+```
+
+#### Ridge Regression
+
+```{r}
+x <- model.matrix(y ~ ., data=train_df)
+x_test <- model.matrix(y ~ ., data=test_df)
+rr_cv <- cv.glmnet(x, train_df$y, alpha = 0)
+rr_model <- glmnet(x, train_df$y, alpha = 0, lambda = rr_cv$lambda.min)
+rr_predictions <- as.vector(predict(rr_model, x_test))
+rr_results <- data.frame(Model = "Ridge Regression", RMSE = caret::RMSE(rr_predictions, test_df$y), Rsquared = caret::R2(rr_predictions, test_df$y)) 
+rr_results %>%
+  kable() %>%
+  kable_styling()
+```
+
+#### Lasso Regression
+
+```{r}
+lr_cv <- cv.glmnet(x, train_df$y, alpha = 1)
+lr_model <- glmnet(x, train_df$y, alpha = 1, lambda = lr_cv$lambda.min)
+lr_predictions <- as.vector(predict(lr_model, x_test)) 
+lr_results <- data.frame(Model = "Lasso Regression", RMSE = caret::RMSE(lr_predictions, test_df$y), Rsquared = caret::R2(lr_predictions, test_df$y))  
+lr_results %>%
+  kable() %>%
+  kable_styling()
+```
+
+#### Elastic Net Regession
+
+```{r}
+en_model <- train(
+  y ~ ., data = train_df, method = "glmnet",
+  trControl = trainControl("cv", number = 10),
+  tuneLength = 10
+)
+# Best tuning parameters
+en_model$bestTune
+```
+
+```{r}
+
+en_predictions <- en_model %>% predict(x_test)
+# Model performance metrics
+en_results <- data.frame(Model = "Elastic Net Regression", RMSE = caret::RMSE(en_predictions, test_df$y), Rsquared = caret::R2(en_predictions, test_df$y))
+en_results %>%
+  kable() %>%
+  kable_styling()
+```
+
+#### Summary 
+
+```{r}
+pls_model$results %>%
+  filter(ncomp == pls_model$bestTune$ncomp) %>%
+  mutate("Model" = "PLS") %>%
+  select(Model, RMSE, Rsquared) %>%
+  as.data.frame() %>%
+  bind_rows(pcr_results) %>%
+  bind_rows(rr_results) %>%
+  bind_rows(lr_results) %>%
+  bind_rows(en_results) %>%
+  arrange(desc(Rsquared)) %>%
+  kable() %>%
+  kable_styling()
+```
+
+### Part F
+
+Would you recommend any of your models to replace the permeability laboratory experiment?
+
 
 ## Question 6.3
 
