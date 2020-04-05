@@ -9,7 +9,7 @@ output:
 ---
 
 ```{r setup, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
-knitr::opts_chunk$set(echo = TRUE, comment = NA, 
+knitr::opts_chunk$set(echo = TRUE, comment = NA,
                       message = FALSE, warning = FALSE)
 library(tidyverse)
 library(caret)
@@ -18,7 +18,7 @@ library(glmnet)
 library(pls)
 library(corrplot)
 library(tidyr)
-library(RColorBrewer )
+library(RColorBrewer)
 knitr::knit_hooks$set(inline = function(x) {
   if (!is.numeric(x)) {
     x
@@ -27,6 +27,36 @@ knitr::knit_hooks$set(inline = function(x) {
   }
 })
 options(scipen = 999)
+
+# Make sure to keep the default for normal processing.
+default_output_hook <- knitr::knit_hooks$get("output")
+
+# Output hooks handle normal R console output.
+knitr::knit_hooks$set(output = function(x, options) {
+
+  comment <- knitr::opts_current$get("comment")
+  if (is.na(comment)) comment <- ""
+  can_null <- grepl(paste0(comment, "\\s*\\[\\d?\\]"),
+                     x, perl = TRUE)
+  do_null <- isTRUE(knitr::opts_current$get("null_prefix"))
+  if (can_null && do_null) {
+    # By default R print output aligns at the right brace.
+    align_index <- regexpr("\\]", x)[1] - 1
+    # Two cases: start or newline
+    re <- paste0("^.{", align_index, "}\\]")
+    rep <- comment
+    x <- gsub(re, rep,  x)
+    re <- paste0("\\\n.{", align_index, "}\\]")
+    rep <- paste0("\n", comment)
+    x <- gsub(re, rep,  x)
+  }
+
+  default_output_hook(x, options)
+
+})
+
+knitr::opts_template$set("kill_prefix" = list(comment = NA, null_prefix = TRUE))
+
 ```
 
 ## Question 6.2
@@ -46,13 +76,21 @@ The matrix `fingerprints` contains the 1,107 binary molecular predictors for the
 
 ### Part B
 
-the `fingerprints` predictors indicate the presense or absense of substructures of a molecule and are often sparse meaning that relatively few of the molecules contain each substructure.  Filter out the predictors that have low frequencieis using the `nearZeroVar` function from the `caret` package.  How many are left for modeling?
+the `fingerprints` predictors indicate the presense or absense of substructures of a molecule and are often sparse meaning that relatively few of the molecules contain each substructure.  Filter out the predictors that have low frequencies using the `nearZeroVar` function from the `caret` package.  How many are left for modeling?
 
-**`r length(nearZeroVar(fingerprints))`**
+```{r, null_prefix=TRUE}
+fingerprints %>%
+  nearZeroVar() %>%
+  length()
+```
+
+**There are `r length(nearZeroVar(fingerprints))` variables left.**
 
 ### Part C
 
 Split the data into training and test sets, pre-process the data, and tune a PLS model.  How many latent variables are optimal and what is the corresponding resampled estimate of $R^2$?
+
+**I will split it using a 80:20 split.  I will center the data.**
 
 ```{r}
 df <- as.data.frame(fingerprints[, nearZeroVar(fingerprints)]) %>%
@@ -138,6 +176,8 @@ pcr_results %>%
   kable_styling()
 ```
 
+**No improvement here.**
+
 #### Ridge Regression
 
 ```{r}
@@ -154,6 +194,8 @@ rr_results %>%
   kable_styling()
 ```
 
+**PLS preformed better.**
+
 #### Lasso Regression
 
 ```{r}
@@ -168,6 +210,8 @@ lr_results %>%
   kable_styling()
 ```
 
+**PLS has more explanatory power.**
+
 #### Elastic Net Regession
 
 ```{r}
@@ -181,7 +225,6 @@ en_model$bestTune
 ```
 
 ```{r}
-
 en_predictions <- en_model %>% predict(x_test)
 # Model performance metrics
 en_results <- data.frame(Model = "Elastic Net Regression",
@@ -191,6 +234,8 @@ en_results %>%
   kable() %>%
   kable_styling()
 ```
+
+**There isn't any improvment over the PLS.**
 
 #### Summary 
 
@@ -314,18 +359,21 @@ results %>%
 
 Which predictors are most important in the model you have trained?  Do either the biological or process predictors dominate the list?
 
-```{r}
-varImp(pls_model) %>%
-  plot(, top = 20, main = "Important Variables (Cliped at 20)")
-```
+**I will select the variables with a `varImp` sore greater than or equal to 60 to be the "important" ones.**
 
 ```{r}
-pls_importance <- varImp(pls_model)$importance %>% 
+pls_importance <- varImp(pls_model)$importance %>%
   as.data.frame() %>%
   rownames_to_column("Variable") %>%
+  filter(Overall >= 50) %>%
   arrange(desc(Overall)) %>%
   mutate(importance = row_number())
 
+varImp(pls_model) %>%
+  plot(., top = max(pls_importance$importance), main = "Important Variables")
+```
+
+```{r}
 pls_importance %>%
   mutate(Variable = gsub("[0-9]+", "", Variable)) %>%
   group_by(Variable) %>%
@@ -335,23 +383,26 @@ pls_importance %>%
   kable_styling()
 ```
 
-**The process predictors dominate the list.**
+**There are only `r max(pls_importance$importance)` variables and the process predictors dominate the list.**
 
 ### Part F
 
 Explore the relationships between each of the top predictors and the response.  How could this information be helpful in improving yield in future rounds of the manufacturing process?
 
 ```{r}
-df %>%
-  select_at(vars(Yield, pls_importance$Variable)) %>%
+important_vars <- df %>%
+  select_at(vars(Yield, pls_importance$Variable))
+
+important_vars_p <- cor.mtest(important_vars)$p
+
+important_vars %>%
   cor() %>%
-  corrplot(type = "lower", order = "hclust", tl.col = "black", tl.srt = 45)
-  #corrplot(., type = "upper", order = "hclust",
-  #       col = brewer.pal(n = 8, name = "RdBu"))
+  corrplot(method = "color", type = "lower", order = "hclust",
+           tl.cex = 0.8, tl.col = "black", tl.srt = 45,
+           addCoef.col = "black", number.cex = 0.7,
+           p.mat = important_vars_p,  sig.level = 0.05, diag = FALSE)
 ```
-  merge(pls_importance) %>%
-  ggplot(aes(value, Yield, color = Variable)) +
-  theme(legend.position = "none") +
-  geom_point() %>%
-  facet_wrap(~ Variable)
-```
+
+**All variables are positively correlated with the Yield.  Manufacuring process 32 is the most important variable.  It is positively correlated the biological variables.  It is also negatively correlated with manufacturing process 13.**
+
+**Further exploration of these relationships could improve the yield.  This would be valuable information for these chemical manufacturers.**
