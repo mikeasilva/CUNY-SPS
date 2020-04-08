@@ -1,5 +1,5 @@
 ---
-title: "DATA 624 Homework 6"
+title: "DATA 624 Homework 7"
 date: "`r Sys.Date()`"
 output:
   rmdformats::readthedown:

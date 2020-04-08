@@ -1,0 +1,147 @@
+---
+title: "DATA 624 Homework 6"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    toc_depth: 4
+    code_folding: "show"
+---
+
+```{r setup, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment = NA,
+                      message = FALSE, warning = FALSE)
+library(tidyverse)
+library(caret)
+library(kableExtra)
+library(glmnet)
+library(pls)
+library(corrplot)
+library(tidyr)
+library(RColorBrewer)
+knitr::knit_hooks$set(inline = function(x) {
+  if (!is.numeric(x)) {
+    x
+  } else {
+    prettyNum(round(x, 2), big.mark = ",")
+  }
+})
+options(scipen = 999)
+
+# Make sure to keep the default for normal processing.
+default_output_hook <- knitr::knit_hooks$get("output")
+
+# Output hooks handle normal R console output.
+knitr::knit_hooks$set(output = function(x, options) {
+
+  comment <- knitr::opts_current$get("comment")
+  if (is.na(comment)) comment <- ""
+  can_null <- grepl(paste0(comment, "\\s*\\[\\d?\\]"),
+                     x, perl = TRUE)
+  do_null <- isTRUE(knitr::opts_current$get("null_prefix"))
+  if (can_null && do_null) {
+    # By default R print output aligns at the right brace.
+    align_index <- regexpr("\\]", x)[1] - 1
+    # Two cases: start or newline
+    re <- paste0("^.{", align_index, "}\\]")
+    rep <- comment
+    x <- gsub(re, rep,  x)
+    re <- paste0("\\\n.{", align_index, "}\\]")
+    rep <- paste0("\n", comment)
+    x <- gsub(re, rep,  x)
+  }
+
+  default_output_hook(x, options)
+
+})
+
+knitr::opts_template$set("kill_prefix" = list(comment = NA, null_prefix = TRUE))
+
+```
+
+## Question  7.2
+
+Friedman (1991) introduced several benchmark data sets created by simulation.  On of these simulations used the following nonlinear equations to create data:
+
+$y = 10 sin(\pi x_1x_2) + 20(x_3- 0.5)^2 + 10x_4 + 5x_5 + N(0, \sigma^2)$
+
+where the $x$ values are randome variables uniformly distributed between $[0,1]$ (there are also 5 other non-informative variables also created in the simulation).  The package `mlbench` contains a function called `mlbench.friedman1` that simulates these data:
+
+```{r}
+library(mlbench)
+set.seed(200)
+trainingData <- mlbench.friedman1(200, sd = 1)
+## We convert the 'x' data from a matrix to a data frame
+## One reason is that this will five the columns names.
+trainingData$x <- data.frame(trainingData$x)
+## Look at the data using
+featurePlot(trainingData$x, trainingData$y)
+## or other methods.
+
+## This creates a list with a vector 'y' and a matrix
+## of predictors 'x'.  Also simulate a large test set to
+## estimate the true error rate with good precision:
+testData <- mlbench.friedman1(5000, sd = 1)
+testData$x <- data.frame(testData$x)
+```
+
+Tune several models on these data.  For example:
+
+```{r}
+library(caret)
+knnModel <- train(x = trainingData$x, 
+                  y = trainingData$y,
+                  method = "knn",
+                  preProcess = c("center", "scale"),
+                  tuneLength = 10)
+knnModel
+```
+
+```{r}
+knnPred <- predict(knnModel, newdata = testData$x)
+## The function 'postResample' can be used to get the test set
+## performance values
+postResample(pred = knnPred, obs = testData$y)
+```
+
+Which models appear to give the best performance?  Does MARS select the infomrative predictors (those named X1-X5)?
+
+
+## Question 7.5
+
+Exercise 6.3 descrives data for a chemical manufacturing process.  Use the same data imputation, data splitting, and pre-processing steps as before and traing several nonlinear regression models.
+
+```{r}
+library(AppliedPredictiveModeling)
+data(permeability)
+df <- as.data.frame(fingerprints[, nearZeroVar(fingerprints)]) %>%
+  mutate(y = permeability)
+
+# Make this reproducible
+set.seed(42)
+
+in_train <- createDataPartition(df$y, times = 1, p = 0.8, list = FALSE)
+train_df <- df[in_train, ]
+test_df <- df[-in_train, ]
+
+pls_model <- train(
+  y ~ ., data = train_df, method = "pls",
+  center = TRUE,
+  trControl = trainControl("cv", number = 10),
+  tuneLength = 25
+)
+```
+
+### Part A
+
+Which nonlinear regression model give the optimal resampling and test set performance?
+
+### Part B
+
+Which predictors are most important in the optimal nonlinear regression model?  Do either the biological or process variables dominate the list?  How do the top ten important predictors compare to the top ten predictors from the optimal linear model?
+
+### Part C
+
+Explore the relationships between the top predictors and the response for the predictors that are unique to the optimal nonlinear regression model. Do these plots reveal intuition about the biological or process predictors and theri relationship with yield?
+
+
