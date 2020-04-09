@@ -65,7 +65,7 @@ Friedman (1991) introduced several benchmark data sets created by simulation.  O
 
 $y = 10 sin(\pi x_1x_2) + 20(x_3- 0.5)^2 + 10x_4 + 5x_5 + N(0, \sigma^2)$
 
-where the $x$ values are randome variables uniformly distributed between $[0,1]$ (there are also 5 other non-informative variables also created in the simulation).  The package `mlbench` contains a function called `mlbench.friedman1` that simulates these data:
+where the $x$ values are random variables uniformly distributed between $[0,1]$ (there are also 5 other non-informative variables also created in the simulation).  The package `mlbench` contains a function called `mlbench.friedman1` that simulates these data:
 
 ```{r}
 library(mlbench)
@@ -87,7 +87,9 @@ testData$x <- data.frame(testData$x)
 
 Tune several models on these data.  For example:
 
-```{r}
+### KNN Model
+
+```{r knn_model}
 library(caret)
 knnModel <- train(x = trainingData$x, 
                   y = trainingData$y,
@@ -103,7 +105,6 @@ knnPred <- predict(knnModel, newdata = testData$x)
 ## performance values
 postResample(pred = knnPred, obs = testData$y)
 ```
-
 
 Which models appear to give the best performance?  Does MARS select the informative predictors (those named X1-X5)?
 
@@ -148,11 +149,49 @@ SVM_model <- train(x = trainingData$x,
 SVM_model
 ```
 
+**The optimal SVM mdoel has a $\sigma$ of `r SVM_model$bestTune$sigma` and an C of `r SVM_model$bestTune$C`.**
+
 ```{r}
 SVM_predictions <- predict(SVM_model, newdata = testData$x)
 postResample(pred = SVM_predictions, obs = testData$y)
 ```
 
+```{r}
+varImp(SVM_model)
+```
+
+**The SVM picked up the important varaibles.**
+
+### Neural Network Model
+
+```{r}
+nnet_grid <- expand.grid(.decay = c(0, 0.01, .1), .size = c(1:10), .bag = FALSE)
+nnet_maxnwts <- 5 * (ncol(trainingData$x) + 1) + 5 + 1
+nnet_model <- train(x = trainingData$x,
+                    y = trainingData$y,
+                    method = "avNNet",
+                    preProcess = c("center", "scale"),
+                    tuneGrid = nnet_grid,
+                    trControl = trainControl(method = "cv"),
+                    linout = TRUE,
+                    trace = FALSE,
+                    MaxNWts = nnet_maxnwts,
+                    maxit = 500)
+nnet_model
+```
+
+**The best neural network has a size = `r nnet_model$bestTune$size` and a decay of `r nnet_model$bestTune$decay`.**
+
+```{r}
+nnet_predictions <- predict(nnet_model, newdata = testData$x)
+postResample(pred = nnet_predictions, obs = testData$y)
+```
+
+```{r}
+varImp(nnet_model)
+```
+
+**The top 5 variables are the ones we want to see listed.**
 
 ### Summary
 
@@ -168,12 +207,19 @@ results <- data.frame(t(postResample(pred = SVM_predictions, obs = testData$y)))
   mutate("Model"= "SVM") %>%
   bind_rows(results)
 
+results <- data.frame(t(postResample(pred = nnet_predictions, obs = testData$y))) %>%
+  mutate("Model"= "Neural Network") %>%
+  bind_rows(results)
+
 results %>%
   select(Model, RMSE, Rsquared, MAE) %>%
   arrange(RMSE) %>%
   kable() %>%
   kable_styling()
 ```
+
+**The MARS model preformed the best and identified the right variables as the important ones.  The $R^2$ on it is extremely high.  I'm impressed by it's performance on the test set!**
+
 ## Question 7.5
 
 Exercise 6.3 describes data for a chemical manufacturing process.  Use the same data imputation, data splitting, and pre-processing steps as before and traing several nonlinear regression models.
