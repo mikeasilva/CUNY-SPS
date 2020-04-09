@@ -164,7 +164,7 @@ varImp(SVM_model)
 
 ### Neural Network Model
 
-```{r}
+```{r neural_network_model}
 nnet_grid <- expand.grid(.decay = c(0, 0.01, .1), .size = c(1:10), .bag = FALSE)
 nnet_maxnwts <- 5 * (ncol(trainingData$x) + 1) + 5 + 1
 nnet_model <- train(x = trainingData$x,
@@ -242,11 +242,93 @@ pls_model <- train(
   trControl = trainControl("cv", number = 10),
   tuneLength = 25
 )
+
+pls_predictions <- predict(pls_model, test_df)
+
+results <- data.frame(t(postResample(pred = pls_predictions, obs = test_df$y))) %>%
+  mutate("Model"= "PLS")
 ```
 
 ### Part A
 
 Which nonlinear regression model give the optimal resampling and test set performance?
+
+#### KNN Model
+
+```{r}
+knn_model <- train(y ~ ., data = train_df, method = "knn",
+                   preProcess = c("center"), 
+                   trControl = trainControl("cv", number = 10),
+                   tuneLength = 25)
+knn_model
+
+knn_predictions <- predict(knn_model, test_df)
+
+results <- data.frame(t(postResample(pred = knn_predictions, obs = test_df$y))) %>%
+  mutate("Model"= "KNN") %>% rbind(results)
+```
+
+#### MARS Model
+
+```{r}
+MARS_grid <- expand.grid(.degree = 1:2, .nprune = 2:15)
+MARS_model <- train(y ~ ., data = train_df, method = "earth",
+                    tuneGrid = MARS_grid,
+                    preProcess = c("center"),
+                    tuneLength = 25)
+MARS_model
+
+MARS_predictions <- predict(MARS_model, test_df)
+
+results <- data.frame(t(postResample(pred = MARS_predictions, obs = test_df$y))) %>%
+  mutate("Model"= "MARS") %>% rbind(results)
+```
+
+#### SVM Model
+
+```{r}
+SVM_model <- train(y ~ ., data = train_df, method = "svmRadial",
+                   preProcess = c("center"),
+                   tuneLength = 25,
+                   trControl = trainControl(method = "cv"))
+SVM_model
+
+SVM_predictions <- predict(SVM_model, test_df)
+
+results <- data.frame(t(postResample(pred = SVM_predictions, obs = test_df$y))) %>%
+  mutate("Model"= "SVM") %>% rbind(results)
+```
+
+#### Neural Network Model
+
+```{r}
+nnet_grid <- expand.grid(.decay = c(0, 0.01, .1), .size = c(1:10), .bag = FALSE)
+nnet_maxnwts <- 5 * ncol(train_df) + 5 + 1
+nnet_model <- train(y ~ ., data = train_df, method = "avNNet",
+                    preProcess = c("center"),
+                    tuneGrid = nnet_grid,
+                    trControl = trainControl(method = "cv"),
+                    linout = TRUE,
+                    trace = FALSE,
+                    MaxNWts = nnet_maxnwts,
+                    maxit = 500)
+nnet_model
+
+nnet_predictions <- predict(nnet_model, test_df)
+
+results <- data.frame(t(postResample(pred = nnet_predictions, obs = test_df$y))) %>%
+  mutate("Model"= "Neural Network") %>% rbind(results)
+```
+
+#### Summary
+
+```{r}
+results %>%
+  select(Model, RMSE, Rsquared, MAE) %>%
+  arrange(RMSE) %>%
+  kable() %>%
+  kable_styling()
+```
 
 ### Part B
 
