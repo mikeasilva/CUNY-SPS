@@ -104,12 +104,79 @@ knnPred <- predict(knnModel, newdata = testData$x)
 postResample(pred = knnPred, obs = testData$y)
 ```
 
-Which models appear to give the best performance?  Does MARS select the infomrative predictors (those named X1-X5)?
+
+Which models appear to give the best performance?  Does MARS select the informative predictors (those named X1-X5)?
+
+### MARS Model
+
+```{r mars_model}
+MARS_grid <- expand.grid(.degree = 1:2, .nprune = 2:15)
+MARS_model <- train(x = trainingData$x, 
+                  y = trainingData$y,
+                  method = "earth",
+                  tuneGrid = MARS_grid,
+                  preProcess = c("center", "scale"),
+                  tuneLength = 10)
+MARS_model
+```
+
+**The optimal MARS model minimized the RMSE when the nprune = `r MARS_model$bestTune$nprune`  and the degree = `r MARS_model$bestTune$degree`.**
+
+```{r}
+MARS_predictions <- predict(MARS_model, newdata = testData$x)
+postResample(pred = MARS_predictions, obs = testData$y)
+```
+
+**The RMSE of the MARS model is a lot lower than the KNN model.  Let's see what variables are important.**
+
+```{r}
+varImp(MARS_model)
+```
+
+**The MARS model picks up the X1-X5 varaibles.**
 
 
+### SVM Model
+
+```{r svm_model}
+SVM_model <- train(x = trainingData$x,
+                   y = trainingData$y,
+                   method = "svmRadial",
+                   preProcess = c("center", "scale"),
+                   tuneLength = 10,
+                   trControl = trainControl(method = "cv"))
+SVM_model
+```
+
+```{r}
+SVM_predictions <- predict(SVM_model, newdata = testData$x)
+postResample(pred = SVM_predictions, obs = testData$y)
+```
+
+
+### Summary
+
+```{r}
+results <- data.frame(t(postResample(pred = knnPred, obs = testData$y))) %>% 
+  mutate("Model" = "KNN")
+
+results <- data.frame(t(postResample(pred = MARS_predictions, obs = testData$y))) %>%
+  mutate("Model"= "MARS") %>%
+  bind_rows(results)
+
+results <- data.frame(t(postResample(pred = SVM_predictions, obs = testData$y))) %>%
+  mutate("Model"= "SVM") %>%
+  bind_rows(results)
+
+results %>%
+  select(Model, RMSE, Rsquared, MAE) %>%
+  arrange(RMSE) %>%
+  kable() %>%
+  kable_styling()
+```
 ## Question 7.5
 
-Exercise 6.3 descrives data for a chemical manufacturing process.  Use the same data imputation, data splitting, and pre-processing steps as before and traing several nonlinear regression models.
+Exercise 6.3 describes data for a chemical manufacturing process.  Use the same data imputation, data splitting, and pre-processing steps as before and traing several nonlinear regression models.
 
 ```{r}
 library(AppliedPredictiveModeling)
@@ -117,7 +184,6 @@ data(permeability)
 df <- as.data.frame(fingerprints[, nearZeroVar(fingerprints)]) %>%
   mutate(y = permeability)
 
-# Make this reproducible
 set.seed(42)
 
 in_train <- createDataPartition(df$y, times = 1, p = 0.8, list = FALSE)
