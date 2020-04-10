@@ -243,6 +243,10 @@ pls_model <- train(
   tuneLength = 25
 )
 
+pls_model
+```
+
+```{r}
 pls_predictions <- predict(pls_model, test_df)
 
 results <- data.frame(t(postResample(pred = pls_predictions, obs = test_df$y))) %>%
@@ -297,27 +301,6 @@ SVM_predictions <- predict(SVM_model, test_df)
 
 results <- data.frame(t(postResample(pred = SVM_predictions, obs = test_df$y))) %>%
   mutate("Model"= "SVM") %>% rbind(results)
-```
-
-#### Neural Network Model
-
-```{r}
-nnet_grid <- expand.grid(.decay = c(0, 0.01, .1), .size = c(1:10), .bag = FALSE)
-nnet_maxnwts <- 5 * ncol(train_df) + 5 + 1
-nnet_model <- train(y ~ ., data = train_df, method = "avNNet",
-                    preProcess = c("center"),
-                    tuneGrid = nnet_grid,
-                    trControl = trainControl(method = "cv"),
-                    linout = TRUE,
-                    trace = FALSE,
-                    MaxNWts = nnet_maxnwts,
-                    maxit = 500)
-nnet_model
-
-nnet_predictions <- predict(nnet_model, test_df)
-
-results <- data.frame(t(postResample(pred = nnet_predictions, obs = test_df$y))) %>%
-  mutate("Model"= "Neural Network") %>% rbind(results)
 ```
 
 #### Summary
