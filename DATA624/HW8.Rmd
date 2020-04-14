@@ -224,32 +224,38 @@ results %>%
 
 Exercise 6.3 describes data for a chemical manufacturing process.  Use the same data imputation, data splitting, and pre-processing steps as before and traing several nonlinear regression models.
 
+**I will run the data through the models in the chapter trying to keep each model as close to the original linear model in terms of the parameters.**
+
 ```{r}
 library(AppliedPredictiveModeling)
-data(permeability)
-df <- as.data.frame(fingerprints[, nearZeroVar(fingerprints)]) %>%
-  mutate(y = permeability)
+data(ChemicalManufacturingProcess)
 
+# Make this reproducible
 set.seed(42)
 
-in_train <- createDataPartition(df$y, times = 1, p = 0.8, list = FALSE)
+knn_model <- preProcess(ChemicalManufacturingProcess, "knnImpute")
+df <- predict(knn_model, ChemicalManufacturingProcess)
+
+df <- df %>%
+  select_at(vars(-one_of(nearZeroVar(., names = TRUE))))
+
+in_train <- createDataPartition(df$Yield, times = 1, p = 0.8, list = FALSE)
 train_df <- df[in_train, ]
 test_df <- df[-in_train, ]
 
 pls_model <- train(
-  y ~ ., data = train_df, method = "pls",
+  Yield ~ ., data = train_df, method = "pls",
   center = TRUE,
+  scale = TRUE,
   trControl = trainControl("cv", number = 10),
   tuneLength = 25
 )
 
 pls_model
-```
 
-```{r}
 pls_predictions <- predict(pls_model, test_df)
 
-results <- data.frame(t(postResample(pred = pls_predictions, obs = test_df$y))) %>%
+results <- data.frame(t(postResample(pred = pls_predictions, obs = test_df$Yield))) %>%
   mutate("Model"= "PLS")
 ```
 
@@ -260,15 +266,18 @@ Which nonlinear regression model give the optimal resampling and test set perfor
 #### KNN Model
 
 ```{r}
-knn_model <- train(y ~ ., data = train_df, method = "knn",
-                   preProcess = c("center"), 
-                   trControl = trainControl("cv", number = 10),
-                   tuneLength = 25)
+knn_model <- train(
+  Yield ~ ., data = train_df, method = "knn",
+  center = TRUE,
+  scale = TRUE,
+  trControl = trainControl("cv", number = 10),
+  tuneLength = 25
+)
 knn_model
 
 knn_predictions <- predict(knn_model, test_df)
 
-results <- data.frame(t(postResample(pred = knn_predictions, obs = test_df$y))) %>%
+results <- data.frame(t(postResample(pred = knn_predictions, obs = test_df$Yield))) %>%
   mutate("Model"= "KNN") %>% rbind(results)
 ```
 
@@ -276,31 +285,66 @@ results <- data.frame(t(postResample(pred = knn_predictions, obs = test_df$y))) 
 
 ```{r}
 MARS_grid <- expand.grid(.degree = 1:2, .nprune = 2:15)
-MARS_model <- train(y ~ ., data = train_df, method = "earth",
-                    tuneGrid = MARS_grid,
-                    preProcess = c("center"),
-                    tuneLength = 25)
+
+MARS_model <- train(
+  Yield ~ ., data = train_df, method = "earth",
+  tuneGrid = MARS_grid,
+  # If the following lines are uncommented, it throws an error
+  #center = TRUE,
+  #scale = TRUE,
+  trControl = trainControl("cv", number = 10),
+  tuneLength = 25
+)
 MARS_model
 
 MARS_predictions <- predict(MARS_model, test_df)
 
-results <- data.frame(t(postResample(pred = MARS_predictions, obs = test_df$y))) %>%
+results <- data.frame(t(postResample(pred = MARS_predictions, obs = test_df$Yield))) %>%
   mutate("Model"= "MARS") %>% rbind(results)
 ```
 
 #### SVM Model
 
 ```{r}
-SVM_model <- train(y ~ ., data = train_df, method = "svmRadial",
-                   preProcess = c("center"),
-                   tuneLength = 25,
-                   trControl = trainControl(method = "cv"))
+SVM_model <- train(
+  Yield ~ ., data = train_df, method = "svmRadial",
+  center = TRUE,
+  scale = TRUE,
+  trControl = trainControl(method = "cv"),
+  tuneLength = 25
+)
 SVM_model
 
 SVM_predictions <- predict(SVM_model, test_df)
 
-results <- data.frame(t(postResample(pred = SVM_predictions, obs = test_df$y))) %>%
+results <- data.frame(t(postResample(pred = SVM_predictions, obs = test_df$Yield))) %>%
   mutate("Model"= "SVM") %>% rbind(results)
+```
+
+#### Neural Network Model
+
+```{r}
+nnet_grid <- expand.grid(.decay = c(0, 0.01, .1), .size = c(1:10), .bag = FALSE)
+nnet_maxnwts <- 5 * ncol(train_df) + 5 + 1
+nnet_model <- train(
+  Yield ~ ., data = train_df, method = "avNNet",
+  center = TRUE,
+  scale = TRUE,
+  tuneGrid = nnet_grid,
+  trControl = trainControl(method = "cv"),
+  linout = TRUE,
+  trace = FALSE,
+  MaxNWts = nnet_maxnwts,
+  maxit = 500
+)
+
+nnet_model
+
+nnet_predictions <- predict(nnet_model, test_df)
+
+results <- data.frame(t(postResample(pred = nnet_predictions, obs = test_df$Yield))) %>%
+  mutate("Model"= "Neural Network") %>% rbind(results)
+
 ```
 
 #### Summary
@@ -313,12 +357,31 @@ results %>%
   kable_styling()
 ```
 
+**The SVM Model was the best non-linear model.**
+
 ### Part B
 
 Which predictors are most important in the optimal nonlinear regression model?  Do either the biological or process variables dominate the list?  How do the top ten important predictors compare to the top ten predictors from the optimal linear model?
 
+```{r}
+varImp(SVM_model, 10)
+```
+
+```{r}
+varImp(pls_model, 10)
+```
+
+
+**The SVM model was very similar to the PLS model.  In either case the manufacuturing process variables dominate the list. The SVM model found `BiologicalMaterial12` to be important and didn't find `BiologicalMaterial02` to be important.**
+
 ### Part C
 
-Explore the relationships between the top predictors and the response for the predictors that are unique to the optimal nonlinear regression model. Do these plots reveal intuition about the biological or process predictors and theri relationship with yield?
+Explore the relationships between the top predictors and the response for the predictors that are unique to the optimal nonlinear regression model. Do these plots reveal intuition about the biological or process predictors and their relationship with yield?
 
 
+```{r}
+ggplot(train_df, aes(BiologicalMaterial12, Yield)) +
+  geom_point()
+```
+
+**This indicates a positive relationship between the `BiologicalMaterial02` and the yeild, although it seems that there is a sweet spot, or a point of diminishing marginal returns on the material as the highest yeilds are not the furthest to the right on the graph.**
