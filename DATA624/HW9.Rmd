@@ -15,6 +15,11 @@ library(tidyverse)
 library(kableExtra)
 library(tidyr)
 library(RColorBrewer)
+library(gbm)
+library(randomForest)
+library(caret)
+library(party)
+library(mlbench)
 knitr::knit_hooks$set(inline = function(x) {
   if (!is.numeric(x)) {
     x
@@ -60,7 +65,6 @@ knitr::opts_template$set("kill_prefix" = list(comment = NA, null_prefix = TRUE))
 Recreate the simulated data from Exercise 7.2
 
 ```{r}
-library(mlbench)
 set.seed(200)
 simulated <- mlbench.friedman1(200, sd = 1)
 simulated <- cbind(simulated$x, simulated$y)
@@ -73,20 +77,26 @@ colnames(simulated)[ncol(simulated)] <- "y"
 Fit a random fores model to all the predictors, then estimate the variable importance scores:
 
 ```{r}
-library(randomForest)
-library(caret)
 rf_model_1 <- randomForest(y ~ ., data = simulated, importance = TRUE, ntree = 1000)
 rf_imp_1 <- varImp(rf_model_1, scale = FALSE)
-rf_imp_1
+rf_imp_1  %>% 
+  as.data.frame() %>% 
+  rownames_to_column() %>% 
+  rename(Variable = rowname) %>%
+  arrange(desc(Overall)) %>%
+  kable() %>%
+  kable_styling()
 ```
 
 Did the random forest model significantly use the uninformative predictors (V6-V10)?
+
+**No.  The scores are very close to zero indicating they are uninformative.**
 
 ### Part B
 
 Now add an additional predictor that is highly correlated with one of the informative predictors.  For example:
 
-```{r}
+```{r, null_prefix = TRUE}
 simulated$duplicate1 <- simulated$V1 + rnorm(200) * .1
 cor(simulated$duplicate1, simulated$V1)
 ```
@@ -96,22 +106,112 @@ Fit another random forest model to these data.  Did the importance score for V1 
 ```{r}
 rf_model_2 <- randomForest(y ~ ., data = simulated, importance = TRUE, ntree = 1000)
 rf_imp_2 <- varImp(rf_model_2, scale = FALSE)
-rm_imp_2
+rf_imp_2 %>% 
+  as.data.frame() %>% 
+  rownames_to_column() %>% 
+  rename(Variable = rowname) %>%
+  arrange(desc(Overall)) %>%
+  kable() %>%
+  kable_styling()
 ```
+
+**The importance of `v1` has decreased significantly since adding the additional correlated predictor.  When adding the correlated predictor, both were included in the decision trees as significant predictors.  This caused the overall significance to decrease.**
 
 ### Part C
 
 Use the `cforest` function in the `party` package to fit a random forest model using conditional inference trees.  The `party` package function `varimp` can calculate predictor importance.  The `conditional` argument of that function toggles between the traditional importance measure and the modified version described in Stobl et al. (2007).  Do these importance show the same pattern as the traditional random forest model?
 
 ```{r}
-library(party)
 rf_model_3 <- cforest(y ~ ., data = simulated)
+rf_imp_3 <- varImp(rf_model_3, conditional = TRUE)
+rf_imp_3 %>% 
+  as.data.frame() %>% 
+  rownames_to_column() %>% 
+  rename(Variable = rowname) %>%
+  arrange(desc(Overall)) %>%
+  kable() %>%
+  kable_styling()
 ```
 
 ### Part D
 
 Repeat this process with different tree models, such as boosted trees and Cubist.  Does the same pattern occur?
 
+#### Boosted Tree
+
+**Training it without the duplicate predictor:**
+
+```{r}
+gbm_grid <- expand.grid(.interaction.depth = seq(1, 7, by = 2),
+                        .n.trees = seq(100, 1000, by = 100),
+                        .shrinkage = c(0.01, 0.1),
+                        .n.minobsinnode = 10)
+gbm_model_1 <- train(y ~ ., data = select(simulated, -duplicate1), method="gbm", tuneGrid = gbm_grid, verbose = FALSE)
+
+gbm_imp_1 <- varImp(gbm_model_1) 
+
+gbm_imp_1$importance %>% 
+  as.data.frame() %>% 
+  rownames_to_column() %>% 
+  rename(Variable = rowname) %>%
+  arrange(desc(Overall)) %>%
+  kable() %>%
+  kable_styling()
+```
+
+**The boosted tree did not pick up the uninformative predictors.  Now let's see what happens when I train it WITH the duplicate predictor:**
+
+```{r}
+gbm_model_2 <- train(y ~ ., data = simulated, method="gbm", tuneGrid = gbm_grid, verbose = FALSE)
+
+gbm_imp_2 <- varImp(gbm_model_2) 
+
+gbm_imp_2$importance %>% 
+  as.data.frame() %>% 
+  rownames_to_column() %>% 
+  rename(Variable = rowname) %>%
+  arrange(desc(Overall)) %>%
+  kable() %>%
+  kable_styling()
+```
+
+**This model exhibits the same pattern.  The duplicate becomes one of the important variables and the importance of `v1` decreases.**
+
+#### Cubist
+
+**Again training it without the duplicate predictor:**
+
+```{r}
+cubist_model_1 <- train(y ~ ., data = select(simulated, -duplicate1), method="cubist")
+
+cubist_imp_1 <- varImp(cubist_model_1) 
+
+cubist_imp_1$importance %>% 
+  as.data.frame() %>% 
+  rownames_to_column() %>% 
+  rename(Variable = rowname) %>%
+  arrange(desc(Overall)) %>%
+  kable() %>%
+  kable_styling()
+```
+
+**Once again, the cubist model does not pick up the un-important variables.  Let's train it WITH the duplicate predictor and see what happens:**
+
+```{r}
+cubist_model_2 <- train(y ~ ., data = simulated, method="cubist")
+
+cubist_imp_2 <- varImp(cubist_model_2) 
+
+cubist_imp_2$importance %>% 
+  as.data.frame() %>% 
+  rownames_to_column() %>% 
+  rename(Variable = rowname) %>%
+  arrange(desc(Overall)) %>%
+  kable() %>%
+  kable_styling()
+```
+
+**The cubist model also exhibits a similar behavior as the random forest model, but is not as pronounced.**
 
 ## Question 8.2
 
