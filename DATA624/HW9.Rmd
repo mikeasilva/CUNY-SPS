@@ -298,7 +298,7 @@ Refer to Exercises 6.3 and 7.5 which describe a chemical manufacturing process. 
 
 Which tree-based regression model gives the optimal resampling and test set performance?
 
-```{r}
+```{r 8_7_A_pls}
 library(AppliedPredictiveModeling)
 data(ChemicalManufacturingProcess)
 
@@ -337,7 +337,7 @@ pls_model
 
 #### Bagged Tree
 
-```{r}
+```{r 8_7_A_bag}
 set.seed(42)
 bagControl = bagControl(fit = ctreeBag$fit, predict = ctreeBag$pred, aggregate = ctreeBag$aggregate)
 bag_model <- train(Yield ~ ., data = train_df, method="bag", bagControl = bagControl,
@@ -357,7 +357,7 @@ bag_model
 ```
 #### Boosted Tree
 
-```{r}
+```{r 8_7_A_gbm}
 set.seed(42)
 gbm_model <- train(Yield ~ ., data = train_df, method="gbm", verbose = FALSE,
                    trControl = trainControl("cv", number = 10),
@@ -375,7 +375,7 @@ gbm_model
 
 #### Random Forest
 
-```{r}
+```{r 8_7_A_rf}
 set.seed(42)
 rf_model <- train(Yield ~ ., data = train_df, method = "ranger", 
                   scale = TRUE,
@@ -394,7 +394,7 @@ rf_model
 
 #### Conditional Inference Random Forest
 
-```{r}
+```{r 8_7_A_crf}
 set.seed(42)
 crf_model <- train(Yield ~ ., data = train_df, method = "cforest",
                    trControl = trainControl("cv", number = 10),
@@ -412,7 +412,7 @@ crf_model
 
 #### Results
 
-```{r}
+```{r 8_7_A_results}
 results %>%
   arrange(RMSE) %>%
   kable() %>%
@@ -427,13 +427,13 @@ Which predictors are most important in the optimal tree-based regression model? 
 
 **Here's the top ten predictors:**
 
-```{r}
+```{r 8_7_B_bag}
 varImp(bag_model)
 ```
 
 **The manufacturing process variables continue to dominate the list.  The same variables are found in both lists (in different orders of importance)**
 
-```{r}
+```{r 8_7_B_pls}
 varImp(pls_model)
 ```
 
@@ -441,7 +441,7 @@ varImp(pls_model)
 
 Plot the optimal single tree with the distribution of yield in the terminal nodes.  Does this view of the data provide additional knowledge about the biological or process predictors and their relationship with yield?
 
-```{r}
+```{r 8_7_C}
 set.seed(1)
 cart_model <- train(Yield ~ ., data = train_df, method = "rpart",
                     trControl = trainControl("cv", number = 10),
