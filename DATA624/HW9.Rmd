@@ -18,6 +18,7 @@ library(RColorBrewer)
 library(gbm)
 library(randomForest)
 library(caret)
+library(rattle)
 library(party)
 library(rpart)
 library(mlbench)
@@ -321,23 +322,46 @@ pls_model <- train(
   trControl = trainControl("cv", number = 10),
   tuneLength = 25
 )
-
 pls_predictions <- predict(pls_model, test_df)
-
 pls_in_sample <- pls_model$results[pls_model$results$ncomp == pls_model$bestTune$ncomp,]
 results <- data.frame(t(postResample(pred = pls_predictions, obs = test_df$Yield))) %>%
   mutate("In Sample RMSE" = pls_in_sample$RMSE,
          "In Sample Rsquared" = pls_in_sample$Rsquared,
          "In Sample MAE" = pls_in_sample$MAE,
          "Model"= "PLS")
+pls_model
 ```
 
-**I'm going to fit the data against a series of tree based models.  I will use caret with vanilla settings to see how well the preform against a tuned PLS model.**
+**I'm going to fit the data against a series of tree based models.  I will use caret and try to match the same paramaters to guague th preformance against the similar PLS model.**
 
+
+#### Bagged Tree
+
+```{r}
+set.seed(42)
+bagControl = bagControl(fit = ctreeBag$fit, predict = ctreeBag$pred, aggregate = ctreeBag$aggregate)
+bag_model <- train(Yield ~ ., data = train_df, method="bag", bagControl = bagControl,
+                   center = TRUE,
+                   scale = TRUE,
+                   trControl = trainControl("cv", number = 10),
+                   tuneLength = 25)
+bag_predictions <- predict(bag_model, test_df)
+bag_in_sample <- merge(bag_model$results, bag_model$bestTune)
+results <- data.frame(t(postResample(pred = bag_predictions, obs = test_df$Yield))) %>%
+  mutate("In Sample RMSE" = bag_in_sample$RMSE,
+         "In Sample Rsquared" = bag_in_sample$Rsquared,
+         "In Sample MAE" = bag_in_sample$MAE,
+         "Model"= "Bagged Tree") %>%
+  rbind(results)
+bag_model
+```
 #### Boosted Tree
 
 ```{r}
-gbm_model <- train(Yield ~ ., data = train_df, method="gbm", verbose = FALSE)
+set.seed(42)
+gbm_model <- train(Yield ~ ., data = train_df, method="gbm", verbose = FALSE,
+                   trControl = trainControl("cv", number = 10),
+                   tuneLength = 25)
 gbm_predictions <- predict(gbm_model, test_df)
 gbm_in_sample <- merge(gbm_model$results, gbm_model$bestTune)
 results <- data.frame(t(postResample(pred = gbm_predictions, obs = test_df$Yield))) %>%
@@ -346,12 +370,17 @@ results <- data.frame(t(postResample(pred = gbm_predictions, obs = test_df$Yield
          "In Sample MAE" = gbm_in_sample$MAE,
          "Model"= "Boosted Tree") %>%
   rbind(results)
+gbm_model
 ```
 
 #### Random Forest
 
 ```{r}
-rf_model <- train(Yield ~ ., data = train_df, method = "rf")
+set.seed(42)
+rf_model <- train(Yield ~ ., data = train_df, method = "ranger", 
+                  scale = TRUE,
+                  trControl = trainControl("cv", number = 10),
+                  tuneLength = 25)
 rf_predictions <- predict(rf_model, test_df)
 rf_in_sample <- merge(rf_model$results, rf_model$bestTune)
 results <- data.frame(t(postResample(pred = rf_predictions, obs = test_df$Yield))) %>%
@@ -360,32 +389,37 @@ results <- data.frame(t(postResample(pred = rf_predictions, obs = test_df$Yield)
          "In Sample MAE" = rf_in_sample$MAE,
          "Model"= "Random Forest") %>%
   rbind(results)
+rf_model
 ```
 
-#### Cubist Model
+#### Conditional Inference Random Forest
 
 ```{r}
-cubist_model <- train(Yield ~ ., data = train_df, method="cubist")
-
-cubist_predictions <- predict(cubist_model, test_df)
-cubist_in_sample <- merge(cubist_model$results, cubist_model$bestTune)
-results <- data.frame(t(postResample(pred = cubist_predictions, obs = test_df$Yield))) %>%
-  mutate("In Sample RMSE" = cubist_in_sample$RMSE,
-         "In Sample Rsquared" = cubist_in_sample$Rsquared,
-         "In Sample MAE" = cubist_in_sample$MAE,
-         "Model"= "Cubist") %>%
+set.seed(42)
+crf_model <- train(Yield ~ ., data = train_df, method = "cforest",
+                   trControl = trainControl("cv", number = 10),
+                   tuneLength = 25)
+crf_predictions <- predict(crf_model, test_df)
+crf_in_sample <- merge(crf_model$results, crf_model$bestTune)
+results <- data.frame(t(postResample(pred = crf_predictions, obs = test_df$Yield))) %>%
+  mutate("In Sample RMSE" = crf_in_sample$RMSE,
+         "In Sample Rsquared" = crf_in_sample$Rsquared,
+         "In Sample MAE" = crf_in_sample$MAE,
+         "Model"= "Conditional Random Forest") %>%
   rbind(results)
+crf_model
 ```
 
 #### Results
 
 ```{r}
 results %>%
+  arrange(RMSE) %>%
   kable() %>%
   kable_styling()
 ```
 
-**All tree model's fit the in sample data better than the PLS model.  However they may have overfit the data as the RMSE on the test set is higher for the random forest and boosted tree.  The cubist model is the only on that out preformed the PLS on the test set.  These findings are on vanilla models.  Additional tuning could be used to improve the model's performance**
+**All tree model's fit the in sample data better than the PLS model.  However they may have overfit the data as the RMSE on the test set is higher for the random forest and boosted tree.  The boosted tree model is the only on that out preformed the PLS on the test set.**
 
 ### Part B
 
@@ -394,15 +428,25 @@ Which predictors are most important in the optimal tree-based regression model? 
 **Here's the top ten predictors:**
 
 ```{r}
-varImp(cubist_model, 10)
+varImp(bag_model)
 ```
 
-**The manufacturing process variables continue to dominate the list.  Some of the variables on on both lists (in different orders of importance) while there are differences between the two lists:**
+**The manufacturing process variables continue to dominate the list.  The same variables are found in both lists (in different orders of importance)**
 
 ```{r}
-varImp(pls_model, 10)
+varImp(pls_model)
 ```
 
 ### Part C
 
 Plot the optimal single tree with the distribution of yield in the terminal nodes.  Does this view of the data provide additional knowledge about the biological or process predictors and their relationship with yield?
+
+```{r}
+set.seed(1)
+cart_model <- train(Yield ~ ., data = train_df, method = "rpart",
+                    trControl = trainControl("cv", number = 10),
+                    tuneLength = 25)
+fancyRpartPlot(cart_model$finalModel, sub="")
+```
+
+**This indicates that if you want to maximize yield, then the manufacturing process 32 must be greater than or equal to 0.19, process 13 < -0.85 and the Biological material 3 >= 0.49.  This recipie will produce the greatest yield.  Caution should be used however as this model is likely overfitting the training data.**
