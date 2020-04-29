@@ -1,0 +1,114 @@
+---
+title: "DATA 624 Homework 10"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    toc_depth: 4
+    code_folding: "show"
+---
+
+```{r setup, echo=FALSE, cache=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment = NA,
+                      message = FALSE, warning = FALSE)
+library(dplyr)
+library(kableExtra)
+library(tidyr)
+library(igraph)
+library(arules)
+library(arulesViz)
+knitr::knit_hooks$set(inline = function(x) {
+  if (!is.numeric(x)) {
+    x
+  } else {
+    prettyNum(round(x, 2), big.mark = ",")
+  }
+})
+options(scipen = 999)
+
+# Make sure to keep the default for normal processing.
+default_output_hook <- knitr::knit_hooks$get("output")
+
+# Output hooks handle normal R console output.
+knitr::knit_hooks$set(output = function(x, options) {
+
+  comment <- knitr::opts_current$get("comment")
+  if (is.na(comment)) comment <- ""
+  can_null <- grepl(paste0(comment, "\\s*\\[\\d?\\]"),
+                     x, perl = TRUE)
+  do_null <- isTRUE(knitr::opts_current$get("null_prefix"))
+  if (can_null && do_null) {
+    # By default R print output aligns at the right brace.
+    align_index <- regexpr("\\]", x)[1] - 1
+    # Two cases: start or newline
+    re <- paste0("^.{", align_index, "}\\]")
+    rep <- comment
+    x <- gsub(re, rep,  x)
+    re <- paste0("\\\n.{", align_index, "}\\]")
+    rep <- paste0("\n", comment)
+    x <- gsub(re, rep,  x)
+  }
+
+  default_output_hook(x, options)
+
+})
+
+knitr::opts_template$set("kill_prefix" = list(comment = NA, null_prefix = TRUE))
+```
+
+## Introduction
+
+The assignment is to use R to mine the data for association rules. It should report support, confidence and lift and your top 10 rules by lift.
+
+## Market Basket Analysis
+
+```{r}
+transactions <- read.transactions("GroceryDataSet.csv", sep=",")
+```
+
+```{r}
+itemFrequencyPlot(transactions, topN=10, type="absolute", main="Top 10 Items")
+```
+
+In order to complete this market basket analysis, I will use the Apriori algorithm. 
+
+
+```{r}
+apriori(transactions, parameter=list(supp=0.001, conf=0.5) , control=list(verbose=FALSE)) %>%
+  DATAFRAME() %>%
+  arrange(desc(lift)) %>%
+  top_n(10) %>%
+  kable() %>%
+  kable_styling()
+```
+
+## Cluster Analysis
+
+If I am given the choice, I will use a network graph to preform the cluster analysis.
+
+
+```{r}
+temp <- read.csv("GroceryDataSet.csv", header = FALSE) %>%
+  mutate(shoper_id = row_number()) %>%
+  pivot_longer(-shoper_id) %>%
+  filter(value != "") %>%
+  select(-name)
+
+edges <- temp %>%
+  rename(to = value) %>%
+  merge(temp) %>%
+  rename(from = value) %>%
+  filter(to != from) %>%
+  select(-shoper_id)
+
+G <- graph_from_data_frame(edges)
+```
+
+```{r}
+newman_girvan_clusters <- cluster_edge_betweenness(G)
+dendPlot(newman_girvan_clusters, mode="hclust")
+```
+
+```{r}
+plot(newman_girvan_clusters, G) 
+```

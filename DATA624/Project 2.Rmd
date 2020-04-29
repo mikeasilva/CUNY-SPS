@@ -1,0 +1,45 @@
+---
+title: "DATA 624 Project 2"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    toc_depth: 3
+    code_folding: "hide"
+---
+
+
+```{r setup, echo=FALSE, cache=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment = NA, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(tidyr)
+library(kableExtra)
+library(caret)
+library(scales)
+library(readxl)
+knitr::knit_hooks$set(inline = function(x) {
+  if (!is.numeric(x)) {
+    x
+  } else {
+    prettyNum(round(x, 2), big.mark = ",")
+  }
+})
+options(scipen = 999)
+```
+
+## Introduction
+
+We are to develop a model that predicts the pH level of a beverage.
+
+## Data Exploration
+
+```{r}
+df <- read_excel("StudentData.xlsx")
+test <- read_excel("StudentEvaluation.xlsx")
+```
+
+### Missing Values
+
+```{r}
+
+```
