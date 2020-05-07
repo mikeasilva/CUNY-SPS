@@ -14,9 +14,13 @@ knitr::opts_chunk$set(echo = TRUE, comment = NA, message = FALSE, warning = FALS
 library(tidyverse)
 library(tidyr)
 library(kableExtra)
+library(corrplot)
 library(caret)
 library(scales)
 library(readxl)
+library(naniar)
+library(xgboost)
+library(Matrix)
 knitr::knit_hooks$set(inline = function(x) {
   if (!is.numeric(x)) {
     x
@@ -25,6 +29,7 @@ knitr::knit_hooks$set(inline = function(x) {
   }
 })
 options(scipen = 999)
+seed <- 42
 ```
 
 ## Introduction
@@ -33,13 +38,161 @@ We are to develop a model that predicts the pH level of a beverage.
 
 ## Data Exploration
 
-```{r}
-df <- read_excel("StudentData.xlsx")
-test <- read_excel("StudentEvaluation.xlsx")
+```{r read_data}
+df <- read_excel("StudentData.xlsx") %>%
+  data.frame()
+
+eval_df <- read_excel("StudentEvaluation.xlsx") %>%
+  data.frame()
+```
+
+```{r summary_df}
+summary(df)
 ```
 
 ### Missing Values
 
-```{r}
+```{r missing_vals_df}
+df %>%
+  select(-PH) %>%
+  vis_miss()
+```
 
+```{r df_drop_na_ph}
+df <- df %>% 
+  drop_na(PH)
+```
+
+```{r missing_vals_eval_df}
+eval_df %>%
+  select(-PH) %>%
+  vis_miss()
+```
+
+
+
+```{r knn_impute}
+set.seed(seed)
+impute_model <- df %>%
+  select(-PH) %>%
+  preProcess(., method = "knnImpute")
+
+df_imputed <- predict(impute_model, df) %>%
+  na.omit()
+
+eval_df_imputed <- predict(impute_model, eval_df)
+```
+
+## Near-Zero Variance
+
+```{r near_zero_variance}
+nearZeroVar(df_imputed, saveMetrics = TRUE) %>%
+  data.frame() %>%
+  rownames_to_column() %>%
+  filter(nzv == TRUE)
+```
+
+## Correlations
+
+```{r corrplot}
+temp <- df_imputed %>%
+  select(-Brand.Code) %>%
+  na.omit()
+
+p_mat <- cor.mtest(temp, conf.level = 0.95)$p
+
+df_imputed %>%
+  select(-Brand.Code) %>%
+  na.omit() %>%
+  cor() %>%
+  corrplot(p.mat = p_mat, sig.level = 0.05, insig = "blank", order = "hclust", type = "upper")
+```
+
+## Train/Test Split
+
+```{r train_test_split}
+set.seed(seed)
+in_train <- createDataPartition(df_imputed$PH, p = 0.8, list = FALSE, times = 1)
+train_df_imputed <- df_imputed[in_train,]
+test_df_imputed <- df_imputed[-in_train,]
+train_df <- df[in_train,]
+test_df <- df[-in_train,]
+```
+
+## Random Forest
+
+### Ranger
+
+```{r ranger_rf}
+set.seed(seed)
+tc <- trainControl(method = "cv", number = 10)
+rf_fit <- train(PH ~ ., data = train_df_imputed, method = "ranger", importance = "permutation", trControl = tc)
+rf_fit
+
+varImp(rf_fit)
+
+rf_predictions <- predict(rf_fit, test_df_imputed)
+postResample(pred = rf_predictions, obs = test_df_imputed$PH)
+```
+
+### RF
+
+```{r rf, cache=TRUE}
+set.seed(seed)
+rf_fit2 <- train(PH ~ ., data = train_df_imputed, method = "rf", trControl = tc)
+rf_fit2
+
+varImp(rf_fit2)
+
+rf2_predictions <- predict(rf_fit2, test_df_imputed)
+postResample(pred = rf2_predictions, obs = test_df_imputed$PH)
+```
+
+### Brand Code Random Forests
+
+```{r brand_ranger_rf}
+for (brand_code in unique(train_df_imputed$Brand.Code)){
+  print(paste("Brand Code", brand_code))
+  temp_df <- train_df_imputed %>%
+    filter(Brand.Code == brand_code) %>%
+    select(-Brand.Code)
+  set.seed(seed)
+  temp_rf <- train(PH ~ ., data = temp_df, method = "ranger", importance = "permutation", trControl = tc)
+  print(temp_rf)
+  print(varImp(temp_rf))
+  temp_test <- test_df_imputed %>%
+    filter(Brand.Code == brand_code) %>%
+    select(-Brand.Code) 
+  temp_predictions <- predict(temp_rf, temp_test)
+  print(postResample(pred = temp_predictions, obs = temp_test$PH))
+}
+```
+
+## XGBOOST
+
+```{r xgboost}
+#converting datasets to matrices
+#options(na.action="na.pass")
+training2 <- train_df_imputed %>% drop_na(Brand.Code)
+testing2 <- test_df_imputed %>% drop_na(Brand.Code)
+
+trainingmx <- model.matrix(~.+0,data=training2[,names(training2) != c("PH")])
+testingmx <- model.matrix(~.+0,data=testing2[,names(testing2) != c("PH")])
+
+trainingdmx <- xgb.DMatrix(data = trainingmx, label=training2$PH)
+testingdmx <- xgb.DMatrix(data = testingmx, label=testing2$PH)
+
+#default parameters
+params <- list(booster = "gbtree", objective = "reg:linear", eta=0.3, gamma=0, max_depth=6, min_child_weight=1, subsample=1, colsample_bytree=1)
+
+#determine the best nround parameter (It controls the maximum number of iterations. For classification, it is similar to the number of trees to grow.)
+xgbcv <- xgb.cv( params = params, data = trainingdmx, nrounds = 300, nfold = 5, showsd = T, stratified = T, print_every_n = 10, early_stop_rounds = 20, maximize = F) # best at 250 iterations
+
+xgb_model1 <- xgb.train (params = params, data = trainingdmx, nrounds = 250, watchlist = list(val=testingdmx,train=trainingdmx), print_every_n = 10, early_stop_round = 10, maximize = F)
+
+xgbpred <- predict(xgb_model1,testingdmx)
+
+mat <- xgb.importance (feature_names = colnames(trainingmx),model = xgb_model1)
+
+xgb.plot.importance (importance_matrix = mat)
 ```
