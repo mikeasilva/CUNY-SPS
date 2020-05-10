@@ -21,6 +21,7 @@ library(readxl)
 library(naniar)
 library(xgboost)
 library(Matrix)
+library(VIM)
 knitr::knit_hooks$set(inline = function(x) {
   if (!is.numeric(x)) {
     x
@@ -29,7 +30,7 @@ knitr::knit_hooks$set(inline = function(x) {
   }
 })
 options(scipen = 999)
-seed <- 42
+seed <- 12345
 ```
 
 ## Introduction
@@ -73,14 +74,9 @@ eval_df %>%
 
 ```{r knn_impute}
 set.seed(seed)
-impute_model <- df %>%
-  select(-PH) %>%
-  preProcess(., method = "knnImpute")
 
-df_imputed <- predict(impute_model, df) %>%
-  na.omit()
-
-eval_df_imputed <- predict(impute_model, eval_df)
+df_imputed <- kNN(df, imp_var = FALSE)
+eval_df_imputed <- kNN(select(eval_df, -PH), imp_var = FALSE)
 ```
 
 ## Near-Zero Variance
@@ -125,7 +121,7 @@ test_df <- df[-in_train,]
 
 ```{r ranger_rf}
 set.seed(seed)
-tc <- trainControl(method = "cv", number = 10)
+tc <- trainControl(method = "cv", number = 10, allowParallel = TRUE)
 rf_fit <- train(PH ~ ., data = train_df_imputed, method = "ranger", importance = "permutation", trControl = tc)
 rf_fit
 
@@ -137,7 +133,7 @@ postResample(pred = rf_predictions, obs = test_df_imputed$PH)
 
 ### RF
 
-```{r rf, cache=TRUE}
+```{r rf}
 set.seed(seed)
 rf_fit2 <- train(PH ~ ., data = train_df_imputed, method = "rf", trControl = tc)
 rf_fit2
@@ -195,4 +191,27 @@ xgbpred <- predict(xgb_model1,testingdmx)
 mat <- xgb.importance (feature_names = colnames(trainingmx),model = xgb_model1)
 
 xgb.plot.importance (importance_matrix = mat)
+```
+
+## Stepwise Linear Regression
+
+```{r stepwise}
+# Loading latter to avoid the select clash with dplyr
+library(MASS)
+full_model <- lm(PH ~., data = train_df_imputed)
+# Stepwise regression model
+lm_model <- stepAIC(full_model, direction = "both", trace = FALSE)
+summary(lm_model)
+```
+
+```{r}
+set.seed(seed)
+tc <- trainControl(method = "cv", number = 10, allowParallel = TRUE)
+lm_fit <- train(PH ~ ., data = train_df_imputed, method = "glmStepAIC", trControl = tc)
+lm_fit
+
+varImp(lm_fit)
+
+lm_predictions <- predict(lm_fit, test_df_imputed)
+postResample(pred = lm_predictions, obs = test_df_imputed$PH)
 ```
