@@ -1,0 +1,311 @@
+---
+title: "DATA 624 Final Project"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    toc_depth: 3
+    code_folding: "show"
+---
+
+# R Libraries
+
+```{r, echo = T, results = 'hide'}
+library(caret)
+library(tidyverse)
+library(corrplot)
+library(kableExtra)
+library(mlbench)
+library(dplyr)
+library(readxl)
+library(VIM)
+library(psych)
+library(xgboost)
+library(Matrix)
+library(writexl)
+seed <- 12345
+```
+
+# Exploratory Data Analysis and PreProcessing
+
+## Data Loading
+
+```{r}
+train <- read_excel("StudentData.xlsx")
+test <- read_excel("StudentEvaluation.xlsx")
+```
+
+## Data Statistics
+
+```{r}
+dim(train)
+dim(test)
+```
+
+#### Complete observations
+
+```{r}
+nrow(train[complete.cases(train),])
+```
+
+#### All predictors are numeric except for "Brand Code, 1st Variable)
+
+```{r}
+summary(train)
+summary(test)
+```
+
+## Handling missing values (Train and Test sets)
+
+```{r, warning=FALSE}
+# Response
+train <- train %>% drop_na(PH)
+
+#Predictors
+train <- kNN(train, imp_var=FALSE)
+```
+
+## Correlation Analysis
+
+```{r}
+# Analyze Correlations with the response variable
+
+names <- colnames(train[,-26])
+pairs.panels(train[, c("PH", names[1:8])])
+pairs.panels(train[, c("PH", names[9:17])])
+pairs.panels(train[, c("PH", names[18:26])])
+pairs.panels(train[, c("PH", names[27:32])])
+```
+
+Top correlated features to PH:
+- Mnf Flow (-0.45)
+- Bowl Setpoint (0.35)
+- Filler Level (0.32)
+- Usage Cont (-0.32)
+- Pressure Setpoint (-0.31)
+- Hyd Pressure3 (-0.24)
+- Pressure Vacuum (0.22)
+- Hyd Pressure2 (-0.20)
+
+
+```{r}
+train2 <- train %>% dplyr::select(-'Brand Code')
+
+mydata.cor = cor(train2, method = c("spearman"))
+corrplot(mydata.cor,cl.cex = 0.7,tl.cex = .7,diag = TRUE)
+```
+
+## Correlated Predictors
+
+```{r}
+corr <- cor(train[,-c(1,26)], use='complete.obs')
+topcorr <- findCorrelation(corr) #top correlated predictors that could be removed to improve modeling
+colnames(train[,topcorr])
+corrplot(cor(train[,topcorr], use='complete.obs'))
+```
+
+## Near Zero Variance Predictors
+
+```{r}
+nzv <- nearZeroVar(train)
+colnames(train[,nzv])
+```
+
+"Hyd Pressure1" should be removed from the dataset as it is constant across observations
+
+## Data Distribution & Variability
+
+```{r}
+boxplot(train[, c(names[2:6])])
+boxplot(train[, c(names[7:11])])
+boxplot(train[, c(names[12:15])])
+boxplot(train[, c(names[16:20])])
+boxplot(train[, c(names[21:26])])
+boxplot(train[, c(names[27:32])])
+
+############ Look at some Decision Trees ##################
+source("https://raw.githubusercontent.com/crarnouts/Data_605_Final/master/RandomForestNulls_testing.R")
+ colnames(train)<- make.names(colnames(train), unique=TRUE)
+ colnames(test)<- make.names(colnames(test), unique=TRUE)
+train <- as.data.frame(train)
+test <- as.data.frame(test)
+
+test <- RF_with_Nulls(train,test,"PH",.5,5,10,.01,5,1)
+```
+
+## Data Split
+
+```{r}
+set.seed(seed)
+train_index <- createDataPartition(train$PH, p = .7, list = FALSE, times = 1)
+training <- train[train_index,]
+testing <- train[-train_index,]
+
+# Preparing test set for validation
+Xtest <- testing[,-grep("PH", colnames(testing))]
+```
+
+# Modeling & Evaluation
+
+## Linear Regression
+
+```{r}
+set.seed(seed)
+lm <- lm(PH~.,data = training)
+summary(lm)
+```
+
+## Bagged Tree
+
+```{r, warning=FALSE}
+set.seed(seed)
+bagControl = bagControl(fit = ctreeBag$fit, predict = ctreeBag$pred, aggregate = ctreeBag$aggregate)
+bag_model <- train(PH ~., 
+                    data = training, method="bag", bagControl = bagControl,
+                   center = TRUE,
+                   scale = TRUE,
+                   trControl = trainControl("cv", number = 5),
+                   tuneLength = 25)
+bag_model
+
+bag_pred <- predict(bag_model, newdata = Xtest)
+postResample(obs = testing$PH, pred=bag_pred)
+
+varImp(bag_model)
+```
+
+## XGBoost (Extreme Gradient Boosting)
+
+```{r}
+# Converting datasets to matrices
+training2 <- training %>% drop_na(`Brand.Code`)
+testing2 <- testing %>% drop_na(`Brand.Code`)
+trainingmx<-model.matrix(~.+0,data=training2[,names(training2) != c("PH")])
+testingmx<-model.matrix(~.+0,data=testing2[,names(testing2) != c("PH")])
+trainingdmx <- xgb.DMatrix(data = trainingmx, label=training2$PH) 
+testingdmx <- xgb.DMatrix(data = testingmx, label=testing2$PH) 
+# Default parameters
+params <- list(booster = "gbtree", objective = "reg:linear", eta=0.3, gamma=0, max_depth=6, min_child_weight=1, subsample=1, colsample_bytree=1)
+# Determine the best nround parameter (It controls the maximum number of iterations. For classification, it is similar to the number of trees to grow.)
+xgbcv <- xgb.cv( params = params, data = trainingdmx, nrounds = 300, nfold = 5, showsd = T, stratified = T, print_every_n = 10, early_stop_rounds = 20, maximize = F) 
+# Best at 260 iterations:
+```
+
+
+```{r}
+set.seed(seed)
+xgb_model1 <- xgb.train (params = params, data = trainingdmx, nrounds = 260, watchlist = list(val=testingdmx,train=trainingdmx), print_every_n = 10, early_stop_round = 10, maximize = F)
+# Best result at iteration 211 for training and validation sets:
+```
+
+
+```{r}
+mat <- xgb.importance (feature_names = colnames(trainingmx),model = xgb_model1)
+xgb.plot.importance (importance_matrix = mat) 
+```
+
+## SVM
+
+```{r}
+ctrl = trainControl(method='cv', number = 10)
+set.seed(seed)
+svmRad <- train(PH ~.,
+                data=training,
+                method = "svmRadial",
+                preProc = c("center", "scale"),
+                tuneLength = 14,
+                trControl = ctrl)
+svmRad
+svm_pred <- predict(svmRad, newdata = Xtest)
+postResample(obs = testing$PH, pred=svm_pred)
+varImp(svmRad)
+```
+
+## Cubist
+
+```{r}
+set.seed(seed)
+cubist <- train(PH ~., 
+                data = training,
+                method='cubist')
+cubist  #display model performance
+varImp(cubist) #display variable importance
+cubist_pred <- predict(cubist, newdata=Xtest) # generate preds
+postResample(obs=testing$PH, pred=cubist_pred) # evaluate model over test set
+```
+
+
+## Random Forest
+
+```{r}
+ctrl = trainControl(method='cv', number = 10, allowParallel = TRUE)
+set.seed(seed)
+rforest <- train(PH ~., 
+                 data = training,
+                 method = "ranger", 
+                 importance = "permutation",
+                 tuneLength = 10,
+                 trControl = ctrl
+                 )
+rforest #display model performance
+varImp(rforest) #display variable importance
+rf_pred <- predict(rforest, newdata = Xtest) # generate preds
+postResample(obs = testing$PH, pred=rf_pred) # Evaluate model over test set
+```
+
+#### Training Random Forest over Individual Brand Codes
+
+```{r brand_ranger_rf}
+for (brand_code in unique(training$Brand.Code)){
+  print(paste("Brand Code", brand_code))
+
+  temp_df <- training %>%
+    filter(Brand.Code == brand_code) %>%
+    select(-Brand.Code)
+  set.seed(seed)
+  temp_rf <- train(PH ~ ., data = temp_df, method = "ranger", importance = "permutation", trControl = ctrl)
+  print(temp_rf)
+  print(varImp(temp_rf))
+  temp_test <- testing %>%
+    filter(Brand.Code == brand_code) %>%
+    select(-Brand.Code)
+  temp_predictions <- predict(temp_rf, temp_test)
+  print(postResample(pred = temp_predictions, obs = temp_test$PH))
+}
+```
+
+# Predicting New Data w/Random Forest
+
+```{r, warning=FALSE}
+pfile <- read_excel("StudentEvaluation.xlsx")
+#Preparing the dataset we will ultimately predict PH on
+test <- pfile[,-grep("PH", colnames(pfile))]
+test <- kNN(test, imp_var=FALSE)
+colnames(test)<- make.names(colnames(test), unique=TRUE)
+
+ctrl = trainControl(method='cv', number = 10)
+set.seed(seed)
+rf_model <- train(PH ~., 
+                 data = train,
+                 method = "ranger", 
+                 importance = "permutation",
+                 tuneLength = 10,
+                 trControl = ctrl
+                 )
+
+final_rf_pred <- predict(rf_model, newdata=as.data.frame(test))
+pfile$PH <- final_rf_pred # applying predictions to unimputed dataset
+
+write_xlsx(pfile, "Predictions_file.xlsx") # write to excel
+```
+
+
+
+
+
+
+
+
+
+
+
