@@ -1,0 +1,1 @@
+The following scripts scrapped the data from BGG.com.  They are taken out of their directory structure so they will not work without recreating the structure.
