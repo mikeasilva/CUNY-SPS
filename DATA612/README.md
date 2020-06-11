@@ -16,4 +16,4 @@ Project 5 - Implementing a Recommender System on Spark ([Surprise ALS](https://g
 
 ## Final Project
 
-[Red Dice - Deployed Board Game Recommender System](http://red-dice.azurewebsites.net/) ([Data Wrangling](https://github.com/mikeasilva/CUNY-SPS/blob/master/DATA612/Build%20Final%20Project%20Data.ipynb) &  [App Source](https://github.com/mikeasilva/CUNY-SPS/blob/master/DATA612/Final%20Project.py))
+[Red Dice - Deployed Board Game Recommender System](http://red-dice.azurewebsites.net/) ([Data Wrangling](https://github.com/mikeasilva/CUNY-SPS/blob/master/DATA612/Build%20Final%20Project%20Data.ipynb) &  [App Source](https://github.com/mikeasilva/CUNY-SPS/blob/master/DATA612/Final%20Project.py) & [Scrapers](https://github.com/mikeasilva/CUNY-SPS/blob/master/DATA612/bgg-scrapper))
