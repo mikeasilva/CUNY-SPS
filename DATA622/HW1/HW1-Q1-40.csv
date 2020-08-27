@@ -1,0 +1,74 @@
+prospecting dataset
+age-group,networth,status,credit_rating,class:prospect
+youth,high,employed,fair,no
+youth,high,employed,excellent,no
+middle,high,employed,fair,yes
+senior,medium,employed,fair,yes
+senior,low,unemployed,fair,yes
+senior,low,unemployed,excellent,no
+middle,low,unemployed,excellent,yes
+youth,medium,employed,fair,no
+youth,low,unemployed,fair,yes
+senior,medium,unemployed,fair,yes
+youth,medium,unemployed,excellent,yes
+middle,medium,employed,excellent,yes
+middle,high,unemployed,fair,yes
+senior,medium,employed,excellent,no
+-------------------------
+You have been hired by a local electronics retailer and the above dataset has been
+given to you.
+Manager Bayes Jr.9th wants to create a spreadsheet to predict is a customer is likely
+prospect. To that end,
+1)Compute prior probabilities for the Prospect Yes/No
+2) Compute the conditional probabilities
+   P(age-group=youth|prospect=yes) and
+   P(age-group=youth|prospect=no)
+where age-group is a predictor variable.
+Compute the conditional probabilities for each predictor variable,
+namely,(age_group,networth,status,credit_rating)
+3) Assuming the assumptions of Naive Bayes are met, compute the posterior probability
+P(prospect|X) where X is one of the predictor variable.
+
+Recommendation: Do this by hand and submit name=value format
+where name 
+
+Prior Priorities P(prospect=yes),
+Prior Priorities P(prospect=no),
+
+Conditional Probabilities:
+P(age-group=youth|prospect=yes),
+P(age-group=middle|prospect=yes),
+P(age-group=senior|prospect=yes),
+P(age-group=youth|prospect=no),
+P(age-group=middle|prospect=no),
+P(age-group=senior|prospect=no),
+P(networth=high|prospect=yes),
+P(networth=low|prospect=yes),
+P(networth=medium|prospect=yes),
+P(networth=high|prospect=no),
+P(networth=low|prospect=no),
+P(networth=medium|prospect=no),
+P(status=employed|prospect=yes),
+P(status=employed|prospect=no),
+P(status=unemployed|prospect=yes),
+P(status=unemployed|prospect=no),
+P(credit=fair|prospect=yes),
+P(credit=excellent|prospect=no),
+P(credit=fair|prospect=yes),
+P(credit=excellent|prospect=no)
+
+Posterior Probabilities such as
+	  P(prospect=no|age-group,networth,status,credit)
+	  P(prospect=yes|age-group,networth,status,credit)
+
+Effort Estimate: Reading 15-30 minutes
+Counting: 10-15 minutes
+Computation with a calculator: 10-15 minutes
+
+Grading Correct counting 10
+Computation Prior Probabilities 4
+Conditional Probabilities 14
+Posterior Probabilities 12
+Total -- 40
+
+

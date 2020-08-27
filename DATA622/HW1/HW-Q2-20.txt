@@ -1,0 +1,15 @@
+You just recently joined a datascience team.
+
+There are two datasets junk1.txt and junk2.csv
+They have two options
+1. They can go back to the client and ask for more data
+to remedy problems with the data.
+2. They can accept the data and undertake a major analytics exercise.
+
+The team is relying on your dsc skills to determine how they
+should proceed.
+
+Can you explore the data and recommend actions for each file
+enumerating the reasons.
+
+grade -- 20

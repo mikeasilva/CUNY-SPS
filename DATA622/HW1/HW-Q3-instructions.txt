@@ -1,0 +1,29 @@
+Please find kNN.R
+
+This R script requires a dataset, labelcol and K (number of nearest neighbors to be considered)
+
+The dataset MUST Be numeric, except the labelcol
+The labelcol must be the last column in the data.frame
+All the other columns must be before the labelcol
+
+To DO:
+
+Please find icu.csv 
+The formula to fit is "STA ~ TYP + COMA + AGE + INF"
+
+Read the icu.csv subset it with these 5 features in the formula and STA is the labelcol.
+
+Split the icu 70/30 train/test and
+run the kNN.R for K=(3,5,7,15,25,50)
+
+submit the result confusionMatrix, Accuracy for each K
+
+Plot Accuracy vs K.
+
+write a short summary of your findings.
+
+Grade-->40
+Changing the code 10
+Running for different values of K 10
+Plot Accuracy 10
+Summary 10
