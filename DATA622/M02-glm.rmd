@@ -26,8 +26,10 @@ We assume data will be in csv format.
 ```{r MainCode}
 unixpath<-"/home/data/ML.Data/heart.csv"
 unixecolipath<-"/home/data/ML.Data/ecoli.csv"
-path<-"c://Users/rkannan/rk/data/heart.csv"
-ecolipath<-"c://Users/rkannan/rk/data/ecoli.csv"
+#path<-"c://Users/rkannan/rk/data/heart.csv"
+#ecolipath<-"c://Users/rkannan/rk/data/ecoli.csv"
+path<-"heart.csv"
+ecolipath<-"ecoli.csv"
 heart<-read.csv(path,header=TRUE,sep=',',stringsAsFactors=FALSE)
 ecoli<-read.csv(ecolipath,head=T,sep=',',stringsAsFactors=F)
 ```
