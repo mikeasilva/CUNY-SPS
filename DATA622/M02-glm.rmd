@@ -1,0 +1,438 @@
+---
+title: "Chapter 02: Our first model,Grand Old Logistic Regression"
+output:
+html_document: M02-glm.html
+df_print: paged
+pdf_document: default
+---
+```{r Startup}
+
+
+```
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Preliminaries
+
+We agree to maintain all the data in
+/home/data/ML.Data directory in 12.42.205.8 and 9. 
+If you wish to run these in your local then create a directory. 
+I created c:\Users\rkannan\rk\data 
+and copied these csv files.
+We assume data will be in csv format.
+
+#Load input data heart.csv and ecoli.csv
+```{r MainCode}
+unixpath<-"/home/data/ML.Data/heart.csv"
+unixecolipath<-"/home/data/ML.Data/ecoli.csv"
+path<-"c://Users/rkannan/rk/data/heart.csv"
+ecolipath<-"c://Users/rkannan/rk/data/ecoli.csv"
+heart<-read.csv(path,header=TRUE,sep=',',stringsAsFactors=FALSE)
+ecoli<-read.csv(ecolipath,head=T,sep=',',stringsAsFactors=F)
+```
+Let us write a one-line utility function to read in a CSV as above
+We assume, comma separated and includes a header record.
+```{r}
+loadData<-function(csvfile) { read.csv(csvfile,head=T,sep=',',stringsAsFactors=F) }
+ecoli_1<-ecoli
+ecoli_2<-loadData(ecolipath)
+TBL=table(ecoli_1==ecoli_2)
+TBL
+```
+## Review the data, quick and easy EDA
+View a few records (head/tail), dimension, number of rows and records
+and the variable names.
+Everything is an object and mostly a list. We can index into a list to 
+access the elements in the list. R index runs from 1 to the length.
+```{r}
+head(heart)
+```
+### unix head and tail commands
+R commands *head* and *tail* are like the Unix head and tail shell commands
+These commands output a few records from the beginning or at the end of the file.
+```{r}
+tail(heart)
+```
+### What is the shape of this dataset
+How many  observations does it have (each row is an observation)
+How many variables are available to us -- number of columns
+
+```{r}
+dim(heart)
+```
+*dim* prints the row X column -- equivalent to *shape in python*
+```{r}
+nrow(heart)
+```
+we can get just the number of rows in a data.frame
+or just the number of columns
+```{r}
+ncol(heart)
+```
+### Manipulating column names 
+Recall **heart<-read.csv(path,*header=TRUE*,sep=',',stringsAsFactors=FALSE)**
+so R would load the data into a data.frame with column names
+Here are some ways to manipulate header
+```{r}
+names(heart)
+names(heart)[3]
+length(names(heart))
+```
+let us change the name of the first column
+
+```{r}
+names(heart)[[1]]<-'age'
+```
+Always trust but verify that our indexing worked...
+```{r}
+names(heart)
+```
+# Are the covariates correlated?
+Numerically review the pairwise correlation amongst independent variables
+```{r}
+(corheart<-cor(heart[,1:13]))
+```
+# Are there any constant feature vectors?
+Let us find out if there are any constant variables.
+Constant variables cannot possibly contribute to predicting the target.
+For example, given this simple birds dataset, and that I saw a bird with two legs,
+can you identify which bird that might be?
+```{r}
+birds<-data.frame(legs=rep(2,8),name=c('crow','pigeon','owl','eagle','sparrow',
+'duck', 'woodpecker', 'humming bird'),stringsAsFactors=F)
+birds
+```
+Let us write a utility function we can call on any list...
+we can also do length(unique(x)) < 1
+```{r}
+isConstant<-function(x) length(names(table(x)))<2
+apply(heart,2,isConstant)
+```
+Let us plot,correlations using pairs function
+```{r}
+library(plotly)
+p <- pairs(heart)
+```
+## What is our class/label variable?
+Is the problem at hand *binary classification* or *multi-class classification!*?
+Let us assume, our customers want us to predict **target** given the rest.
+```{r}
+classLabels<-table(heart$target) # this is the actual class distribution both test/train partitions must be close to this.
+print(classLabels)
+names(classLabels)
+```
+# Class Imbalance
+Let us try to understand the *distribution of the target variable.* Let us make sure
+the distribution is balanced. 
+### When is a class imbalanced?
+If we find 1(minority) in 10 in the extreme case
+or anything less than 1 (minority) in 6, we will consider our dataset to be imbalanced.
+These are not hard rules but my intuition is as follows
+if we are going to create training data with 70/30 split then a random 
+sample that contains none or very few of the minority class becomes likely.
+Our efforts to train a model is not going to be very fruitful. The model
+may not know how to detect minority class or overwhelmed by majority class signature.
+
+```{r}
+length(names(classLabels))
+ifelse(length(names(classLabels))==2,"binary classification", "multi-class classification")
+
+```
+CONSIDER WRITING SMALL ONE LINERS isBinaryClassification(classVector)
+and one for, class imbalanced, isImbalancedData(classVector)
+IMHO, only one[or two] instance of a certain class -- better to remove that class initially.
+
+## First Classification run
+Let us run a simple generalized linear model and try to
+understand each variable and how important they are in 
+determining the target variable.
+
+we will **NOT** split the data as this is a trial run
+and this run is to develop a rough draft script for
+any classification exercise.
+```{r}
+glm_model<-glm(target~.,data=heart, family='binomial')
+glm_model
+summary_glm_model<-summary(glm_model)
+coef_summary_glm_model<-coef(summary_glm_model)
+dim(coef_summary_glm_model)
+coef_summary_glm_model[[1]]
+row.names(coef_summary_glm_model)
+```
+We will reject any variable with a p-value greater than 0.05.
+
+# p-value
+There is much debate regarding p-value. Nothing prevents us from saying
+we will reject if p-value is greater than 0.07 after we run the model. 
+
+While I respect that viewpoint, I continue to use
+p-value as I use 0.05 always. Sometimes, I do experiment with variables
+that are indicated as not-significant (p-value > 0.05 for that variable).
+For the overall model significance I consistently use 0.05. I do not change that
+to accept unreliable model.
+I interpret p-value to be the probability of rejecting H0 (the hypothesis) when it is
+actually, valid/true.
+
+The p value is the probability of observing a sample value as extreme as, or more extreme than, the value actually observed, given that the null hypothesis is true.
+p value represents the risk of rejecting a true null hypothesis. It is the probability of a Type I error if the null hypothesis is rejected.
+
+# Type I and Type II error
+When a Type I error (a) is committed, a true null hypothesis is rejected; the innocent person is unjustly convicted. The value is called the level of significance and is the probability of rejecting the true null. With
+a Type II error (b), one fails to reject a false null hypothesis; the result is an unjust acquittal, with the guilty person going free. In our system of justice, it is more important to reduce the probability of convicting
+the innocent than that of acquitting the guilty. Similarly, hypothesis testing places a greater emphasis
+on Type I errors than on Type II errors.
+
+# Ethical Practice
+Statistical tools cannot enforce ethical science or human behavior.
+So when running  a ML experiment, write ahead of time what your 
+acceptance criteria is prior to running the experiment. Include the result
+in your reporting regardless of the results.
+
+# File Drawer Problem
+Include all results from all the experiments, regardless of the results whether it is in agreement with your expectation or NOT. Eliminate the so called File Drawer problem -- of not including unfavorable results --.
+```{r}
+coef_summary_glm_model
+coef_summary_glm_model[,4]<0.05
+row_names<-row.names(coef_summary_glm_model[coef_summary_glm_model[,4]<0.05,])
+row_names
+summary_glm_model$aic
+summary_glm_model$null.deviance
+summary_glm_model$deviance
+ifelse(summary_glm_model$deviance<summary_glm_model$null.deviance,"model has improved","model has not helped")
+```
+### p-values
+Now let us rerun the model with the signifcant variables, that is, with p-value <0.05
+```{r}
+formulastr<-paste('target~',paste(row.names(coef_summary_glm_model[coef_summary_glm_model[,4]<0.05,]),collapse='+'),sep='')
+formulastr
+paste(row.names(coef_summary_glm_model[coef_summary_glm_model[,4]<0.05,]),collapse='+')
+model2<-glm(formulastr,data=heart,family='binomial')
+summ_model2<-summary(model2)
+coef_summ_model2<-coef(summ_model2)
+coef_summ_model2
+summ_model2$aic
+summ_model2$null.deviance
+summ_model2$deviance
+summary_glm_model$deviance
+ifelse(summary_glm_model$deviance<summary_glm_model$null.deviance,"model has improved","model has not helped")
+```
+So we removed predictors based on p-value and our deviance of the
+revised model is higher by about 6%.
+So let us compute the VIF factors for the model predictors and 
+determine if we removed some variables that should not have been removed.
+```{r}
+if(!require(car))install.packages('car')
+library(car)
+vif_model<-vif(glm_model)
+```
+VIF close to 1 indicates the variables are not correlated
+Above 4 is highly correlated.
+```{r}
+vif_model
+vif_model[vif_model>4]
+names(vif_model)
+nl<-names(vif_model[vif_model<4])
+(newformulastr<-paste('target~',paste(nl,collapse='+')))
+```
+We learned from the entire dataset. Let us get the target variable into a vector.
+```{r}
+Y<-heart[[14]]
+head(Y)
+```
+Now let us predict using our model. The model has already seen the data.
+We do not expect our model, to reproduce at 100%. But we do expect that our model performs better than random guess. If our model under-performs random guess, then that would be an indication of the model's inability to learn at all.
+Here in such cases that model is deficient and is a case of under-fitting.
+```{r}
+newmodel<-glm(formulastr,data=heart,family='binomial')
+summary(newmodel)
+summnewmodel<-summary(newmodel)
+(summnewmodel$aic)
+(summnewmodel$deviance)
+(summnewmodel$null.deviance)
+(p_values<-coef(summnewmodel)[,4])
+```
+Now let us compute the performance of the classifier.As indicated above,
+a random choice would have scored 0.5. If our model is any good it must perform
+better than 0.5.
+```{r}
+table(p_values<0.05)
+predYprob<-predict(newmodel,heart[,1:13],type='response')
+predY<-ifelse(predYprob<0.5,0,1)
+table(predY)
+table(heart[[14]])
+table(heart[[14]],predY)
+library(caret)
+require(caret)
+cfm<-caret::confusionMatrix(table(heart[[14]],predY))
+cfm
+```
+Accuracy is 84.49%.
+But this is from data the model has already seen.
+
+# Underfitting 
+A Model with an accuracy of 70% or higher is performant, and therefore, is not underfitting. We can surmise the model is capable of learning. It is better than
+random guess which would yield 50% accuracy.
+
+Business is not interested in predicting what has already happened. Business need help
+when there is uncertainty and not enough information is available. How will this model perform when a new patient or a new customer arrives. 
+*How can we estimate model performance over never seen before data? That is the capability,
+**generalize**, we are seeking. Is Life not the response to un-controlled, un-anticipated, unpredictable events?*
+
+# Never seen before data -- HOLD-OUT
+We need to devise a process to find out how our model performs when new data is
+presented. To do that, we will split our dataset into two disjoint partitions: a training set **70%** and a test set **30%**.
+We will hold out some of the data given to us as test set.
+We will train the model on the training set. 
+Measure its performance on the training set.
+Make sure it is at or near 0.85 accuracy, affirming it still is capable of learning with **70%** of the data.
+Then we predict the lable for the observations in the test set. 
+Measure the performance on the test set.
+
+# Over-fitting, learning from noise
+We normally expect performance over test set to be less than training set. If the performance over test set decreases by 20% or more, our model is over-fitting. Two well known causes of over-fitting, (1) *model complexity* and (2) *over-training*. The model has captured both noise and signal and the noise is reflected in the predictions, resulting in sub-optimal **generalization**.
+
+*I have quoted many numerical values as above, but they are my discipline definitely not a rule. They are my choice. You can set your own limits, please do so before running the model and do not change.*
+
+# Data Partition Repeatability/Reproducibility
+Let us split our data into "random" test/train disjoint partitions. Always set the seed.
+We will train our model on the training set. We will predict using training set to
+ensure the model is NOT under-fitting and then predict using the test set, some data
+model is not trained on. The test set represents new data. We will evaluate the model's ability to generalize.
+We can determine if our model is *over-fitting* influenced by noise in the training set.
+```{r}
+set.seed(43)
+tstidx<-sample(1:nrow(heart),0.30*nrow(heart),replace=F)
+trdata<-heart[-tstidx,]
+tsdata<-heart[tstidx,]
+```
+Now let us run the model.
+```{r}
+glm.trmodel<-glm(formulastr,data=trdata,family='binomial')
+summary(glm.trmodel)
+predtr<-predict(glm.trmodel,trdata[,1:13],type='response')
+head(predtr)
+
+predtrclass<-ifelse(predtr<0.5,0,1)
+table(trdata[[14]])
+table(predtrclass)
+
+length(predtrclass)==length(trdata[[14]])
+(trcfm<-caret::confusionMatrix(table(trdata[[14]],predtrclass)))
+```
+Accuracy on training data is 0.8404 not bad..model is capable of learning.
+Now let us predict the class for never seen before data.
+That is our 'held out' test dataset. This is what matters to the business.
+```{r}
+predts<-predict(glm.trmodel,tsdata[,1:13],type='response')
+predtsclass<-ifelse(predts<0.5,0,1)
+table(predtsclass)
+table(tsdata[[14]])
+table(tsdata[[14]],predtsclass)
+tscfm<-caret::confusionMatrix(table(tsdata[[14]],predtsclass))
+tscfm
+(precision <- tscfm$byClass['Pos Pred Value'])    #https://stackoverflow.com/questions/13548092
+(recall <- tscfm$byClass['Sensitivity'])
+(f_measure <- 2 * ((precision * recall) / (precision + recall))) #geometric mean instead of arithmatic mean
+```
+Accuracy on the test set (held out data or never seen before data) 
+is 0.8111, and has fallen down from accuracy obtained during training phase 0.84. The drop  is about 4% drop in performance and therefore we conclude Model is not over-fitting.
+WHAT IF, our performance had fallen quite a bit, say more than 25%, from training to testing phase. That would be a classic case of overfitting. That limit 25% is my discipline. It is not a rule. In consultation with your sponsor you set, these limits and follow it with discipline.
+
+* There are many advanced techniques to mitigate overfitting: 
+    +   LASSO, 
+    +   RIDGE, and 
+    +   Cross Validation. 
+  
+Here, We will remove some variables and see if it has any bearing on our results.
+```{r}
+tst.model2<-glm(target~cp+ca+thal+oldpeak,data=trdata,family='binomial')
+summary(tst.model2)
+tr.tst.pred<-predict(tst.model2,trdata[,1:13],family='binomial')
+tr.pred.class<-ifelse(tr.tst.pred<0.5,0,1)
+tr.pred.table<-table(trdata[[14]],tr.pred.class)
+tr.pred.table
+(tr.pred.cfm<-confusionMatrix(tr.pred.table))
+(precision <- tr.pred.cfm$byClass['Pos Pred Value'])    #https://stackoverflow.com/questions/13548092
+(recall <- tr.pred.cfm$byClass['Sensitivity'])
+(f_measure <- 2 * ((precision * recall) / (precision + recall)))
+```
+Our accuracy for the training phase is `r tr.pred.cfm$overall['Accuracy']`. 
+Now let us repeat it over test to find out if there is over-fitting.
+```{r}
+tst.pred2<-predict(tst.model2,tsdata[,1:13],type='response')
+tst.pred2.class<-ifelse(tst.pred2<0.5,0,1)
+tst.pred2.table<-table(tsdata[[14]],tst.pred2.class)
+tst.pred2.table
+(tst.pred2.cfm<-confusionMatrix(tst.pred2.table))
+(accuracy<-tst.pred2.cfm$overall['Accuracy'])
+(precision <- tst.pred2.cfm$byClass['Pos Pred Value'])    #https://stackoverflow.com/questions/13548092
+(recall <- tst.pred2.cfm$byClass['Sensitivity'])
+(f_measure <- 2 * ((precision * recall) / (precision + recall)))
+```
+Accuracy is `r accuracy`. Accuracy on training data was `r tr.pred.cfm$overall['Accuracy']`.
+There is no over-fitting. So we move on.
+Now let us visualize our performance using ROC plots.
+We need ROCR or pROC package and there are other packages.
+I use pROC.
+```{r echo=FALSE}
+graphics.off() 
+par("mar") 
+par(mar=c(1,1,1,1))
+if(!require(pROC))install.packages('pROC')
+library(pROC)
+par(pty="s") 
+glmROC <- roc(tsdata[[14]]~ tst.pred2.class,plot=TRUE,print.auc=TRUE,col="green",lwd =4,legacy.axes=TRUE,main="ROC Curves")
+```
+Now let us compute AUC and plot Receiver Operating Curve (ROC) using ROCR 
+package.
+```{r}
+getMetrics<-function(actual_class,predicted_response)
+{
+X=list()
+if ( require(ROCR) ) {
+auc_1=prediction(predicted_response,actual_class)
+prf=performance(auc_1, measure="tpr",x.measure="fpr")
+slot_fp=slot(auc_1,"fp")
+slot_tp=slot(auc_1,"tp")
+
+fpr=unlist(slot_fp)/unlist(slot(auc_1,"n.neg"))
+tpr=unlist(slot_tp)/unlist(slot(auc_1,"n.pos"))
+
+auc<-performance(auc_1,"auc")
+AUC<-auc@y.values[[1]]
+X=list(fpr=fpr,tpr=tpr,auc=AUC)
+}
+X
+}
+```
+time to test our utility function...
+```{r}
+L<-getMetrics(tsdata[[14]],tst.pred2)
+plot(L$fpr,L$tpr,main=" ROC Plot tpr vs fpr")
+print(paste("AUC=",L$auc,sep=''))
+```
+
+We would prefer 90 or above...but AUC=0.89 and accuracy = 0.8 is acceptable.
+the recall for this learner is 0.8718 and precision is 0.7727 and their geometric mean, aka F-Score is 0.8193.
+
+## Logistic Regression is a goto algo!!
+Definitely, GLM is doing better than a random guess!!! 
+Logistic Regression is an excellent baseline algorithm,
+My opinion, one must always must perform logistic regression in any ML exercise as a base line.
+To show some respect, to grand old **Ockham and his razor**, do NOT use, ANY exotic hyper-parameters, at this stage,
+Use just plain vanilla models, as much as possible using objective criteria.
+Try to refine programmatically and numerically without requiring human intervention.
+That is smart!
+
+*Most importantly there is significant mathematics, statistics and probability behind these algorithms. In the word document, we take a deeper look.*
+This module will serve as a template, for all our clinical modules in this course we will provide. 
+
+* We will include
+   +   R script, 
+   +   RMD Script, 
+   +   HTML (from the RMD) and 
+   +   an essay in word format.
+  
+Next Module we will take up Naive Bayes, another parametric model.
+
