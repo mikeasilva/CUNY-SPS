@@ -62,7 +62,7 @@ isUnderfitting<-function(trcfm)
 Let us load the data.
 And subset it to include only categorical predictors.
 ```{r}
-file<-'c:/Users/rkannan/rk/data/heart.csv'
+file<-'heart.csv'
 heart<-read.csv(file,head=T,sep=',',stringsAsFactors=F)
 head(heart)
 catheart<-heart[,c(2,3,6,7,9,11,12,13,14)]
