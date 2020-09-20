@@ -42,6 +42,17 @@ def home():
     return ""
 
 
+@app.route("/image_downloaded")
+def image_downloaded():
+    cur = get_db().cursor()
+    image_id = request.args.get("id")
+    cur.execute(
+        "UPDATE images SET assigned = 1, downloaded = 1 WHERE id = ?", (image_id,)
+    )
+    db_save()
+    return json.dumps({"success": True}), 200, {"ContentType": "application/json"}
+
+
 @app.route("/job")
 def job():
     cur = get_db().cursor()
@@ -58,15 +69,12 @@ def job():
     return jsonify(task)
 
 
-@app.route("/image_downloaded")
-def image_downloaded():
+@app.route("/reset")
+def reset():
     cur = get_db().cursor()
-    image_id = request.args.get("id")
-    cur.execute(
-        "UPDATE images SET assigned = 1, downloaded = 1 WHERE id = ?", (image_id,)
-    )
+    cur.execute("UPDATE images SET assigned = 0 WHERE downloaded = 0")
     db_save()
-    return json.dumps({"success": True}), 200, {"ContentType": "application/json"}
+    return "Success"
 
 
 if __name__ == "__main__":
