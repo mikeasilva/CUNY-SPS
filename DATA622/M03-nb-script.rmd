@@ -1,0 +1,407 @@
+---
+title: "NaiveBayes"
+output:  
+html_document:
+df_print: paged
+pdf_document: default
+---
+Let us run a classification task using NaiveBayes.
+
+```{r Startup}
+
+```
+##NaiveBayes
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Let us train NaiveBayes model using standard implementation 
+and compare it with our own computation. TO make our computation simpler
+we will include only categorical variables in the dataset.
+```{r MainCode}
+library(e1071)
+library(caret)
+file<-"heart.csv"
+```
+
+
+As practitioners we must always be wary of Overfitting and underfitting. 
+
+We consider when the performance of a classifier falls by 50% from 
+training to test dataset to be due to overfitting.
+
+We consider when the performance of a classifier is below 50% to be
+an indication of a weak classifier unable to learn. Also known as
+underfitting.
+
+Let us create some utility functions.
+
+# usage isOverfitting(tr.cfm,tst.cfm)
+```{r}
+isOverfitting<-function(trcfm,tstcfm)
+{
+  # if the accuracy from training is much more than accuracy testing phase
+  # then we conclude Model is overfitting 
+  # unable to generalize
+  tracc=trcfm$overall['Accuracy']
+  tstacc=tstcfm$overall['Accuracy']
+  tracc > 2*tstacc 
+}
+```
+# usage isUnderfitting(tr.cfm)
+```{r}
+isUnderfitting<-function(trcfm)
+{
+  # if the accuracy from training is much more than accuracy testing phase
+  # then we conclude Model is overfitting 
+  # unable to generalize
+  tracc=trcfm$overall['Accuracy']
+  0.5 >  tracc
+}
+```
+# Load data and EDA
+Let us load the data.
+And subset it to include only categorical predictors.
+```{r}
+file<-'c:/Users/rkannan/rk/data/heart.csv'
+heart<-read.csv(file,head=T,sep=',',stringsAsFactors=F)
+head(heart)
+catheart<-heart[,c(2,3,6,7,9,11,12,13,14)]
+```
+#Preliminary EDA
+
+```{r}
+head(catheart)
+dim(catheart)
+table(catheart$target)
+sum(table(catheart$target))
+```
+# Repeatable and Reproducible Experiments
+Set a seed for repeatable/reproducible random number sequence
+and split the data into training/test sets.
+
+```{r}
+set.seed(43)
+trdidx<-sample(1:nrow(catheart),0.7*nrow(catheart),replace=F)
+trcatheart<-catheart[trdidx,]
+tstcatheart<-catheart[-trdidx,]
+```
+# Check for class imbalance
+Here we check visually to see if there are labels which occur in the single digit.
+If a class exists in just once, if we wish to learn then we cannot test the algorithm for that class and if we include it in the test then we cannot train on it.
+There are many statistical techniques to correct for class imbalance, left to another follow up workshop.
+```{r}
+table(catheart$target)
+```
+# Training and testing sets must be similar to the entire dataset
+Are the training and test set distributed approximately similar to
+given dataset. This is important so that statistics that applies 
+to training and test sets, are applicable to the entire dataset.
+## Otherwise, we cannot generalize.
+```{r}
+dim(trcatheart)
+table(trcatheart$target)
+dim(tstcatheart)
+table(tstcatheart$target)
+```
+Train NB model, standard implementation using training set
+
+```{r}
+nbtr.model<-naiveBayes(target~.,data=trcatheart)
+```
+Performance over the training set
+
+```{r}
+nbtr.trpred<-predict(nbtr.model,trcatheart[,-c(9)],type='raw')
+nbtr.trclass<-unlist(apply(round(nbtr.trpred),1,which.max))-1
+nbtr.trtbl<-table(trcatheart[[9]], nbtr.trclass)
+tr.cfm<-caret::confusionMatrix(nbtr.trtbl)
+tr.cfm
+```
+Performance over held out data, the test set
+
+```{r}
+nbtr.tspred<-predict(nbtr.model,tstcatheart[,-c(9)],type='raw')
+#roc.nbtr.tspred<-unlist(apply(nbtr.tspred,1,which.max)) # this returns the position
+#roc.nbtr.tspred<-apply(nbtr.tspred,1,FUN=function(v)v[which.max(v)]) # this returns the value
+#https://stackoverflow.com/questions/47883541/how-can-i-implement-roc-curve-analysis-for-naive-bayes-classification-algorithm
+roc.nbtr.tspred<-nbtr.tspred[,2]
+nbtr.tsclass<-unlist(apply(round(nbtr.tspred),1,which.max))-1
+nbtr.tstbl<-table(tstcatheart[[9]], nbtr.tsclass)
+tst.cfm<-caret::confusionMatrix(nbtr.tstbl)
+tst.cfm
+```
+#Underfitting / Overfitting
+```{r}
+ifelse(isUnderfitting(tr.cfm),"model is deficient",paste("There is no underfitting", "model is an effective learner@ [",tr.cfm$overall['Accuracy'],"] accuracy"))
+ifelse(isOverfitting(tr.cfm,tst.cfm),"model is overfitting -- too complex",
+       paste(" There is no overfitting, model is an effective learner@ [",tr.cfm$overall['Accuracy'],"] training accuracy vs testing accuracy=[",tst.cfm$overall['Accuracy'],']'))
+```
+#Conditionally Independent Class Probabilities
+Let us now compute NaiveBayes probabilities for each class
+directly from data.
+Given any predictor and a value
+we compute the class conditional probabilities
+p(c1|x) and p(c2|x) using 
+p(c1|X)=p(x1|c1)p(x2|c1)p(x3|c1)..p(xn|c1)p(c1)
+and
+p(c2|X)=p(x1|c2)p(x2|c2)p(x3|c2)..p(xn|c2)p(c2)
+
+Here p(c1)=frequency of c1 / total frequency
+p(x1|c1)=frequency of x1 given c1/frequency of c1
+
+we assign the class with the higher probability
+
+```{r}
+trcathearttarget_0<-trcatheart[trcatheart$target==0,]
+
+trcathearttarget_1<-trcatheart[trcatheart$target==1,]
+
+tstcathearttarget_0<-tstcatheart[tstcatheart$heart==0,]
+tstcathearttarget_1<-tstcatheart[tstcatheart$heart==1,]
+```
+We compute class frequencies as follows, 
+the number of rows in each class is the frequency of that class.
+# class c1 proportion
+```{r}
+c0freq<-nrow(trcathearttarget_0)
+c1freq<-nrow(trcathearttarget_1)
+p0<-c0freq/(c0freq+c1freq)
+p1<-c1freq/(c0freq+c1freq)
+c(p0,p1)
+```
+We count, the number of observations in which the attribute has the given value
+#We return the two proportions for a binary classifier.
+```{r}
+
+classProbabilities<-
+  function(dsetc1,dsetc2,prop,val,c1prob,c2prob)
+  {
+    
+    propdsetc1=dsetc1[dsetc1[prop]==val,]
+    propdsetc2=dsetc2[dsetc2[prop]==val,]
+    c(nrow(propdsetc1)/nrow(dsetc1),nrow(propdsetc2)/nrow(dsetc1))
+  }
+```
+Let us put our utility functions to test, calculate conditional probability
+```{r}
+trcathearttarget_0[1,]
+```
+sex cp fbs restecg exang slope ca thal target
+276   1  0   0       1     0     2  2    3      0
+
+Let us now compute the probabilities for each of these attribute/value pairs.
+
+```{r}
+classProbabilities(trcathearttarget_0,trcathearttarget_1,'sex',1,p0,p1)
+classProbabilities(trcathearttarget_0,trcathearttarget_1,'cp',0,p0,p1)
+classProbabilities(trcathearttarget_0,trcathearttarget_1,'fbs',0,p0,p1)
+classProbabilities(trcathearttarget_0,trcathearttarget_1,'restecg',0,p0,p1)
+classProbabilities(trcathearttarget_0,trcathearttarget_1,'exang',1,p0,p1)
+classProbabilities(trcathearttarget_0,trcathearttarget_1,'slope',2,p0,p1)
+classProbabilities(trcathearttarget_0,trcathearttarget_1,'ca',2,p0,p1)
+classProbabilities(trcathearttarget_0,trcathearttarget_1,'thal',3,p0,p1)
+```
+
+```{r}
+xx<-c(
+  classProbabilities(trcathearttarget_0,trcathearttarget_1,'sex',1,p0,p1),
+  classProbabilities(trcathearttarget_0,trcathearttarget_1,'cp',0,p0,p1),
+  classProbabilities(trcathearttarget_0,trcathearttarget_1,'fbs',0,p0,p1),
+  classProbabilities(trcathearttarget_0,trcathearttarget_1,'restecg',0,p0,p1),
+  classProbabilities(trcathearttarget_0,trcathearttarget_1,'exang',1,p0,p1),
+  classProbabilities(trcathearttarget_0,trcathearttarget_1,'slope',2,p0,p1),
+  classProbabilities(trcathearttarget_0,trcathearttarget_1,'ca',2,p0,p1),
+  classProbabilities(trcathearttarget_0,trcathearttarget_1,'thal',3,p0,p1),
+  c(p0,p1))
+nr<-9
+c(p0,p1)
+mx<-matrix(xx,nr,ncol=2,byrow=T)
+#mx
+cp<-unlist(apply(mx,2,cumprod))
+#cp[nr,]
+pred_class<-which.max(cp[nr,])-1
+trcathearttarget_0[1,]$target
+ifelse(trcathearttarget_0[1,]$target==0,
+       ifelse(pred_class==0,'TP','FN'),
+       ifelse(pred_class==1,'TN','FP'))
+```
+
+
+```{r}
+tstcatheart[7,]
+```
+sex cp fbs restecg exang slope ca thal target
+26   0  1   0       1     0     2  2    2      1
+```{r}
+tstcathearttarget_0<-tstcatheart[tstcatheart$heart==0,]
+tstcathearttarget_1<-tstcatheart[tstcatheart$heart==1,]
+
+xx<-c(
+  classProbabilities(trcathearttarget_0,trcathearttarget_1,'sex',0,p0,p1),
+  classProbabilities(trcathearttarget_0,trcathearttarget_1,'cp',1,p0,p1),
+  classProbabilities(trcathearttarget_0,trcathearttarget_1,'fbs',0,p0,p1),
+  classProbabilities(trcathearttarget_0,trcathearttarget_1,'restecg',1,p0,p1),
+  classProbabilities(trcathearttarget_0,trcathearttarget_1,'exang',0,p0,p1),
+  classProbabilities(trcathearttarget_0,trcathearttarget_1,'slope',2,p0,p1),
+  classProbabilities(trcathearttarget_0,trcathearttarget_1,'ca',2,p0,p1),
+  classProbabilities(trcathearttarget_0,trcathearttarget_1,'thal',2,p0,p1),
+  c(p0,p1))
+
+mx<-matrix(xx,nrow=9,ncol=2,byrow=T)
+
+unlist(apply(mx,2,cumprod))
+cp<-unlist(apply(mx,2,cumprod))
+which.max(cp[9,])-1
+pred_class<-which.max(cp[nr,])-1
+pred_class
+tstcatheart[7,]$target
+ifelse(tstcatheart[7,]$target==0,
+       ifelse(pred_class==0,'TP','FN'),
+       ifelse(pred_class==1,'TN','FP'))
+```
+#NOTE THAT we are using the distribution of training set 
+#to evaluate the test set probabilities
+# otherwise we could not claim to be generalizing
+Let us do one more 23rd observation from the test set.seed
+```{r}
+tstcatheart[23,]
+
+xx<-c(
+  classProbabilities(trcathearttarget_0,trcathearttarget_1,'sex',1,p0,p1),
+  classProbabilities(trcathearttarget_0,trcathearttarget_1,'cp',1,p0,p1),
+  classProbabilities(trcathearttarget_0,trcathearttarget_1,'fbs',0,p0,p1),
+  classProbabilities(trcathearttarget_0,trcathearttarget_1,'restecg',0,p0,p1),
+  classProbabilities(trcathearttarget_0,trcathearttarget_1,'exang',1,p0,p1),
+  classProbabilities(trcathearttarget_0,trcathearttarget_1,'slope',2,p0,p1),
+  classProbabilities(trcathearttarget_0,trcathearttarget_1,'ca',0,p0,p1),
+  classProbabilities(trcathearttarget_0,trcathearttarget_1,'thal',2,p0,p1),
+  c(p0,p1))
+
+mx<-matrix(xx,nrow=9,ncol=2,byrow=T)
+
+unlist(apply(mx,2,cumprod))
+cp<-unlist(apply(mx,2,cumprod))
+which.max(cp[9,])-1
+pred_class<-which.max(cp[nr,])-1
+pred_class
+tstcatheart[23,]$target
+ifelse(tstcatheart[23,]$target==0,
+       ifelse(pred_class==0,'TP','FN'),
+       ifelse(pred_class==1,'TN','FP'))
+
+```
+```{r}
+evaluate_naiveBayes<-
+function(nv,vv,targetclass,trdsetcl1,trdsetcl2,cl1prob,cl2prob)
+{
+nvl<-length(nv)
+xx<-c()
+for (idx in 1:nvl)
+{
+attr<-nv[idx]
+value<-vv[[idx]]
+#print(c(attr,value))
+#xx<-c(xx,classProbabilities(trdsetcl1,trdsetcl2,nv[idx],vv[[idx]],cl1prob,cl2prob))
+xx<-c(xx,classProbabilities(trdsetcl1,trdsetcl2,attr,value,cl1prob,cl2prob))
+}
+xx<-unlist(c(xx,  c(p0,p1)))
+nvl<-nvl+1
+mx<-matrix(xx,nrow=nvl,ncol=2,byrow=T)
+
+unlist(apply(mx,2,cumprod))
+cp<-unlist(apply(mx,2,cumprod))
+
+pred_class<-which.max(cp[nvl,])-1
+pred_class
+targetclass
+metric<-ifelse(targetclass==0,
+       ifelse(pred_class==0,'TP','FN'),
+       ifelse(pred_class==1,'TN','FP'))
+c(targetclass,pred_class,metric)
+}
+
+```
+Now we can iterate over the entire test set.
+```{r}
+tstcount<-nrow(tstcatheart)
+tstcol<-ncol(tstcatheart)
+featuremx<-tstcatheart[,-c(which(names(tstcatheart)=='target'))]
+nv<-names(featuremx)
+tstclass<-tstcatheart$target
+tstpred<-c()
+for(r in 1:tstcount)
+{
+  tstpred<-c(tstpred,
+             evaluate_naiveBayes(nv,featuremx[r,],
+                            tstclass[r],trcathearttarget_0,
+                            trcathearttarget_1,p0,p1))
+}
+tstresults<-matrix(tstpred,nrow=tstcount,ncol=3,byrow=T,dimnames=
+                     list(1:tstcount,c("GT",'Pred','metric')))
+tstresults
+table(tstresults[,3])
+table(tstresults[,1],tstresults[,2])
+```
+# Final observation 
+Note that we estimated the class probabilities using the training set
+however, we compute the metric using the test set.
+# Is that not what we want?
+Statistics and probabilities is one big hat from which we can pull many rabbits,
+and if you are NOT cautious you can end up with a 3 legged rabbit.
+This classifier assumes that features are uncorrelated and yet we achieved significant
+inferences.
+
+If you recall, the e1071:naiveBayes achieved 
+```{r}
+nbtr.tstbl
+```
+in comparison to our naive implementation.
+```{r}
+table(tstresults[,1],tstresults[,2])
+```
+Let us plot the ROCR curve and determine AUC for the e1071 standard
+implementation.
+```{r}
+getMetrics<-function(actual_class,predicted_response)
+{
+  test.set=data.frame(target=actual_class,prediction=predicted_response)
+  TPrates = c()
+TNrates = c()
+thresholds = seq(0, 1, by = 0.05)
+total_positive=nrow(test.set[test.set$target==0 ,])
+total_negative=nrow(test.set[test.set$target==1,])
+for (threshold in thresholds) {
+  TPrateForThisThreshold = nrow(test.set[test.set$target == 0 & test.set$prediction <= threshold,])/total_positive
+  TNrateForThisThreshold = nrow(test.set[test.set$target == 1 & test.set$prediction > threshold,])/total_negative
+  TPrates = c(TPrates, TPrateForThisThreshold)
+  TNrates = c(TNrates, TNrateForThisThreshold)
+}
+if(!require(pracma))install.packages('pracma')
+library(pracma)
+AUC <- trapz(TPrates,TNrates)
+X=list(fpr=1-TNrates,tpr=TPrates,auc=AUC)
+X
+#X=list()
+#if ( require(ROCR) ) {
+#auc_1=prediction(predicted_response,actual_class)
+#prf=performance(auc_1, measure="tpr",x.measure="fpr")
+#slot_fp=slot(auc_1,"fp")
+#slot_tp=slot(auc_1,"tp")
+
+#fpr=unlist(slot_fp)/unlist(slot(auc_1,"n.neg"))
+#tpr=unlist(slot_tp)/unlist(slot(auc_1,"n.pos"))
+
+#auc<-performance(auc_1,"auc")
+#AUC<-auc@y.values[[1]]
+#X=list(fpr=fpr,tpr=tpr,auc=AUC)
+#}
+#X
+}
+```
+time to test our utility function...
+```{r}
+L<-getMetrics(tstcatheart[[9]],roc.nbtr.tspred)
+plot(L$fpr, L$tpr, type="l",main=" NB ROC Plot tpr vs fpr")
+#plot(L$fpr,L$tpr,main=" NB ROC Plot tpr vs fpr")
+print(paste(" NB AUC=",L$auc,sep=''))
+```
