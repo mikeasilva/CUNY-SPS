@@ -23,6 +23,9 @@ import sqlite3
 create_tables = False
 cool_down = False
 
+pause_in_seconds = 5
+cool_down_in_seconds = 120
+
 conn = sqlite3.connect("images.db")
 c = conn.cursor()
 
@@ -42,51 +45,57 @@ def gather(cool_down):
         c.execute("SELECT COUNT(*) FROM json_file WHERE file_name = ?", (file,))
         result = c.fetchone()
         if result[0] == 0:
-            label = file.split("\\")[1].split("-")[0]
             with open(file) as json_file:
+                label = file.split("\\")[1].split("-")[0]
                 data = json.load(json_file)
                 if "results" in data and not cool_down:
                     for result in data["results"]:
-                        url = result["uri"].replace(
-                            "https://www.inaturalist.org/",
-                            "https://api.inaturalist.org/v1/",
-                        )
-                        print(label + " >> " + url)
-                        c.execute("SELECT COUNT(*) FROM images WHERE url = ?", (url,))
-                        r = c.fetchone()
-                        if r[0] == 0:
-                            response = requests.get(url)
-                            if response.status_code == 200:
-                                response_json = response.json()
-        
-                                img_url = response_json["results"][0]["photos"][0]["url"]
-                                img_url = img_url.replace("square", "large")
-                                
-                                lat = response_json["results"][0]["geojson"]["coordinates"][
-                                    1
-                                ]
-                                lon = response_json["results"][0]["geojson"]["coordinates"][
-                                    0
-                                ]
-                                observed_on = response_json["results"][0]["observed_on"]
-        
-                                insert_data = (
-                                    label,
-                                    url,
-                                    img_url,
-                                    lat,
-                                    lon,
-                                    observed_on,
-                                )
-        
-                                c.execute(
-                                    "INSERT INTO images (label, url, img_url, lat, lon, observed_on) VALUES (?,?,?,?,?,?)",
-                                    insert_data,
-                                )
-                                conn.commit()
-                            else:
-                                cool_down = True
-                                return cool_down
+                        if "inaturalist" in result["uri"]:
+                            url = result["uri"].replace(
+                                "https://www.inaturalist.org/",
+                                "https://api.inaturalist.org/v1/",
+                            ).replace(
+                                "http://www.inaturalist.org/",
+                                "https://api.inaturalist.org/v1/",
+                            )
+                            c.execute("SELECT COUNT(*) FROM images WHERE url = ?", (url,))
+                            r = c.fetchone()
+                            if r[0] == 0:
+                                time.sleep(pause_in_seconds) # Take a brief pause to prevent API from becoming non-responsive
+                                print(label + " >> " + url)
+                                response = requests.get(url)
+                                if response.status_code == 200:
+                                    response_json = response.json()
+            
+                                    img_url = response_json["results"][0]["photos"][0]["url"]
+                                    img_url = img_url.replace("square", "large")
+                                    
+                                    try:
+                                        lat = response_json["results"][0]["geojson"]["coordinates"][1]
+                                        lon = response_json["results"][0]["geojson"]["coordinates"][0]
+                                    except:
+                                        lat = None
+                                        lon = None
+
+                                    observed_on = response_json["results"][0]["observed_on"]
+            
+                                    insert_data = (
+                                        label,
+                                        url,
+                                        img_url,
+                                        lat,
+                                        lon,
+                                        observed_on,
+                                    )
+            
+                                    c.execute(
+                                        "INSERT INTO images (label, url, img_url, lat, lon, observed_on) VALUES (?,?,?,?,?,?)",
+                                        insert_data,
+                                    )
+                                    conn.commit()
+                                else:
+                                    cool_down = True
+                                    return True
             if not cool_down:
                 c.execute("INSERT INTO json_file VALUES (?)", (file,))
                 conn.commit()
@@ -95,7 +104,7 @@ def gather(cool_down):
 while True:
     if cool_down:
         print("Cooling Down...")
-        time.sleep(60) # Pause for 1 minutes
+        time.sleep(cool_down_in_seconds)
         cool_down = False
     cool_down = gather(cool_down)
 

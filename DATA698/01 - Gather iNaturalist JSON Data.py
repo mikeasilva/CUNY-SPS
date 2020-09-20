@@ -27,7 +27,7 @@ taxon_id_and_label = {
     "82529": "Grapevine",
     "119936": "Grapevine",
     "50625": "Hoptree",
-    "58738": "Fragrant Sumac",
+    "58738": "Sumac",
     "55911": "Bramble",
     "54436": "Bramble",
     "47544": "Bramble",
