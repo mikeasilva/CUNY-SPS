@@ -109,6 +109,10 @@ Let us write a utility function we can call on any list...
 we can also do length(unique(x)) < 1
 ```{r}
 isConstant<-function(x) length(names(table(x)))<2
+apply(birds,2,isConstant)
+```
+```{r}
+isConstant<-function(x) length(names(table(x)))<2
 apply(heart,2,isConstant)
 ```
 Let us plot,correlations using pairs function
@@ -246,7 +250,7 @@ Now let us predict using our model. The model has already seen the data.
 We do not expect our model, to reproduce at 100%. But we do expect that our model performs better than random guess. If our model under-performs random guess, then that would be an indication of the model's inability to learn at all.
 Here in such cases that model is deficient and is a case of under-fitting.
 ```{r}
-newmodel<-glm(formulastr,data=heart,family='binomial')
+newmodel<-glm(newformulastr,data=heart,family='binomial')
 summary(newmodel)
 summnewmodel<-summary(newmodel)
 (summnewmodel$aic)
