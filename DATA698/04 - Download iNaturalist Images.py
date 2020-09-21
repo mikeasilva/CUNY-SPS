@@ -41,7 +41,7 @@ while has_work:
         file_extension = img_url.split(".")[-1].split("?")[0]
         file_path = img_path + img_id_str.zfill(8) + "." + file_extension
         if not path.exists(file_path):
-            print("Downloading " + img_url)
+            print("Downloading " + label + " >> " + img_url)
             img = requests.get(img_url)
             with open(file_path, "wb") as f:
                 f.write(img.content)
