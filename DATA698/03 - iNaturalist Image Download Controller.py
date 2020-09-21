@@ -42,6 +42,15 @@ def home():
     return ""
 
 
+@app.route("/done-scrapping")
+def done_scrapping():
+    cur = get_db().cursor()
+    image_id = request.args.get("id")
+    cur.execute("UPDATE images SET scrapped = 1 WHERE id = ?", (image_id,))
+    db_save()
+    return json.dumps({"success": True}), 200, {"ContentType": "application/json"}
+
+
 @app.route("/image_downloaded")
 def image_downloaded():
     cur = get_db().cursor()
@@ -73,8 +82,34 @@ def job():
 def reset():
     cur = get_db().cursor()
     cur.execute("UPDATE images SET assigned = 0 WHERE downloaded = 0")
+    cur.execute("UPDATE images SET scrapped = 0 WHERE scrapped = -1")
     db_save()
     return "Success"
+
+
+@app.route("/scrape-me")
+def scrape_me():
+    cur = get_db().cursor()
+    starts_with = request.args.get("starts_with")
+    if starts_with is None:
+        cur.execute(
+            "SELECT images.* FROM images, (SELECT MIN(id) AS id FROM images WHERE scrapped = 0 AND error = 0) AS f WHERE images.id = f.id;"
+        )
+    else:
+        cur.execute(
+            "SELECT images.* FROM images, (SELECT MIN(id) AS id FROM images WHERE scrapped = 0 AND error = 0 AND label LIKE '"
+            + starts_with
+            + "%') AS f WHERE images.id = f.id;"
+        )
+        
+    try:
+        task = cur.fetchall()[0]
+        cur.execute("UPDATE images SET scrapped = -1 WHERE id = ?", (task["id"],))
+        db_save()
+    except:
+        # We have assigned all the images
+        task = {"id": "Done"}
+    return jsonify(task)
 
 
 if __name__ == "__main__":
