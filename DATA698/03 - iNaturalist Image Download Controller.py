@@ -8,6 +8,7 @@ Created on Sat Sep 19 07:15:13 2020
 import sqlite3
 from flask import Flask, jsonify, request, g
 import json
+from collections import OrderedDict 
 
 DATABASE = "images.db"
 debug = False
@@ -42,15 +43,6 @@ def home():
     return ""
 
 
-@app.route("/done-scrapping")
-def done_scrapping():
-    cur = get_db().cursor()
-    image_id = request.args.get("id")
-    cur.execute("UPDATE images SET scrapped = 1 WHERE id = ?", (image_id,))
-    db_save()
-    return json.dumps({"success": True}), 200, {"ContentType": "application/json"}
-
-
 @app.route("/image_downloaded")
 def image_downloaded():
     cur = get_db().cursor()
@@ -62,7 +54,35 @@ def image_downloaded():
     return json.dumps({"success": True}), 200, {"ContentType": "application/json"}
 
 
-@app.route("/job")
+@app.route("/image_scrapped")
+def image_scrapped():
+    cur = get_db().cursor()
+    image_id = request.args.get("id")
+    cur.execute("UPDATE images SET scrapped = 1 WHERE id = ?", (image_id,))
+    db_save()
+    return json.dumps({"success": True}), 200, {"ContentType": "application/json"}
+
+
+@app.route("/image_data", methods=["POST"])
+def data_intake():
+    cur = get_db().cursor()
+    image_id = request.args.get("id")
+    data = OrderedDict(request.get_json())
+    val = tuple(data.values())
+    sql = "UPDATE images SET "
+    for k in data.keys():
+        sql = sql + k + " = ?, "
+    sql = sql[: len(sql) - 2] + " WHERE id = " + image_id + ";"
+    
+    try:
+        cur.execute(sql, val)
+        db_save()
+        return json.dumps({"success": True}), 200, {"ContentType": "application/json"}
+    except:
+        return json.dumps({"failure": True}), 200, {"ContentType": "application/json"}
+
+
+@app.route("/download_job")
 def job():
     cur = get_db().cursor()
     cur.execute(
@@ -87,8 +107,8 @@ def reset():
     return "Success"
 
 
-@app.route("/scrape-me")
-def scrape_me():
+@app.route("/scrape_job")
+def scrape_job():
     cur = get_db().cursor()
     starts_with = request.args.get("starts_with")
     if starts_with is None:
@@ -101,7 +121,7 @@ def scrape_me():
             + starts_with
             + "%') AS f WHERE images.id = f.id;"
         )
-        
+
     try:
         task = cur.fetchall()[0]
         cur.execute("UPDATE images SET scrapped = -1 WHERE id = ?", (task["id"],))
