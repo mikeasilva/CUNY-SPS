@@ -86,7 +86,7 @@ def data_intake():
 def job():
     cur = get_db().cursor()
     cur.execute(
-        "SELECT images.* FROM images, (SELECT MIN(id) AS id FROM images WHERE assigned = 0) AS f WHERE images.id = f.id;"
+        "SELECT images.* FROM images, (SELECT MIN(id) AS id FROM images WHERE assigned = 0 and img_url IS NOT NULL and error = 0) AS f WHERE images.id = f.id;"
     )
     try:
         task = cur.fetchall()[0]
