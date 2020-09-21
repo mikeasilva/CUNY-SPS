@@ -60,7 +60,7 @@ while has_work:
         if job["id"] == "Done":
             has_work = False
 
-        if endpoint == work_modes["1"]:
+        if endpoint == work_modes["1"] and has_work:
             # Scrape observation data
             print(job["label"] + " >> Scrapping " + job["url"])
             response = requests.get(job["url"])
@@ -94,7 +94,7 @@ while has_work:
                 )
             else:
                 cooling_down = True
-        if endpoint == work_modes["2"]:
+        if endpoint == work_modes["2"] and has_work:
             # Download the image
             img_url = job["img_url"]
             img_id_str = str(job["id"])
