@@ -1,0 +1,50 @@
+<html>
+    <head>
+        <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+        <script src="https://code.highcharts.com/highcharts.src.js"></script>
+    </head>
+<body>
+    <figure class="highcharts-figure">
+        <div id="container"></div>
+    </figure>
+    <script>
+        Highcharts.chart("container", {
+            chart: {
+                type: "bar",
+                height: "50%",
+            },
+            title: {
+                text: "Data Status"
+            },
+            xAxis: {
+                categories: [{{data["categories"] | safe}}]
+            },
+            yAxis: {
+                min: 0,
+                title: {
+                    text: "Records"
+                }
+            },
+            credits: {
+                enabled: false
+            },            
+            series: [{
+                name: "Error",
+                data: {{data["series"]["Error"]}}
+            }, {
+                name: "Downloaded",
+                data: {{data["series"]["Downloaded"]}}
+            }, {
+                name: "Assigned",
+                data: {{data["series"]["Assigned"]}}
+            }, {
+                name: "Scrapped",
+                data: {{data["series"]["Scrapped"]}}
+            }, {
+                name: "Total",
+                data: {{data["series"]["Total"]}}
+            }]
+        });
+    </script>
+</body>
+</html>
