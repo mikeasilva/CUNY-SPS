@@ -5,10 +5,11 @@ Created on Sat Sep 19 07:15:13 2020
 @author: Michael Silva
 """
 
-import sqlite3
-from flask import Flask, jsonify, request, g
 import json
-from collections import OrderedDict 
+import sqlite3
+from collections import OrderedDict
+from flask import Flask, jsonify, request, g, render_template
+from flask.views import View
 
 DATABASE = "images.db"
 debug = False
@@ -31,6 +32,24 @@ def db_save():
     get_db().commit()
 
 
+def get_viz_data():
+    labels = ""
+    series = {}
+    cur = get_db().cursor()
+
+    for data in cur.execute("SELECT * FROM record_counts;").fetchall():
+        label = data["label"]
+        for k, v in data.items():
+            if k != "label":
+                k = k.title()
+                series_k = series.get(k, list())
+                series_k.append(v)
+                series[k] = series_k
+        labels += "'" + label + "', "
+    labels = labels[: len(labels) - 2]
+    return (labels, series)
+
+
 @app.teardown_appcontext
 def close_connection(exception):
     db = getattr(g, "_database", None)
@@ -39,8 +58,10 @@ def close_connection(exception):
 
 
 @app.route("/")
-def home():
-    return ""
+def index():
+    data = {}
+    data["categories"], data["series"] = get_viz_data()
+    return render_template("index.html", data=data)
 
 
 @app.route("/image_downloaded")
@@ -73,7 +94,7 @@ def data_intake():
     for k in data.keys():
         sql = sql + k + " = ?, "
     sql = sql[: len(sql) - 2] + " WHERE id = " + image_id + ";"
-    
+
     try:
         cur.execute(sql, val)
         db_save()
