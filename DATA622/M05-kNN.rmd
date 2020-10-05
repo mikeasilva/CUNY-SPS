@@ -35,8 +35,8 @@ Let us write another function to iterate over the test set
 and over the training set for each observation in the test set.
 ```{r}
 knn_predict2 <- function(test_data, train_data, k_value, labelcol){
-  print(k_value)
-  print(labelcol)
+  #print(k_value)
+  #print(labelcol)
   pred <- c()  #empty pred vector 
   #LOOP-1
   for(i in c(1:nrow(test_data))){   #looping over each record of test data
@@ -62,7 +62,7 @@ knn_predict2 <- function(test_data, train_data, k_value, labelcol){
    # print(k_value)
     eu <- eu[1:k_value,]               #eu dataframe with top K neighbors
     
-    head(eu[1:k_value,])
+    #head(eu[1:k_value,])
     tbl.sm.df<-table(eu$eu_char)
     cl_label<-  names(tbl.sm.df)[[as.integer(which.max(tbl.sm.df))]]
     
@@ -70,7 +70,6 @@ knn_predict2 <- function(test_data, train_data, k_value, labelcol){
   }
   return(pred) #return pred vector
 }
-
 ```
 Let us also write a utility function for accuracy.
 ```{r}
@@ -111,6 +110,44 @@ K<-3 # number of neighbors to determine the class
 
 predictions <- knn_predict2(test.df, train.df, K,labelcol) #calling knn_predict()
 
+```
+
+```{r}
+knn_predict3 <- function(test_data, train_data, k_value, labelcol){
+  pred <- c() # Initialize an empty vector to hold the predictions
+  eu_char <- train_data[,labelcol] # Get the class labels from the training data
+  b <- train_data[,-c(labelcol)] # Drop the class label from the training data
+  for(i in c(1:nrow(test_data))){
+    a <- test_data[i,-c(labelcol)] # Pull the row from the test data
+    eu_dist <- euclideanDist(a, b) # Calculate the euclidean distance between training data and test row
+    eu <- data.frame(eu_char, eu_dist) # Put the distance and the label in a data frame
+    eu <- eu[order(eu$eu_dist),] # Sort it by the euclidean distance
+    eu <- eu[1:k_value,] # Subset the first k rows
+    tbl.sm.df<-table(eu$eu_char) # Create frequency table
+    pred <-  c(pred, names(tbl.sm.df)[[as.integer(which.max(tbl.sm.df))]]) # Add in the predicted class (highest frequency) to the predictions vector
+  }
+  return(pred) # Return the predictions
+}
+predictions2 <- knn_predict3(test.df, train.df, K,labelcol)
+```
+
+```{r}
+start_time <- Sys.time()
+n_tests <- 100
+for (i in 1:n_tests){
+  knn_predict2(test.df, train.df, K,labelcol)
+}
+end_time <- Sys.time()
+difftime(end_time, start_time)
+```
+
+```{r}
+start_time <- Sys.time()
+for (i in 1:n_tests){
+  knn_predict3(test.df, train.df, K,labelcol)
+}
+end_time <- Sys.time()
+difftime(end_time, start_time)
 ```
 Computing ROCR and AUC is some what non-trivial as kNN do not compute probabilities
 and results in unreliable ROCR plots.
