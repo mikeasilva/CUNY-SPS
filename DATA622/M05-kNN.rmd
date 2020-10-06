@@ -100,7 +100,8 @@ predictioncol<-labelcol+1
 # create train/test partitions
 set.seed(43)
 n<-nrow(knn.df)
-knn.df<- knn.df[sample(n),] # randomize
+index <- sample(n)
+knn.df<- knn.df[index,] # randomize
 
 train.df <- knn.df[1:as.integer(0.7*n),]
 test.df <- knn.df[as.integer(0.7*n +1):n,]
@@ -132,22 +133,22 @@ predictions2 <- knn_predict3(test.df, train.df, K,labelcol)
 ```
 
 ```{r}
-start_time <- Sys.time()
-n_tests <- 100
-for (i in 1:n_tests){
-  knn_predict2(test.df, train.df, K,labelcol)
-}
-end_time <- Sys.time()
-difftime(end_time, start_time)
+# start_time <- Sys.time()
+# n_tests <- 100
+# for (i in 1:n_tests){
+#   knn_predict2(test.df, train.df, K,labelcol)
+# }
+# end_time <- Sys.time()
+# difftime(end_time, start_time)
 ```
 
 ```{r}
-start_time <- Sys.time()
-for (i in 1:n_tests){
-  knn_predict3(test.df, train.df, K,labelcol)
-}
-end_time <- Sys.time()
-difftime(end_time, start_time)
+# start_time <- Sys.time()
+# for (i in 1:n_tests){
+#   knn_predict3(test.df, train.df, K,labelcol)
+# }
+# end_time <- Sys.time()
+# difftime(end_time, start_time)
 ```
 Computing ROCR and AUC is some what non-trivial as kNN do not compute probabilities
 and results in unreliable ROCR plots.
