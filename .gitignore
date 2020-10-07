@@ -29,3 +29,4 @@ DATA612/project_2_user_cosine_similarity.csv
 DATA698/iNaturalist/images/*
 DATA698/dataset/*
 DATA698/weights/*.weights
+DATA698/Articles/*
