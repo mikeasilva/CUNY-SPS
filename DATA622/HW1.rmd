@@ -1,0 +1,240 @@
+---
+title: "Homework 1"
+author: "Mike Silva"
+date: "10/10/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Preliminaries
+
+### Load Packages
+```{r, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(kableExtra)
+library(caret)
+library(e1071)
+library(class)
+library(ROCR)
+options(knitr.kable.NA = '')
+```
+
+### Read in the data
+
+```{r}
+df <- read.csv("HW1.csv", stringsAsFactors = TRUE)
+```
+
+### EDA
+
+Let's take a look at the data:
+
+```{r}
+head(df) %>% kable() %>% kable_styling()
+```
+There are `r ncol(df)` columns and  `r nrow(df)` observations in the data set.  Let's look at a quick summary of the data:
+
+```{r}
+summary(df) %>% kable() %>% kable_styling()
+```
+
+`X` is a numeric variable ranging from `r min(df$X)` to `r max(df$X)`, while `Y` and `label` are categorical variables.  There are 6 values for `Y` and the observations are evenly distributed among the variable.  The `label` is not balanced.  Let's look at the `Y` by `label`:
+
+```{r}
+table(df$Y, df$label) %>% kable() %>% kable_styling()
+```
+
+It looks like that could be used to divide the data into the two label classes as the preponderance of observations with a `Y` of c are blue, and those with a `Y` of e are black.  Let's look at `X` by `label`
+
+```{r}
+df %>%
+  group_by(label) %>%
+  summarise(min = min(X),
+            mean = mean(X),
+            median = median(X),
+            max = max(X), .groups = "drop") %>%
+  kable() %>%
+  kable_styling()
+```
+
+The `X`s are slightly lower for the blue `label` than the black. Finally, let's look at all the data visually:
+
+```{r}
+ggplot(df, aes(x=X, y=Y, color=label)) + geom_point() + scale_color_manual(values=c("#000000", "#56B4E9")) +   theme(legend.position = "none")
+```
+
+One can see that the lower `X` values of the blues coupled with the preponderance of `Y` of c being blue leads to a large cluster of blue in the lower left part of the chart.  Black dominates most of the other parts of the chart except for some blues on the extremes of `X`.
+
+## Data Prep
+
+Since we will be using KNN we will need to normalize `X`.  In order to get a fair comparison, we will used the same processed data to see how the algorithms preform.
+
+```{r}
+normalize <- function(x){
+  return ((x - min(x)) / (max(x) - min(x)))
+}
+
+adjusted_df <- df
+adjusted_df$X <- normalize(adjusted_df$X)
+```
+
+We also need to transform `Y` into dummy variables.
+
+```{r}
+adjusted_df <- adjusted_df %>%
+  mutate(Y_a = ifelse(Y == "a", 1, 0),
+         Y_b = ifelse(Y == "b", 1, 0),
+         Y_c = ifelse(Y == "c", 1, 0),
+         Y_d = ifelse(Y == "d", 1, 0),
+         Y_e = ifelse(Y == "e", 1, 0)) %>%
+  select(-Y)
+```
+
+In order to evaluate the ability of the of the algorithms to generalize, the data needs to be divided into training and test sets.  Since there is only `r nrow(df)` observations, I will be reserving 20% for the evaluation.
+
+```{r}
+set.seed(123)
+in_training_set <- createDataPartition(adjusted_df$label, p = 0.8, list = FALSE, times = 1)
+training_df <- adjusted_df[in_training_set,]
+test_df  <- adjusted_df[-in_training_set,]
+# These subsets will help with training and evaluation
+training_df_without_label <- training_df %>% select(-label)
+test_df_without_label  <- test_df %>% select(-label)
+training_df_label <- training_df$label
+test_df_label <- test_df$label
+```
+
+## Helper Functions
+
+I will use the following helper functions.  This first one takes a logistic regression model and returns predictions for the `data` data.frame
+
+```{r}
+get_lr_yhat <- function(lr_model, data, label_col_name, threshold = 0.5){
+  data_levels <- levels(data[[label_col_name]])
+  cols_to_keep <- label_col_name != names(data)
+  data <- data[,cols_to_keep]
+  lr_yhat <- predict(lr_model, data, type = "response")
+  lr_yhat <- as.factor(ifelse(lr_yhat <= threshold, data_levels[1], data_levels[2]))
+  return(lr_yhat)
+}
+```
+
+The second will take the the ground truth labels and predicted labels and create metrics for evaluation.
+
+```{r}
+evaluate_algo <- function(ground_truth, yhat, algo){
+  cm <- confusionMatrix(table(ground_truth, yhat))
+  cm_table <- cm$table
+  tpr <- cm_table[[1]] / (cm_table[[1]] + cm_table[[4]])
+  fnr <- 1 - tpr
+  fpr <- cm_table[[3]] / (cm_table[[3]] + cm_table[[4]])
+  tnr <- 1 - fpr
+  accuracy <- cm$overall[[1]]
+  for_auc <- prediction(c(yhat), ground_truth)
+  auc <- performance(for_auc, "auc")
+  auc <- auc@y.values[[1]]
+  return(data.frame(Algo = algo, AUC = auc, ACCURACY = accuracy, TPR = tpr, FPR = fpr, TNR = tnr, FNR = fnr))
+}
+```
+
+## Gathering the Model's Capacity to Learn
+
+In order to evaluate this capacity, we will gather metrics on the algorithm's performance on the training set.
+
+### Logistic Regression
+
+```{r}
+lr_model <- glm(label ~ ., data = training_df, family = "binomial")
+training_lr_yhat <- get_lr_yhat(lr_model, training_df, "label")
+capacity_to_learn <- evaluate_algo(training_df_label, training_lr_yhat, "LR")
+```
+### Naive Bayes
+
+```{r}
+nb_model <- naiveBayes(label ~ ., data = training_df)
+training_nb_yhat <- predict(nb_model, training_df_without_label)
+capacity_to_learn <- rbind(capacity_to_learn, evaluate_algo(training_df_label, training_nb_yhat, "NB"))
+```
+
+### KNN
+
+```{r}
+training_knn3_yhat <- knn(training_df_without_label, training_df_without_label, training_df_label, k = 3)
+capacity_to_learn <- rbind(capacity_to_learn, evaluate_algo(training_df_label, training_knn3_yhat, "KNN3"))
+
+training_knn5_yhat <- knn(training_df_without_label, training_df_without_label, training_df_label, k = 5)
+capacity_to_learn <- rbind(capacity_to_learn, evaluate_algo(training_df_label, training_knn5_yhat, "KNN5"))
+```
+
+## Gathering the Model's Capacity to Generalize
+
+### Logistic Regression
+
+```{r}
+lr_yhat <- get_lr_yhat(lr_model, test_df, "label")
+test_lr_cm <- confusionMatrix(table(test_df_label, lr_yhat))
+capacity_to_generalize <- evaluate_algo(test_df_label, lr_yhat, "LR")
+```
+
+### Naive Bayes
+
+```{r}
+nb_yhat <- predict(nb_model, test_df_without_label)
+capacity_to_generalize <- rbind(capacity_to_generalize, evaluate_algo(test_df_label, nb_yhat, "NB"))
+```
+
+### KNN
+
+```{r}
+knn3_yhat <- knn(training_df_without_label, test_df_without_label, training_df_label, k = 3)
+capacity_to_generalize <- rbind(capacity_to_generalize, evaluate_algo(test_df_label, knn3_yhat, "KNN3"))
+
+knn5_yhat <- knn(training_df_without_label, test_df_without_label, training_df_label, k = 5)
+capacity_to_generalize <- rbind(capacity_to_generalize, evaluate_algo(test_df_label, knn5_yhat, "KNN5"))
+```
+
+## Summary and Analysis
+
+We have evaluated `r nrow(capacity_to_learn)` algorithm's capacity to learn and generalize.  The following tables summarize their performace: 
+
+**Table 1. Capacity to Learn**
+```{r, echo=FALSE}
+capacity_to_learn %>%  kable() %>%  kable_styling()
+```
+
+**Table 2. Capacity to Generalize**
+```{r, echo=FALSE}
+capacity_to_generalize %>% kable() %>% kable_styling()
+```
+
+### Discussion
+
+In formulating our recommendations, we assume that the accuracy is very important, especially the TNR.  Since the data is imbalanced (there are more blacks than blues), getting an accurate blue prediction is a good measure of how well the algorithm preforms.  With this in mind, here's our analysis of each algorithm's performance.  
+
+**Logistic Regression** showed a fairly strong ability to learn with an overall accuracy of 73%.  It struggled to identify black cases but did well at identifying blue cases in the test data set.  It's ability to generalize lead us not to recommend using this algorithm.  The accuracy dropped to 33%, indicating that this algorithm over fit the data.
+
+**Naive Bayes** exhibited performance similar to logistic regression.  It also had a 73% accuracy, and outperformed logistic regression's TPR and TNR.  It also showed weakness in the ability to generalize with identical performance to logistic regression.  It is for that reason we cannot recommend this algorithm.
+
+**KNN** was well suited to give accurate predictions.  KNN3 had the highest capacity to learn out of all the algorithms analyzed. It had an accuracy of 80%.  KNN3 also indicated strength in generalization, with a accuracy of 50%.  That is a 17 percentage point improvement over logistic regression and naive Bayes.
+
+KNN5 indicated a similar ability to learn as logistic regression and naive Bayes.  It did preform the best at detecting blues as indicated by the TNR of 83%.  Where KNN5 shined was in the ability to generalize.  It had the highest accuracy and the highest TNR of all the algorithms.
+
+
+```{r, echo=FALSE}
+ggplot() + 
+  geom_point(data = df[in_training_set,], aes(x = X, y = Y, color = label)) + 
+  geom_point(data = df[-in_training_set,], aes(x = X, y = Y, color = label), shape = 2) +
+  scale_color_manual(values=c("#000000", "#56B4E9")) +
+  theme(legend.position = "none")
+```
+
+KNN preformed so well because the data exhibited clustering.  This is seen in the image above where the triangles are the points that needed to be predicted and the dots are the data used to make inferences.  As previously noted, there is a large cluster of blue centered around where `X` is 20 and `Y` is c (which coincidentally is a point needing to be predicted).  There is another patch of blues where `X` is greater than 60 and `Y` is not a.  The black points dominated the chart where `X` ranged from 30 to 50.  Given the points needed to be predicted (triangles) were surrounded by peers KNN preformed well.
+
+### Recommendation
+
+Based on our analysis of the performance of the algorithms on the data set, we would recommend using a KNN algorithm.  KNN is well positioned to make an accurate prediction.  Based strictly on the draw that we made, setting K = 5 seems to be the best choice.  This is heavily dependent on the draw that was made in this process.  A K = 3 is a strong alternative and should be explored using additional draws of data.
