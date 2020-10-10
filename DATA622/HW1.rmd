@@ -27,7 +27,7 @@ options(knitr.kable.NA = '')
 ### Read in the data
 
 ```{r}
-df <- read.csv("HW1.csv", stringsAsFactors = TRUE)
+df <- read.csv("https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA622/HW1.csv", stringsAsFactors = TRUE)
 ```
 
 ### EDA
