@@ -133,22 +133,22 @@ predictions2 <- knn_predict3(test.df, train.df, K,labelcol)
 ```
 
 ```{r}
-# start_time <- Sys.time()
-# n_tests <- 100
-# for (i in 1:n_tests){
-#   knn_predict2(test.df, train.df, K,labelcol)
-# }
-# end_time <- Sys.time()
-# difftime(end_time, start_time)
+start_time <- Sys.time()
+n_tests <- 100
+for (i in 1:n_tests){
+ knn_predict2(test.df, train.df, K,labelcol)
+}
+end_time <- Sys.time()
+difftime(end_time, start_time)
 ```
 
 ```{r}
-# start_time <- Sys.time()
-# for (i in 1:n_tests){
-#   knn_predict3(test.df, train.df, K,labelcol)
-# }
-# end_time <- Sys.time()
-# difftime(end_time, start_time)
+start_time <- Sys.time()
+for (i in 1:n_tests){
+ knn_predict3(test.df, train.df, K,labelcol)
+}
+end_time <- Sys.time()
+difftime(end_time, start_time)
 ```
 Computing ROCR and AUC is some what non-trivial as kNN do not compute probabilities
 and results in unreliable ROCR plots.
