@@ -26,7 +26,45 @@ DATA612/*.html
 DATA612/jester*
 CUNY-SPS.code-workspace
 DATA612/project_2_user_cosine_similarity.csv
-DATA698/iNaturalist/images/*
+DATA698/iNaturalist/images/Boston Ivy/*jpg
+DATA698/iNaturalist/images/Boston Ivy/*jpeg
+DATA698/iNaturalist/images/Boston Ivy/*png
+DATA698/iNaturalist/images/Box Elder/*jpg
+DATA698/iNaturalist/images/Box Elder/*jpeg
+DATA698/iNaturalist/images/Box Elder/*png
+DATA698/iNaturalist/images/Bramble/*jpg
+DATA698/iNaturalist/images/Bramble/*jpeg
+DATA698/iNaturalist/images/Bramble/*png
+DATA698/iNaturalist/images/Goutweed/*jpg
+DATA698/iNaturalist/images/Goutweed/*jpeg
+DATA698/iNaturalist/images/Goutweed/*png
+DATA698/iNaturalist/images/Hog Peanut/*jpg
+DATA698/iNaturalist/images/Hog Peanut/*jpeg
+DATA698/iNaturalist/images/Hog Peanut/*png
+DATA698/iNaturalist/images/Honewort/*jpg
+DATA698/iNaturalist/images/Honewort/*jpeg
+DATA698/iNaturalist/images/Honewort/*png
+DATA698/iNaturalist/images/Hoptree/*jpg
+DATA698/iNaturalist/images/Hoptree/*jpeg
+DATA698/iNaturalist/images/Hoptree/*png
+DATA698/iNaturalist/images/Jack in the Pulpit/*jpg
+DATA698/iNaturalist/images/Jack in the Pulpit/*jpeg
+DATA698/iNaturalist/images/Jack in the Pulpit/*png
+DATA698/iNaturalist/images/Kudzu/*jpg
+DATA698/iNaturalist/images/Kudzu/*jpeg
+DATA698/iNaturalist/images/Kudzu/*png
+DATA698/iNaturalist/images/Poison Ivy/*jpg
+DATA698/iNaturalist/images/Poison Ivy/*jpeg
+DATA698/iNaturalist/images/Poison Ivy/*png
+DATA698/iNaturalist/images/Strawberry/*jpg
+DATA698/iNaturalist/images/Strawberry/*jpeg
+DATA698/iNaturalist/images/Strawberry/*png
+DATA698/iNaturalist/images/Sumac/*jpg
+DATA698/iNaturalist/images/Sumac/*jpeg
+DATA698/iNaturalist/images/Sumac/*png
+DATA698/iNaturalist/images/Virginia Creeper/*jpg
+DATA698/iNaturalist/images/Virginia Creeper/*jpeg
+DATA698/iNaturalist/images/Virginia Creeper/*png
 DATA698/dataset/*
 DATA698/weights/*.weights
 DATA698/Articles/*
