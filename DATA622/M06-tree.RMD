@@ -1,0 +1,223 @@
+---
+title: "M06-DTree.RMD"
+author: "Raman Kannan"
+date: "8/24/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+```{r}
+heart<-read.csv('heart.csv',sep=',',head=T,
+                stringsAsFactors=F)
+unlist(lapply(names(heart),FUN=function(x,data=heart){c(cname=x,uvalfreq=length(unique(data[[x]])))}))
+
+nvpairsdf3<-do.call('rbind',lapply(names(heart),FUN=function(x,data=heart){c(cname=x,uvalfreq=length(unique(data[[x]])))}))
+
+categoricalFeatures<-function(dset,ncol=7)
+{
+  df4<-as.data.frame(do.call('rbind',lapply(names(dset),FUN=function(x,data=dset){c(cname=x,uvalfreq=length(unique(data[[x]])))})))
+  df4$uvalfreq=as.numeric(df4$uvalfreq)
+  dset[,df4$uvalfreq<=ncol]
+}
+
+X<-categoricalFeatures(heart)
+
+table(heart$target)
+dim(X)
+
+
+```
+
+
+```{r, echo=FALSE}
+library(rpart)
+library(rpart.plot)
+library(ROCR)
+
+isModelReliable<-function(cfmx)
+{	cfmx$overall[['AccuracyPValue']]<0.05;
+ }
+
+isUnderfitting<-function(cfmx)
+{	cfmx$overall[['Accuracy']]<0.60;
+ }
+
+isOverfitting<-function(tr,tst)
+{	tst$overall[['Accuracy']]/tr$overall[['Accuracy']]<0.75;
+ }
+
+ getSensitivity<-function(cfmx) cfmx$byClass[['Sensitivity']]
+
+getAccuracy<-function(cfmx) cfmx$overall[['Accuracy']]
+
+getSpecificity<-function(cfmx) cfmx$byClass[['Specificity']]
+
+getMetrics<-function(actual_class,predicted_response)
+{
+X=list()
+if ( require(ROCR) ) {
+auc_1=prediction(predicted_response,actual_class)
+prf=performance(auc_1, measure="tpr",x.measure="fpr")
+slot_fp=slot(auc_1,"fp")
+slot_tp=slot(auc_1,"tp")
+
+fpr=unlist(slot_fp)/unlist(slot(auc_1,"n.neg"))
+tpr=unlist(slot_tp)/unlist(slot(auc_1,"n.pos"))
+
+auc<-performance(auc_1,"auc")
+AUC<-auc@y.values[[1]]
+X=list(prf=prf,fpr=fpr,tpr=tpr,auc=AUC)
+}
+X
+}
+X$target=as.factor(X$target)
+
+rpart.model<-rpart(target~.,data=X,minsplit=3)
+rpart.plot(rpart.model)
+
+```
+
+That is a nice chart but several questions come to mind....
+What are the numbers in each node?
+What do they represent?
+There are three numbers in the root node 1,0.54,100%
+
+Here 1 is the class.
+54% of the observations belong to class 1 and we can confirm this by 
+```{r} table(X$target)/nrow(X)```
+The third number 100% says, all observations are accounted for in this node, obviously so for the
+root node.
+
+the test at this node is cp < 1. 
+
+Let us take the cp<1 branch to the left and here we find 0,0.27,47%.
+This node is class 0 node.And, 27% of the observations will end up being class 1.
+The node id is always the majority class. And these are easily confirmed 
+`r table(X[X$cp<1,]$target)/sum(table(X[X$cp<1,]$target)) ` and this node represents
+`r nrow(X[X$cp<1,])/nrow(X)` of the dataset.
+```{r}
+table(X[X$cp<1,]$target)/sum(table(X[X$cp<1,]$target)) #class probabilities 
+nrow(X[X$cp<1,])/nrow(X) # proportion of the dataset
+#or we can follow the next node
+table(X[X$cp<1&X$ca>=1,]$target)/sum(table(X[X$cp<1&X$ca>=1,]$target))
+# and confirm the majority class for this node is 0 and proportion of class 1 to be
+
+```
+
+Let us go to the next node the test here is ca >= 0
+If ca < 1 we should get `r table(X[X$cp<1&X$ca<1,]$target)/sum(table(X[X$cp<1&X$ca<1,]$target)) `
+The majority class here is 1. And the proportion of the dataset in this node is
+`r nrow(X[X$cp<1&X$ca<1,])/nrow(X) `
+```{r}
+table(X[X$cp<1&X$ca<1,]$target)/sum(table(X[X$cp<1&X$ca<1,]$target))
+nrow(X[X$cp<1&X$ca<1,])/nrow(X)
+
+# if we follow ca>0
+table(X[X$cp>0,]$target)/nrow(X[X$cp>0,]) # we get 79% for class 1
+nrow(X[X$cp>0,])/nrow(X) # for 52% of the dataset
+```
+Confirm the numbers are in agreement for 3 more nodes..
+Node ID is always the majority class.
+The second number is the probability for class 1.
+and the third number is % of observations out of the whole dataset represented by the node.
+
+
+##Why did the tree start with the feature 'cp'?
+##How did it find that is the right strategy?
+
+Let us reduce the number of features and run a small model to understand 
+these things. With this large a dataset we may never get to the point.
+
+
+```{r}
+library(sqldf)
+
+s1<-sqldf('select count(*) from X where cp < 1')
+head(s1)
+
+nrow(X[X$cp<1,])/nrow(X)
+
+table(X[X$cp<1,]$target)
+
+table(X[X$cp<1,]$target)/sum(table(X[X$cp<1,]$target))
+```
+There are 143 with cp<1 out of ```{r} nrow(X) ``` let us start with a smaller 3 feature dataset ...
+```{r}
+smh<-X[,c(2:4,9)]
+smh$target<-as.factor(smh$target)
+smh_rpart<-rpart(target~.,data=smh,minsplit=2)
+rpart.plot(smh_rpart,main=' 3 feature dataset to illustrate gini_index')
+
+
+```
+
+```{r}
+
+smhx<-sqldf('select * from smh where cp <1 and fbs =1')
+
+smhx
+
+gini<-function(dset,cname,label)
+{
+cnames<-unique(dset[[label]])
+vprop<- as.matrix(as.numeric(table(dset[[cname]])/sum(table(dset[[cname]]))))
+ T1<-table(dset[[cname]],as.vector(dset[[label]]))
+ T1mx<-as.matrix(T1)
+ T11<-as.matrix(t(apply(T1mx,1,FUN=function(v){v/sum(v)})))
+ pT1<-as.data.frame(cbind(T1mx,vprop,T11))
+nclass<-length(unique(dset[[label]]))
+pT1x<-pT1[,(nclass+1+1):(1+2*nclass)]
+ pT2<-cbind(pT1,t(apply(pT1[,(nclass+1+1):(1+2*nclass)],1,FUN=function(v) v*v)))
+pT3<-cbind(pT2,apply(pT2,1,FUN=function(v)(v[nclass+1]*(1-sum(v[(1+2*nclass+1):(1+3*nclass)])))))
+pT3.df<-as.data.frame(pT3)
+colnames<-c(paste('f_',cnames,sep=''),'valprop',paste('p_',cnames,sep=''),
+paste('sqp_',cnames,sep=''),'gini')
+names(pT3.df)<-colnames
+pT3.df$feature=cname
+pT3.df$label=label
+pT3.df$feature_value=row.names(T1)
+pT3.df
+ }
+
+compute_gini<-function(dset,labelCol)
+
+{
+
+ginimx<-do.call('rbind',lapply(names(dset)[names(dset)!=labelCol],FUN=function(x,df=dset,label=labelCol)gini(df,x,label)))
+
+
+ginimx
+}
+
+
+ginimx<-compute_gini(smh,'target')
+
+ginimx
+
+ginif<-sqldf('select feature,sum(gini) as tgini from ginimx group by feature')
+
+ginif[which.min(ginif$tgini),1]
+
+```
+Does it work recursively?
+
+let us check on the full dataset for the partition when cp>0
+
+Recall the tree we rendered initially.
+
+```{r}
+#catheart<-categoricalFeatures(heart)
+bigkahuna<-compute_gini(X[X$cp>0,],'target')
+ginit<- sqldf('select feature, sum(gini) tgini from bigkahuna group by feature')
+ginit[which.min(ginit$tgini),c('feature')]
+```
+
+So we now have a systematic method to partition a given dataset
+by the feature that most isolate the class using GINI index.
+
