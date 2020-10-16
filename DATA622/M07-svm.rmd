@@ -1,0 +1,206 @@
+---
+title: "M07-SVM"
+author: "Raman Kannan"
+date: "9/28/2020"
+output: 
+html_document: M07-svm.html
+df_print: paged
+pdf_document: default
+---
+
+```{r Startup}
+
+
+```
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Preliminaries
+
+
+#Load input data heart.csv and ecoli.csv
+```{r MainCode}
+unixpath<-"/home/data/ML.Data/heart.csv"
+unixecolipath<-"/home/data/ML.Data/ecoli.csv"
+path<-"c://Users/rk215/Data/heart.csv"
+ecolipath<-"c://Users/rk215/Data/ecoli.csv"
+heart<-read.csv(path,header=TRUE,sep=',',stringsAsFactors=FALSE)
+ecoli<-read.csv(ecolipath,head=T,sep=',',stringsAsFactors=F)
+
+```
+
+## Review the data, quick and easy EDA
+View a few records (head/tail), dimension, number of rows and records
+and the variable names.
+Everything is an object and mostly a list. We can index into a list to 
+access the elements in the list. R index runs from 1 to the length.
+```{r}
+head(heart)
+```
+### unix head and tail commands
+R commands *head* and *tail* are like the Unix head and tail shell commands
+These commands output a few records from the beginning or at the end of the file.
+```{r}
+tail(heart)
+```
+
+let us change the name of the first column
+
+```{r}
+names(heart)[[1]]<-'age'
+```
+Always trust but verify that our indexing worked...
+```{r}
+names(heart)
+```
+We have already performed EDA when we ran glm. 
+```{r}
+library(plotly)
+library(e1071)
+library(caret)
+library(pROC)
+
+
+```
+
+## Let us run
+Let us run SVM from e1071 package and try to
+understand each variable and how important they are in 
+determining the target variable.
+
+we will **NOT** split the data as this is a trial run
+and this run is to develop a rough draft script for
+any classification exercise.
+```{r}
+heart$target<-factor(heart$target)
+svm_model<-svm(target~.,data=heart, probability=TRUE)
+svm_model
+
+```
+
+```{r}
+svm_predict<-predict(svm_model,heart[,-c(14)],probability=TRUE)
+probs<-attr(svm_predict,"prob")[,"1"]
+predclass<-ifelse(probs>0.5,1,0)
+table(heart$target==predclass)
+(cfmx<-caret::confusionMatrix(table(heart$target,predclass)))
+```
+### Our model can learn ....
+As evidenced by the F1 ```{cfmx$byClass[['F1']]}``` and the Balanced Accuracy ```{cfmx$byClass[['Balanced Accuracy']]}``` Now we should compute testing error -so called- generalization error...
+To determine the generalization error, we split the data into training and testing dataset.
+We dont tune as a matter of principle so we do not need the validation set.
+Then we train on the training set and predict the target for the testing set.
+That will provide us a window into the generalization capability for the learner.
+This capability to generalize is all that matters for the business. So let us do it.
+```{r}
+set.seed(43)
+tstidx<-sample(1:nrow(heart),0.30*nrow(heart),replace=F)
+trdata<-heart[-tstidx,]
+tsdata<-heart[tstidx,]
+
+#svm(target~.,data=heart, probability=TRUE)
+
+svm_train_model<-svm(target~.,data=trdata,probability=TRUE)
+svm_train_predict<-predict(svm_train_model,trdata[,-c(14)],probability=TRUE)
+train_probs<-attr(svm_train_predict,"prob")[,"1"]
+train_predclass<-ifelse(train_probs>0.5,1,0)
+tr_tbl<-table(trdata$target,train_predclass)
+(tr_cfmx<-caret::confusionMatrix(tr_tbl))
+
+
+cdf<-data.frame(all=cfmx$byClass,tr=tr_cfmx$byClass)
+cdf
+```
+The performance measures are very similar therefore we can conclude the data partition has no impact on 
+the distribution or the model performance and the model is stable. Now we can evaluate the performance on the test set.
+```{r}
+svm_tst_predict<-predict(svm_train_model,tsdata[,-c(14)],probability=TRUE)
+tst_probs<-attr(svm_tst_predict,"prob")[,"1"]
+tst_predclass<-ifelse(tst_probs>0.5,1,0)
+tst_tbl<-table(tsdata$target,tst_predclass)
+(tst_cfmx<-caret::confusionMatrix(tst_tbl))
+
+
+cdf<-cbind(cdf,ts=tst_cfmx$byClass)
+cdf
+```
+# Let us now run the SVM on the attributed we identified with VIF
+```{r}
+Y<-heart[[14]]
+vif_col<-c(2,3,6,7,9,11,12,13,14)
+vif_heart<-heart[,vif_col]
+vif_trdata<-trdata[,vif_col]
+vif_tsdata<-tsdata[,vif_col]
+head(vif_heart)
+head(Y)
+
+svm_vif_tr_model<-svm(target~.,data=vif_trdata,probability=TRUE)
+svm_vif_tr_predict<-predict(svm_vif_tr_model,vif_trdata[,-c(14)],probability=TRUE)
+vif_train_probs<-attr(svm_vif_tr_predict,"prob")[,"1"]
+vif_train_predclass<-ifelse(vif_train_probs>0.5,1,0)
+vif_tr_tbl<-table(vif_trdata$target,vif_train_predclass)
+(vif_tr_cfmx<-caret::confusionMatrix(vif_tr_tbl))
+(cdf<-cbind(cdf,vif_tr=vif_tr_cfmx$byClass)) # this represents our model's ability to learn -- training error
+# is interpreted as underfitting when < 0.75 I use 0.85 
+# remedy is to consider more complex model 
+```
+**Why is the performance with VIF predictors slightly better?**  
+Next we will predict the target for our test data.
+And the performance (or error) calculated on the test data represents generalization error for this model.
+```{r}
+svm_vif_tst_predict<-predict(svm_vif_tr_model,vif_tsdata[,-c(9)], probability=TRUE)
+svm_vif_tst_predict_probs=attr(svm_vif_tst_predict, "prob")[,"1"]
+svm_roc_obj<-roc(vif_tsdata[,c(9)],svm_vif_tst_predict_probs)
+svm_auc<-auc(svm_roc_obj)
+
+```
+Now let us plot ROC Curve
+```{r}
+plot.new()
+plot.window(xlim=c(1,0), ylim=c(0,1), xaxs='i', yaxs='i')
+axis(1, las=1)
+axis(2, las=1)
+abline(1,-1, col="black", lwd=0.5)
+box()
+title(main="ROC", xlab="Specificity", ylab="Sensitivity")
+lines(svm_roc_obj, col="black", las=2)
+text(x=0.2,y=0.2,paste("SVM_AUC=",round(svm_auc,6),sep=''))
+```
+Area Under the Curve (AUC) for ROC Curve is ```{svm_auc}```.
+Given the AUC, SVM has outperformed all the classifiers we have evaluated so far.
+
+SVM by far has some attractive properties.
+Adding new observations to the left or right of the computed support vectors
+does not change the support vectors and our inferences are stable as new
+data arrives.
+SVM needs to carry the vectors nothing more -- not the dataset as we did in
+the case of kNN.
+SVMs are most explainable determined by directly by the data.
+
+The decision boundary for a SVM is linear (recall it is straight line)
+SVMs are most known for its customizability using kernel trick.
+Here let us look at an example from ESL book which demonstrates
+the power of SVM when the boundary is not linear.
+Download this data, 
+https://web.stanford.edu/~hastie/ElemStatLearn/datasets/ESL.mixture.rda
+from the ESL book site.
+
+
+```{r}
+load(url("https://web.stanford.edu/~hastie/ElemStatLearn/datasets/ESL.mixture.rda"))
+plot(ESL.mixture$x,col=ESL.mixture$y+3)
+data_svm<-data.frame(y=factor(ESL.mixture$y),ESL.mixture$x)
+
+ data.svm<-svm(factor(y)~.,data=data_svm,scale=FALSE,kernel="radial",cost=15)
+ plot(data.svm,data_svm)
+
+```
+
+Clearly this is not a linear boundary but SVM does this even though the data is not
+separable. The performance of this model may be computed just as we have been
+doing and that is left as an exercise, not for credit though.
+
+For Software Engineers, kernel technique, just passing in 
+method as a parameter, is not new.
+

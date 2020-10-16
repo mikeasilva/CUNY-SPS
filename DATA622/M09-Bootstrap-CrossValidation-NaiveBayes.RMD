@@ -1,0 +1,191 @@
+---
+title: "Bootstrapping-naiveBayes"
+author: "Raman Kannan"
+date: "10/5/2020"
+output:
+  html_document:
+    toc: true
+    toc_float: yes
+    theme: united
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Bootstrapping
+
+Let us look at bootstrap -- The metaphor is, when we fall into a ditch, we can climb if we are wearing a shoes with bootstrap.No can do if you are wearing a slip on or other kinds of footwear without a strap. We learned that classification exercise often suffers bias and variance. Together, bias and variance, contribute to errors in modeling.
+From wiki--In general, bootstrapping usually refers to a self-starting process that is supposed to proceed without external input. In computer technology the term (usually shortened to booting) usually refers to the process of loading the basic software into the memory of a computer after power-on or general reset, especially the operating system which will then take care of loading other software as needed.
+
+## Bias
+The Bias can be one of the three different kinds  
+* Bias in the statistics world. Here the expected value of sample statistics is different from population parameter. 
+* In Linear Regression, the intercept is also known as bias, and 
+* in M/L, when underfitting (model is too simple and is unable to learn the patterns in the data) occurs it is attributed to bias.
+
+## Variance
+The variance, reflects how a given observation is classified differently by the model when trained with different training sets.
+
+## Bias/Variance: The Tradeoff
+Bias and Variance cannot be simultaneously reduced to zero. If we reduce Bias, variance will increase and vice versa.
+
+## Established Bias reduction strategies
+
+### Resampling
+Just as person in a ditch uses the available shoe-lace to climb out of the hole, a dsc with limited data, can use that limited data by resampling many times with replacement and overcome poor performance due to lack of data.
+
+Again we need to justify why we are engaging in such trials by establishing base-line performance and demonstrating performance can be improved with such
+experiments.
+
+### Base line performance of NB and GLM
+
+
+
+```{r}
+library('e1071')
+file<-'c://Users/rk215/Data/heart.csv'
+heart<-read.csv(file,head=T,sep=',',stringsAsFactors=F)
+head(heart)
+catheart<-heart[,c(2,3,6,7,9,11,12,13,14)]
+
+set.seed(43)
+trdidx<-sample(1:nrow(catheart),0.7*nrow(catheart),replace=F)
+trcatheart<-catheart[trdidx,]
+tstcatheart<-catheart[-trdidx,]
+
+nbtr.model<-naiveBayes(target~.,data=trcatheart)
+#str(nbtr.model)
+object.size(nbtr.model) #11096
+
+nbtr.trpred<-predict(nbtr.model,trcatheart[,-c(9)],type='raw')
+nbtr.trclass<-unlist(apply(round(nbtr.trpred),1,which.max))-1
+nbtr.trtbl<-table(trcatheart[[9]], nbtr.trclass)
+tr.cfm<-caret::confusionMatrix(nbtr.trtbl)
+tr.cfm
+#tr.cfm$overall['Accuracy']
+
+start_tm <- proc.time() 
+#bootstrap here
+#library(parallel)
+
+#  mclapply = system.time(
+#      mclapply(f, mc.cores=4, read_clean_write)
+# )
+df<-trcatheart
+runModel<-function(df) {naiveBayes(target~.,data=df[sample(1:nrow(df),nrow(df),replace=T),])}
+lapplyrunmodel<-function(x)runModel(df)
+   
+system.time(models<-lapply(1:100,lapplyrunmodel))
+
+object.size(models)
+#system.time(
+boot_preds<-lapply(models,FUN=function(M,D=trcatheart[,-c(9)])predict(M,D,type='raw'))
+
+boot_trcfm<-lapply(boot_preds,FUN=function(P,A=trcatheart[[9]])
+{pred_class<-unlist(apply(round(P),1,which.max))-1
+  pred_tbl<-table(pred_class,A)
+  pred_cfm<-caret::confusionMatrix(pred_tbl)
+  pred_cfm
+})
+
+
+c(boot_trcfm[[1]]$overall,boot_trcfm[[1]]$byClass)
+
+as.numeric(c(boot_trcfm[[1]]$overall,boot_trcfm[[1]]$byClass))
+
+boot_trcfm[[1]]$overall
+
+class(boot_trcfm[[1]]$overall)
+names(boot_trcfm[[1]]$overall)
+
+#boot.perf<-do.call('rbind',lapply(boot_trcfm,FUN=function(cfm)c(acc=cfm$overall[[1]],pvalue=cfm$overall[[6]],sens=cfm$byClass[[1]],spec=cfm$byClass[[2]])))
+
+boot.perf<-as.data.frame(do.call('rbind',lapply(boot_trcfm,FUN=function(cfm)c(cfm$overall,cfm$byClass))))
+
+boot.tr.perf<-apply(boot.perf[boot.perf$AccuracyPValue<0.01,-c(6:7)],2,mean)
+boot.tr.perf.var<-apply(boot.perf[boot.perf$AccuracyPValue<0.01,-c(6:7)],2,sd)
+  
+boot.tr.perf.var/boot.tr.perf
+
+
+
+boot_tm<-proc.time()-start_tm
+
+nbtr.tspred<-predict(nbtr.model,tstcatheart[,-c(9)],type='raw')
+#roc.nbtr.tspred<-unlist(apply(nbtr.tspred,1,which.max)) # this returns the position
+#roc.nbtr.tspred<-apply(nbtr.tspred,1,FUN=function(v)v[which.max(v)]) # this returns the value
+#https://stackoverflow.com/questions/47883541/how-can-i-implement-roc-curve-analysis-for-naive-bayes-classification-algorithm
+roc.nbtr.tspred<-nbtr.tspred[,2]
+nbtr.tsclass<-unlist(apply(round(nbtr.tspred),1,which.max))-1
+nbtr.tstbl<-table(tstcatheart[[9]], nbtr.tsclass)
+tst.cfm<-caret::confusionMatrix(nbtr.tstbl)
+tst.cfm
+#tst.cfm$overall['Accuracy']
+
+tstboot_preds<-lapply(models,FUN=function(M,D=tstcatheart[,-c(9)])predict(M,D,type='raw'))
+
+boot_tstcfm<-lapply(tstboot_preds,FUN=function(P,A=tstcatheart[[9]])
+{pred_class<-unlist(apply(round(P),1,which.max))-1
+  pred_tbl<-table(pred_class,A)
+  pred_cfm<-caret::confusionMatrix(pred_tbl)
+  pred_cfm
+})
+
+tstboot.perf<-as.data.frame(do.call('rbind',lapply(boot_tstcfm,FUN=function(cfm)c(cfm$overall,cfm$byClass))))
+
+boot.tst.perf<-apply(boot.perf[tstboot.perf$AccuracyPValue<0.01,-c(6:7)],2,mean)
+boot.tst.perf.var<-apply(tstboot.perf[tstboot.perf$AccuracyPValue<0.01,-c(6:7)],2,sd)
+```
+
+### Cross Validation
+
+Splitting a dataset into two disjoint sets (70/30) and using 70% for training and 30% for testing is not very smart. Because, we had 100 observations to
+train with and test with. We end up training with 70% and testing with a paltry 30%. We have to find a way to overcome this under-utilization of data, the most critical resource, in our line of work. Cross Validation is an attempt to over come this deficiency. 
+
+
+
+```{r creating_folds}
+
+N<-nrow(trcatheart)
+NF=10
+folds<-split(1:N,cut(1:N, quantile(1:N, probs = seq(0, 1, by =1/NF))))
+length(folds)
+lapply(folds,length)
+ridx<-sample(1:nrow(trcatheart),nrow(trcatheart),replace=FALSE)
+
+cv_df<-do.call('rbind',lapply(folds,FUN=function(idx,data=trcatheart[ridx,]) {
+  m<-naiveBayes(target~.,data=data[-idx,])
+   p<-predict(m,data[idx,-c(9)],type='raw')
+   pc<-unlist(apply(round(p),1,which.max))-1
+  pred_tbl<-table(pc,data[idx,c(9)])
+  pred_cfm<-caret::confusionMatrix(pred_tbl)
+  list(fold=idx,m=m,cfm=pred_cfm)
+  }
+))
+
+```
+**cv_df** now has the folds, models and corresponding **caret::confusionMatrix** which has all the metrics.
+We can extract the metrics into a data.frame and average them as we did before.
+```{r averaging_the_cv}
+
+cv_df<-as.data.frame(cv_df)
+
+lapply(cv_df$cfm,FUN=function(cfm)c(cfm$overall,cfm$byClass))
+tstcv.perf<-as.data.frame(do.call('rbind',lapply(cv_df$cfm,FUN=function(cfm)c(cfm$overall,cfm$byClass))))
+
+cv.tst.perf<-apply(tstcv.perf[tstcv.perf$AccuracyPValue<0.01,-c(6:7)],2,mean)
+cv.tst.perf
+boot.tst.perf
+tst.cfm
+cv.tst.perf.var<-apply(tstcv.perf[tstcv.perf$AccuracyPValue<0.01,-c(6:7)],2,sd)
+```
+## Bagging vs CV
+
+In comparison to the bootstrap metrics ```{boot.tst.perf}``` a 10-Fold cross validation yields the following metrics 
+```{cv.tst.perf}```. Cross Validation has improved the base Accuracy and it decreased for bootstrap. 
+
+To be honest, I had expected bootstrap to outperform both cross-validation and base model.
+
+In Data expeditions, you go where the data takes you. Double/triple validation is required but data leads you
+whereever it leads you. Let there not be any temptation to second guess data. Data is verily ***The Light of Truth***
