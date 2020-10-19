@@ -21,10 +21,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 #Load input data heart.csv and ecoli.csv
 ```{r MainCode}
-unixpath<-"/home/data/ML.Data/heart.csv"
-unixecolipath<-"/home/data/ML.Data/ecoli.csv"
-path<-"c://Users/rk215/Data/heart.csv"
-ecolipath<-"c://Users/rk215/Data/ecoli.csv"
+unixpath<-"heart.csv"
+unixecolipath<-"ecoli.csv"
+path<-"heart.csv"
+ecolipath<-"ecoli.csv"
 heart<-read.csv(path,header=TRUE,sep=',',stringsAsFactors=FALSE)
 ecoli<-read.csv(ecolipath,head=T,sep=',',stringsAsFactors=F)
 
