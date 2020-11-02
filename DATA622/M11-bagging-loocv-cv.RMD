@@ -1,0 +1,157 @@
+---
+title: "Bootstrap Aggregation-LooCV-naiveBayes"
+author: "Raman Kannan"
+date: "10/5/2020"
+output:
+  html_document:
+    toc: true
+    toc_float: yes
+    theme: united
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Bootstrap Aggregation: Bagging
+
+We have already seen Bagging in M09 to compare with 10-Fold CV.  
+
+### Sampling with replacement  
+
+This is a time-honored, re-sampling technique. If we are given a small dataset to begin with, we can generate many replicas, if we allow   replacement. We draw N samples out of N samples with replacement. All features are included. Most importantly, the same observation may be present more than once in the replica. Not all the observations may be represented. 
+
+
+## Established Error reduction strategies
+
+### Resampling
+
+First we have to overcome small datasets. Statisticians have had to deal with small dataset problems and they have figured out a solution, called bootstrap. Just as person in a ditch uses the available shoe-lace to climb out of the hole, a data scientist with limited data, can use that limited data by resampling many times with replacement and try to overcome poor performance due to lack of data.
+
+Again we need to justify why we are engaging in such trials by establishing base-line performance and demonstrating performance can be improved with such
+experiments. Bootstrapping is a technique to generate slightly varying but different datasets from a given dataset. Then we run a model repeatedly over all the bootstrapped models, determine the metric and take the average. This is called Bagging.
+
+### Base line performance of NB 
+Ensemble methods start with a weak learner (low variance or low bias), combine them in different ways and estimate aggregate performance metrics either using majority (voting) or averaging. Voting is used in the case of classification and averaging (mean) in the case of regression. This technique can be used to improve the performance of any weak learner. 
+
+So instead of doing the tree based ensemble again, let us indulge in another classifier. Let us use NB as our base learner.
+
+
+```{r}
+library('e1071')
+file<-'c://Users/rk215/Data/heart.csv'
+heart<-read.csv(file,head=T,sep=',',stringsAsFactors=F)
+head(heart)
+catheart<-heart[,c(2,3,6,7,9,11,12,13,14)]
+
+set.seed(43)
+trdidx<-sample(1:nrow(catheart),0.7*nrow(catheart),replace=F)
+trcatheart<-catheart[trdidx,]
+tstcatheart<-catheart[-trdidx,]
+
+nb.model<-naiveBayes(target~.,data=trcatheart)
+#str(nb.model)
+object.size(nb.model) #11096
+
+nb.tstpred<-predict(nb.model,tstcatheart[,-c(9)],type='raw')
+nb.tstclass<-unlist(apply(round(nb.tstpred),1,which.max))-1
+nb.tbl<-table(tstcatheart[[9]], nb.tstclass)
+nb.cfm<-caret::confusionMatrix(nb.tbl)
+nb.cfm
+
+start_tm <- proc.time() 
+
+df<-trcatheart
+runModel<-function(df) {naiveBayes(target~.,data=df[sample(1:nrow(df),nrow(df),replace=T),])}
+lapplyrunmodel<-function(x)runModel(df)
+
+
+system.time(models<-lapply(1:100,lapplyrunmodel))
+
+object.size(models)
+end_tm<-proc.time() 
+print(paste("time taken to run 100 bootstrapps",(end_tm-start_tm),sep=":"))
+
+bagging_preds<-lapply(models,FUN=function(M,D=tstcatheart[,-c(9)])predict(M,D,type='raw'))
+
+bagging_cfm<-lapply(bagging_preds,FUN=function(P,A=tstcatheart[[9]])
+{pred_class<-unlist(apply(round(P),1,which.max))-1
+  pred_tbl<-table(A,pred_class)
+  pred_cfm<-caret::confusionMatrix(pred_tbl)
+  pred_cfm
+})
+
+
+bagging.perf<-as.data.frame(do.call('rbind',lapply(bagging_cfm,FUN=function(cfm)c(cfm$overall,cfm$byClass))))
+
+bagging.perf.mean<-apply(bagging.perf[bagging.perf$AccuracyPValue<0.01,-c(6:7)],2,mean)
+bagging.perf.var<-apply(bagging.perf[bagging.perf$AccuracyPValue<0.01,-c(6:7)],2,sd)
+  
+bagging.perf.var
+bagging.perf.mean
+
+(bagging_tm<-proc.time()-start_tm)
+
+```
+
+### Jacknife: Leave One Out (LOO) Cross Validation
+
+In M09, we did 10-Fold CV. Here we will do LOO-CV. In this form of CV, we iterate through every observation, train with all the other observations, and use that one observation to validate the models. As this is a classification exercise, class label is assigned using majority vote.
+
+```{r running_jacknife_loocv}
+
+N<-nrow(trcatheart)
+
+cv_df<-do.call('rbind',lapply(1:N,FUN=function(idx,data=trcatheart) { # For each observation
+  m<-naiveBayes(target~.,data=data[-idx,]) # train with ALL other observations
+   p<-predict(m,data[idx,-c(9)],type='raw') # predict that one observation
+   # NB returns the probabilities of the classes, as per Bayesian Classifier,we take the classs with the higher probability
+   pc<-unlist(apply(round(p),1,which.max))-1 # -1 to make class to be 0 or 1, which.max returns 1 or 2
+  #pred_tbl<-table(data[idx,c(9)],pc)
+  #pred_cfm<-caret::confusionMatrix(pred_tbl)
+  list(fold=idx,m=m,predicted=pc,actual=data[idx,c(9)]) # store the idx, model, predicted class and actual class
+  }
+))
+
+```
+**cv_df** now has the folds, models and the instance that was held out and the predicted label for that held out observation.
+We can extract the metrics into a data.frame and average them as we did before.
+```{r averaging_the_cv}
+
+cv_df<-as.data.frame(cv_df)
+head(cv_df)
+tail(cv_df)
+table(as.numeric(cv_df$actual)==as.numeric(cv_df$predicted))
+
+loocv_tbl<-table(as.numeric(cv_df$actual),as.numeric(cv_df$predicted))
+sum(diag(loocv_tbl))/sum(loocv_tbl)
+(loocv_caret_cfm<-caret::confusionMatrix(loocv_tbl))
+# now we have to apply the training models to testdata and average them 
+# since this is classification we will take the majority vote
+# double loop
+
+tstcv.perf<-as.data.frame(do.call('cbind',lapply(cv_df$m,FUN=function(m,data=tstcatheart)
+{
+   
+  v<-predict(m,data[,-c(9)],type='raw')
+  lbllist<-unlist(apply(round(v),1,which.max))-1
+ 
+}
+  )))
+np<-ncol(tstcv.perf)
+predclass<-unlist(apply(tstcv.perf,1,FUN=function(v){ ifelse(sum(v[2:length(v)])/np<0.5,0,1)}))
+loocvtbl<-table(tstcatheart[,c(9)],predclass)
+(loocv_cfm<-caret::confusionMatrix(loocvtbl))
+
+```
+```{r comparing-metrics}
+print(paste('Bagging:',bagging.perf.mean[1]))
+print(paste('LOO-CV:',loocv_cfm$overall[1]))
+print(paste('Base NB',nb.cfm$overall[[1]]))
+```
+
+
+##Bagging vs CV  
+
+
+ Even though the performance did not improve all that much, we now have one more tool in our toolbag In Data expeditions, you go where the data takes you. Double/triple validation is required but data leads you wherever it leads you. Let there not be any temptation to second guess data. Data is verily ***The Light of Truth***

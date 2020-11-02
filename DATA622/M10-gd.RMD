@@ -1,0 +1,210 @@
+---
+title: "Estimation-by-Gradient-Descent"
+author: "Raman Kannan"
+date: "10/5/2020"
+output:
+  html_document:
+    toc: true
+    toc_float: yes
+    theme: united
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning = FALSE, message = FALSE)
+# there are producedNAN so I suppressed after confirming the estimates are same in R (in windows, same machine)
+# and other hw platforms.
+```
+# Central Task in Machine Learning
+
+In Supervised Learning, our goal has been to build a model given a dataset to determine class labels (in classification problem) or estimate a numerical value (in regression), without knowing the true distribution. The predictions are not always identical to the true distribution.
+The resulting differences is known as cost and it is an important measure of how suitable the machine learning model is. In Least Squares, MSE is the cost and by minimizing the MSE we arrive at a suitable/performant model. In Classification, we define a Loss function, L, a function of (betas,weights), which aggregates the misclassifications over all observations. We seek to minimize the error by iteratively tweaking the parameters (betas and weights).
+
+In calculus, if a function is differentiable, the minima or the maxima of the function can be found using the first derivative. The first derivative is zero at the extremas. And the second derivative is -ve (when it is max) and +ve (when it is min). In optimization, formulating a Loss function is an important task. We find the extremas of the Loss function **iteratively** by tweaking the betas and weights in the cost function. Gradient Descent is thus a first-order iterative optimization algorithmm for finding the min/max of a function. In each iteration, we compute the gradient and update the betas by -gradient to find the minimum and by +gradient to find the maximum. 
+
+In Machine Learning, supervised learning task we are seeking to minimize the loss, and therefore we apply -1*gradient in each step. In the abstract this takes the algebraic form, 
+
+θ = θ − η · ∇θJ(θ)
+
+where θ are the parameters,  η is the learning rate (the hyperparameter for GD), ∇θ is the gradient operator and J(θ) is the Loss function.
+Most important, we are differentiating w.r.t θ and not the independent variable. The dataset is constant. We are seeking to find the weights that minimize the Loss given that dataset.
+
+## Numerical Optimization
+
+When  **an analytical solution** is not available we have to consider other strategies. Such iterative optimization methods have been around much longer than machine learning. Gradient Descent is one such optimization method.
+
+Classic example is the sigmoid function used logistic regression, it does not have an analytical solution.  
+# function template to implement gradient descent 
+
+*  Formulate a cost function (J(θ))-- must be differentiable (a convex function is differentiable)
+*  initialize random weights (θ), set them all to zero and choose a learning rate, η (0.01,0.001,0.0001 or even 0.00001)
+*  evaluate cost function (J(θ))
+*  update weights with gradient ∇θJ(θ), according to the equation θ = θ − η · ∇θJ(θ)
+*  repeat evaluate-update steps until convergence
+
+Note if the learning rate is too large the algorithm will jump over minima. One must choose sufficiently small learning rate, with care.
+
+In general, given F, the mapping function (x->y), where x are independent variables and y is the dependent variable, for regression problems the Loss Function often is squared-error (y-F)**2 or the absolute 
+error |y-F|. In the case of (-1,1) classification problems, L is often the log-likelihood, log(1+exp(-2yF))
+
+### Variations of Gradient Descent (GD)
+
+Updating parameters using the loss function over the entire training set can be compute intensive. This is called Batch GD.
+This method is stable but very slow.
+Updating the parameters using the loss function using a single randomly chosen observation is fast and it is called Stochastic GD. As expected this is very noisy and jumps around. And sometimes may result in sub-optimal solution.
+A compromise is the mini-batch GD, in which Loss Function and the gradient are evaluated over a random subset, neither the entire set nor a single observation. The mini=batch is often used in Deep Learning.
+
+
+## Cost Function for Logistic Regression
+
+The log of a function behaves similar to the function. Where the function maximizes the log also maximizes. So to find the maxima we can work with the log of the function instead of the function, if it simplifies the task at hand. For the minima we would use the negative log.
+
+The likelihood estimator is a product of the probabilities of all the observations. Taking the log, reduces it to a sum of probabilities.
+Product of probabilities becomes a very small number. Therefore, the cost function is the negative log likelihood **l**.
+
+```{r Logistic_cost_function}
+cost<-function(predictors,labels,parameters)
+{
+    predictions=gdpredict(predictors,parameters)
+predictions[predictions<0]<-1-1*(1/nrow(predictors)) * sum(y*log(predictions) + (1-labels) * log ( 1-predictions))
+}
+
+```
+
+
+## GD Predict
+
+```{r gdpredict}
+gdpredict<-function(predictors,parameters)
+{
+mx=as.matrix(predictors)
+vec=as.vector(parameters)
+dp=mx %*% vec
+1/(1+exp(-1*dp))-0.0000001
+}
+
+
+```
+
+## Gradient Descent
+
+```{r convergence} 
+GD<-function(predictors,labels,parameters,lrate,iter)
+{
+m=nrow(predictors)
+J=cost(predictors,labels,parameters)
+
+for( i in 1:iter)
+{
+        h=gdpredict(predictors,parameters)
+        for (j in 1:ncol(predictors) )
+        {
+           parameters[j]= parameters[j] - (lrate/m) * ( sum (( h-labels)*predictors[,j] ))
+        }
+        c1=cost(predictors,labels,parameters)
+      J=unlist(c(J,c1))
+}
+list(J=J,parameters=parameters)
+}
+```
+##  Utilities to plot and compute metrics
+
+```{r gd_plot_metrics}
+plot_metrics <- function(L,lrate,iter)
+{
+plot(L$J,main=paste("lrate:",lrate,"iter:",iter,sep=''))
+    }
+
+get_metrics<-function(X,L)
+    {
+      #  plot(L$J)
+        est_beta<-L$parameters
+        print(L$parameters)
+        gd_pred<-gdpredict(X,est_beta)
+
+        gd_pred_class<-ifelse(gd_pred<0.5,0,1)
+
+
+        table(gd_pred_class)
+        table(y)
+
+        (cfm<-table(y,gd_pred_class))
+
+        sum(diag(cfm))/sum(cfm)
+        caret_cfm<-caret::confusionMatrix(cfm)
+        list(J=L$J,p=L$parameters,tbl=cfm,caret_cfm=caret_cfm)
+    }
+
+```
+## Running Gradient Descent over Heart
+
+### Loading data
+
+```{r running_gd}
+runGD<-function(X,y,lrate,iter,p)
+    {
+        beta<-rep(0.5,p)
+        L<-GD(X,y,beta,lrate,iter)
+        # plot_metrics(L,lrate,iter)
+        get_metrics(X,L)
+    }
+
+lrate<-0.0001
+iter<-25000
+
+file<-'c://Users/rk215/Data/heart.csv'
+ibmfile<-'C:/data/heart.csv'
+heart<-read.csv(file,head=T,sep=',',stringsAsFactors=F)
+
+X<-cbind(err=1,heart[,-c(ncol(heart))])
+y<-heart$target
+p<-ncol(X)
+
+#oldpar<-par(mfrow=c(3,3))
+L1<-runGD(X,y,lrate,iter,p)
+
+lrate<-0.001
+iter<-20000
+L2<-runGD(X,y,lrate,iter,p)
+
+lrate<-0.01
+iter<-10000
+L3<-runGD(X,y,lrate,iter,p)
+
+L4<-runGD(X,y,lrate=0.0007,iter=20000,p)
+L5<-runGD(X,y,lrate=0.00003,iter=20000,p)
+L6<-runGD(X,y,lrate=0.00007,iter=30000,p)
+
+
+L1$tbl
+L2$tbl
+L3$tbl
+L4$tbl
+L5$tbl
+L6$tbl
+
+#old_par=par(mfrow=c(3,2))
+plot_metrics(L1,0.0001,25000)
+plot_metrics(L6,0.00007,30000)
+plot_metrics(L2,0.001,20000)
+plot_metrics(L3,0.01,10000) 
+plot_metrics(L5,0.00003,20000)
+plot_metrics(L4,0.0007,20000)
+
+
+```
+## Comparison with GLM
+How different are these estimates?
+let us run glm and get the estimates...
+```{r glm_comparison}
+glm.model<-glm(target~.,data=heart,family='binomial')
+coef(glm.model)
+L1$p
+L1$caret_cfm
+glm.pred<-predict(glm.model,X,type='response')
+glm.class<-ifelse(glm.pred<0.50,0,1)
+glm.tbl<-table(y,glm.class)
+caret::confusionMatrix(glm.tbl)
+```
+
+### Conclusion
+GD is a numerical solution. GD however, requires a differentiable **Loss function** and when a Loss function is available, GD is an effective solution to an otherwise unsolvable problem.
