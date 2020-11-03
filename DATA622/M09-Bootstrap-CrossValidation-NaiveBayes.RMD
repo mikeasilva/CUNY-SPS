@@ -44,7 +44,7 @@ experiments.
 
 ```{r}
 library('e1071')
-file<-'c://Users/rk215/Data/heart.csv'
+file<-'heart.csv'
 heart<-read.csv(file,head=T,sep=',',stringsAsFactors=F)
 head(heart)
 catheart<-heart[,c(2,3,6,7,9,11,12,13,14)]
