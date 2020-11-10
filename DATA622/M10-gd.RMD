@@ -151,8 +151,8 @@ runGD<-function(X,y,lrate,iter,p)
 lrate<-0.0001
 iter<-25000
 
-file<-'c://Users/rk215/Data/heart.csv'
-ibmfile<-'C:/data/heart.csv'
+file<-'heart.csv'
+ibmfile<-'heart.csv'
 heart<-read.csv(file,head=T,sep=',',stringsAsFactors=F)
 
 X<-cbind(err=1,heart[,-c(ncol(heart))])
