@@ -1,0 +1,271 @@
+---
+title: "Test 1"
+author: "Mike Silva"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Use the dataset you used for HW-1 (Blue/Black)
+# 
+# (A) Run Bagging (ipred package)   
+# 
+#   -- sample with replacement
+# 
+#   -- estimate metrics for a model
+# 
+#   -- repeat as many times as specied and report the average
+# 
+# (B) Run LOOCV (jacknife) for the same dataset
+# 
+# --- iterate over all points
+# 
+#      -- keep one observation as test
+# 
+#     -- train using the rest of the observations
+# 
+#     -- determine test metrics
+# 
+#     -- aggregate the test metrics
+# 
+# end of loop
+# 
+# find the average of the test metric(s)
+# 
+# Compare (A), (B) above with the results you obtained in HW-1  and write 3 sentences explaining the
+# 
+# observed difference.
+# 
+# You can implement it in java/spark, python or R.
+# 
+# Submit RMD or PDF and the python/R scripts.
+# 
+# --
+# 
+# i would recommend that you implement it from scratch but you may use any package. It is not a requirement.
+# 
+# bagging is available in ipred package in R.
+```
+This test is an extension of the work done in Homework 1.  I will be extending it with bagging and leave one out cross-validation (LOOCV), and adding in the results into the evaluation of the algorithms.
+
+## Preliminaries
+
+### Load Packages
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(kableExtra)
+library(caret)
+library(e1071)
+library(class)
+library(ROCR)
+```
+
+### Read in the data
+
+```{r}
+df <- read.csv("https://github.com/mikeasilva/CUNY-SPS/raw/master/DATA622/HW1.csv", stringsAsFactors = TRUE)
+```
+
+## Data Prep
+
+Since we will be using KNN we will need to normalize `X`.  In order to get a fair comparison, we will used the same processed data to see how the algorithms preform.
+
+```{r}
+normalize <- function(x){
+  return ((x - min(x)) / (max(x) - min(x)))
+}
+
+adjusted_df <- df
+adjusted_df$X <- normalize(adjusted_df$X)
+```
+
+We also need to transform `Y` into dummy variables.
+
+```{r}
+adjusted_df <- adjusted_df %>%
+  mutate(Y_a = ifelse(Y == "a", 1, 0),
+         Y_b = ifelse(Y == "b", 1, 0),
+         Y_c = ifelse(Y == "c", 1, 0),
+         Y_d = ifelse(Y == "d", 1, 0),
+         Y_e = ifelse(Y == "e", 1, 0)) %>%
+  select(-Y)
+```
+
+In order to evaluate the ability of the of the algorithms to generalize, the data needs to be divided into training and test sets.  Since there is only `r nrow(df)` observations, I will be reserving 20% for the evaluation.
+
+```{r}
+set.seed(123)
+in_training_set <- createDataPartition(adjusted_df$label, p = 0.8, list = FALSE, times = 1)
+training_df <- adjusted_df[in_training_set,]
+test_df  <- adjusted_df[-in_training_set,]
+# These subsets will help with training and evaluation
+training_df_without_label <- training_df %>% select(-label)
+test_df_without_label  <- test_df %>% select(-label)
+training_df_label <- training_df$label
+test_df_label <- test_df$label
+```
+
+## Helper Functions
+
+I will use the following helper functions.  This first one takes a logistic regression model and returns predictions for the `data` data.frame
+
+```{r}
+get_lr_yhat <- function(lr_model, data, label_col_name, threshold = 0.5){
+  data_levels <- levels(data[[label_col_name]])
+  cols_to_keep <- label_col_name != names(data)
+  data <- data[,cols_to_keep]
+  lr_yhat <- predict(lr_model, data, type = "response")
+  lr_yhat <- as.factor(ifelse(lr_yhat <= threshold, data_levels[1], data_levels[2]))
+  return(lr_yhat)
+}
+```
+
+The second will take the the ground truth labels and predicted labels and create metrics for evaluation.
+
+```{r}
+evaluate_algo <- function(ground_truth, yhat, algo){
+  cm <- confusionMatrix(table(ground_truth, yhat))
+  cm_table <- cm$table
+  tpr <- cm_table[[1]] / (cm_table[[1]] + cm_table[[4]])
+  fnr <- 1 - tpr
+  fpr <- cm_table[[3]] / (cm_table[[3]] + cm_table[[4]])
+  tnr <- 1 - fpr
+  accuracy <- cm$overall[[1]]
+  for_auc <- prediction(c(yhat), ground_truth)
+  auc <- performance(for_auc, "auc")
+  auc <- auc@y.values[[1]]
+  return(data.frame(Algo = algo, AUC = auc, ACCURACY = accuracy, TPR = tpr, FPR = fpr, TNR = tnr, FNR = fnr))
+}
+```
+
+Now for the extensions for the test.  This third function will be used to create a bootstrap sample.  I will also make the assumption that we will use 100 boostrap samples in evaluating the performance of bagging.
+
+```{r}
+get_bootstrap_sample <- function(data, bootstrap_proportion = 0.6, sample_with_replacement = TRUE){
+  n_bootstrap_observations <- round(nrow(data) * bootstrap_proportion, 0)
+  data[sample(nrow(data), n_bootstrap_observations, replace = sample_with_replacement),]
+}
+
+n_bags <- 100
+```
+
+## Gathering the Model's Capacity to Learn
+
+In order to evaluate this capacity, we will gather metrics on the algorithm's performance on the training set.
+
+### Logistic Regression
+
+```{r}
+lr_model <- glm(label ~ ., data = training_df, family = "binomial")
+summary(lr_model)
+```
+*The sample data are too small (`r nrow(training_df)`) to have any confidence in the Logistic Regression model, so I will be throwing this one out.  Bagging and LOOCV will not resolve this issue.*
+
+```{r}
+#training_lr_yhat <- get_lr_yhat(lr_model, training_df, "label") This does not make sense to use
+capacity_to_learn <- data.frame("Algo" = c("LR", "LR with Bagging", "LR with LOOCV"), AUC=c(NA), ACCURACY=c(NA), TPR=c(NA), FPR=c(NA), TNR=c(NA), FNR=c(NA))
+```
+### Naive Bayes
+
+```{r}
+nb_model <- naiveBayes(label ~ ., data = training_df)
+training_nb_yhat <- predict(nb_model, training_df_without_label)
+capacity_to_learn <- rbind(capacity_to_learn, evaluate_algo(training_df_label, training_nb_yhat, "NB"))
+```
+
+#### With Bagging
+
+Now to try bagging the Naive Bayes model.  I will save all the models to a list so that they can be used to evaluate how well it would generalize latter in the document.
+
+```{r}
+nb_bag <- list()
+for (i in 1:n_bags){
+  bag_df <- get_bootstrap_sample(training_df)
+  bag_df_without_label <- bag_df %>% select(-label)
+  bag_df_label <- bag_df$label
+  bag_nb_model <- naiveBayes(label ~ ., data = bag_df)
+  training_bag_nb_yhat <- predict(bag_nb_model, bag_df_without_label)
+  bag_capacity_to_learn <- evaluate_algo(bag_df_label, training_bag_nb_yhat, paste("NB Bag", i))
+  nb_bag[[i]] <- list(model = bag_nb_model, yhat=training_bag_nb_yhat, capacity_to_learn = bag_capacity_to_learn)
+  if(exists("nb_bag_capacity_to_learn")){
+    nb_bag_capacity_to_learn <- rbind(nb_bag_capacity_to_learn, bag_capacity_to_learn)
+  } else {
+    nb_bag_capacity_to_learn <- bag_capacity_to_learn
+  }
+}
+```
+
+Now to average the capacity to learn metrics:
+
+```{r}
+nb_bag_capacity_to_learn <- nb_bag_capacity_to_learn %>%
+  select(-Algo) %>%
+  colMeans(na.rm=TRUE) %>%
+  t() %>%
+  data.frame("Algo"=c("NB with Bagging"), .)
+capacity_to_learn <- rbind(capacity_to_learn, nb_bag_capacity_to_learn)
+```
+
+#### LOOCV
+
+Now Naive Bayes with LOOCV
+
+```{r}
+for (i in 1:nrow(training_df)){
+  loocv_test <- training_df[i,]
+  loocv_test_without_label <- loocv_test %>% select(-label)
+  loocv_training_df <- training_df[-c(i),]
+  loocv_nb_model <- naiveBayes(label ~ ., data = loocv_training_df)
+  training_loocv_nb_yhat <- predict(loocv_nb_model, loocv_test_without_label)
+  loocv_capacity_to_learn <- evaluate_algo(loocv_nb_model, training_loocv_nb_yhat, paste("NB LOOCV", i))
+}
+```
+
+### KNN
+
+```{r}
+training_knn3_yhat <- knn(training_df_without_label, training_df_without_label, training_df_label, k = 3)
+capacity_to_learn <- rbind(capacity_to_learn, evaluate_algo(training_df_label, training_knn3_yhat, "KNN3"))
+
+training_knn5_yhat <- knn(training_df_without_label, training_df_without_label, training_df_label, k = 5)
+capacity_to_learn <- rbind(capacity_to_learn, evaluate_algo(training_df_label, training_knn5_yhat, "KNN5"))
+```
+
+## Gathering the Model's Capacity to Generalize
+
+### Logistic Regression
+
+```{r}
+lr_yhat <- get_lr_yhat(lr_model, test_df, "label")
+test_lr_cm <- confusionMatrix(table(test_df_label, lr_yhat))
+capacity_to_generalize <- evaluate_algo(test_df_label, lr_yhat, "LR")
+```
+
+### Naive Bayes
+
+```{r}
+nb_yhat <- predict(nb_model, test_df_without_label)
+capacity_to_generalize <- rbind(capacity_to_generalize, evaluate_algo(test_df_label, nb_yhat, "NB"))
+```
+
+### KNN
+
+```{r}
+knn3_yhat <- knn(training_df_without_label, test_df_without_label, training_df_label, k = 3)
+capacity_to_generalize <- rbind(capacity_to_generalize, evaluate_algo(test_df_label, knn3_yhat, "KNN3"))
+
+knn5_yhat <- knn(training_df_without_label, test_df_without_label, training_df_label, k = 5)
+capacity_to_generalize <- rbind(capacity_to_generalize, evaluate_algo(test_df_label, knn5_yhat, "KNN5"))
+```
+
+## Summary and Analysis
+
+We have evaluated `r nrow(capacity_to_learn)` algorithm's capacity to learn and generalize.  The following tables summarize their performace: 
+
+**Table 1. Capacity to Learn**
+```{r, echo=FALSE}
+capacity_to_learn %>%  kable() %>%  kable_styling()
+```
