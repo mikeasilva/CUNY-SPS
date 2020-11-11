@@ -53,7 +53,7 @@ This test is an extension of the work done in Homework 1.  I will be extending i
 
 ### Load Packages
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 library(dplyr)
 library(tidyr)
 library(kableExtra)
@@ -61,6 +61,7 @@ library(caret)
 library(e1071)
 library(class)
 library(ROCR)
+library(stringr)
 ```
 
 ### Read in the data
@@ -171,7 +172,7 @@ First I will train the models following what was previously done in HW1 and coll
 
 ### Logistic Regression
 
-```{r}
+```{r, comment=NA}
 lr_model <- glm(label ~ ., data = training_df, family = "binomial")
 summary(lr_model)
 ```
@@ -239,11 +240,12 @@ capacity_to_generalize <- rbind(capacity_to_generalize, evaluate_algo(test_df_la
 Now to try bagging the Naive Bayes, and KNN models.  I will use the models trained on the bootstrap samples to predict the test data and collect metrics on the capacity to learn and generalize, which will be aggregated.
 
 ```{r}
-nb_bag <- list()
+the_bags <- list()
 for (i in 1:n_bags){
   bag_df <- get_bootstrap_sample(training_df)
   bag_df_without_label <- bag_df %>% select(-label)
   bag_df_label <- bag_df$label
+  the_bags[[i]] <- bag_df
   
   # Train the Naive Bayes Model
   bag_nb_model <- naiveBayes(label ~ ., data = bag_df)
@@ -328,6 +330,7 @@ training_loocv_nb_yhat <- c()
 training_loocv_knn3_yhat <- c()
 training_loocv_knn5_yhat <- c()
 loocv_test_label <- c()
+loocv_dfs <- list()
 
 for (i in 1:nrow(training_df)){
   # Leave One Out
@@ -337,6 +340,7 @@ for (i in 1:nrow(training_df)){
   loocv_training_df <- training_df[-c(i),]
   loocv_training_df_without_label <- loocv_training_df %>% select(-label)
   loocv_training_df_label <- loocv_training_df$label
+  loocv_dfs[[i]] <- loocv_training_df
   
   # Train the Naive Bayes Model
   loocv_nb_model <- naiveBayes(label ~ ., data = loocv_training_df)
@@ -400,7 +404,7 @@ capacity_to_generalize <- rbind(capacity_to_generalize, average_metrics(knn5_loo
 
 ## Summary and Analysis
 
-We have evaluated `r nrow(capacity_to_learn)` algorithm's capacity to learn and generalize.  The following tables summarize their performance: 
+We have evaluated `r nrow(na.omit(capacity_to_learn))` algorithm's capacity to learn and generalize.  The following tables summarize their performance: 
 
 **Table 1. Capacity to Learn**
 ```{r, echo=FALSE}
@@ -414,14 +418,55 @@ capacity_to_generalize %>% arrange(Algo) %>% kable() %>% kable_styling()
 
 ### Discussion
 
+There are `r nrow(training_df)` rows in the training set.  When doing LOOCV the model is trained on `r nrow(training_df) - 1` rows of data.  This subsample is going to be very similar to the full training set.  The bagging on the other hand will be significantly different.  There are `r nrow(bag_df)` rows of data and since it is sampled with replacement a same observation could be selected multiple times.  Consequently the underlying data is different.  We can see this by looking at the share of records that are labeled "BLACK."
+
 ```{r}
-ggplot() + geom_density(aes(x=ACCURACY, color="Bagging"), data=nb_bag_capacity_to_generalize) + geom_density(aes(x=ACCURACY, color="LOOCV"), data=nb_loocv_capacity_to_generalize) + geom_vline(xintercept = 1/3) + ggtitle("Naive Bayes Capacity to Generalize") + scale_color_brewer(palette = "Set1")
+get_share_black <- function(df){
+  df %>% filter(label == "BLACK") %>% nrow() / nrow(df)
+}
+```
+
+The share of the training data set that is labeled black is `r get_share_black(training_df)`. Let's compare this to the shares in the bags.
+
+```{r, comment=NA}
+share_black <- c()
+for(i in 1:n_bags){
+  share_black <- c(share_black, get_share_black(the_bags[[i]]))
+}
+
+summary(share_black)
+```
+
+You can see that the share of observations that are black range from `r round(min(share_black) * 100, 0)`% to `r round(max(share_black) * 100, 0)`%.  This is very different than what we observe with the LOOCV data set:
+
+```{r, comment=NA}
+share_black <- c()
+for(i in 1:nrow(training_df)){
+  share_black <- c(share_black, get_share_black(loocv_dfs[[i]]))
+}
+
+summary(share_black)
+```
+
+This is a lot closer to the full training set.  Consequently a model trained on the bootstrap sample is likely to have different results if it is a weak learner, than the full training set.  Some of the models will do a better job at generalizing than others due to the composition of the data.  This can be seen by looking at a metric like the accuracy of the model.  The following images represent the mean accuracy on the test dataset as a dashed vertical line.  For the bagging and LOOCV runs the distribution of the accuracy is also shown:  
+
+```{r}
+vline_df <- capacity_to_generalize %>% filter(str_detect(Algo, "NB"))
+ggplot() + geom_vline(data=vline_df, aes(xintercept=ACCURACY, color=Algo), linetype="dashed") + geom_density(aes(x=ACCURACY, color="NB with Bagging"), data=nb_bag_capacity_to_generalize) + geom_density(aes(x=ACCURACY, color="NB with LOOCV"), data=nb_loocv_capacity_to_generalize) + ggtitle("Naive Bayes Capacity to Generalize") + scale_color_brewer(palette = "Set1")
 ```
 
 ```{r}
-ggplot() + geom_density(aes(x=ACCURACY), data=knn3_bag_capacity_to_generalize) + geom_vline(xintercept = 1/2)
+vline_df <- capacity_to_generalize %>% filter(str_detect(Algo, "KNN3"))
+ggplot() + geom_vline(data=vline_df, aes(xintercept=ACCURACY, color=Algo), linetype="dashed") + geom_density(aes(x=ACCURACY, color="KNN3 with Bagging"), data=knn3_bag_capacity_to_generalize) + geom_density(aes(x=ACCURACY, color="KNN3 with LOOCV"), data=knn3_loocv_capacity_to_generalize) + ggtitle("KNN3 Capacity to Generalize") + scale_color_brewer(palette = "Set1")
 ```
 
 ```{r}
-ggplot() + geom_density(aes(x=ACCURACY), data=knn5_bag_capacity_to_generalize) + geom_vline(xintercept = 2/3)
+vline_df <- capacity_to_generalize %>% filter(str_detect(Algo, "KNN5"))
+ggplot() + geom_vline(data=vline_df, aes(xintercept=ACCURACY, color=Algo), linetype="dashed") + geom_density(aes(x=ACCURACY, color="KNN5 with Bagging"), data=knn5_bag_capacity_to_generalize) + geom_density(aes(x=ACCURACY, color="KNN5 with LOOCV"), data=knn5_loocv_capacity_to_generalize) + ggtitle("KNN5 Capacity to Generalize") + scale_color_brewer(palette = "Set1")
 ```
+
+Now I hasten to note that all of these figures hare very specific to the initial split in the data which is controlled by the random number seed.  So the statements I will make at this point are specific to this run.  If I would have used another random number seed the results could be vastly different.
+
+When I completed HW-1 I noted the the KNN family of models preformed the best.  KNN3 with bagging out preformed KNN3 on the whole training data.  As previously discussed it is due to the variation in the bootstrap samples.  When it comes to the ability to generalize KNN5 with LOOCV out preformed KNN5 and KNN3 with bagging out preformed KNN3.  The accuracy increases above the "baseline" algorithm.  NB improved the ability to generalize through both bagging and LOOCV.  This suggests that the performance of these weak learners is highly dependent on the data, but when averaged together the group outperforms the single model.
+
+Again these results are highly dependent on the underling data, and additional runs should be done in order to ensure the conclusions are real and not soley based on idiosyncrasies in the data.  The idea is inline with what has been taught in this class.
