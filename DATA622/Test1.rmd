@@ -146,15 +146,28 @@ Now for the extensions for the test.  This third function will be used to create
 ```{r}
 get_bootstrap_sample <- function(data, bootstrap_proportion = 0.6, sample_with_replacement = TRUE){
   n_bootstrap_observations <- round(nrow(data) * bootstrap_proportion, 0)
-  data[sample(nrow(data), n_bootstrap_observations, replace = sample_with_replacement),]
+  return(data[sample(nrow(data), n_bootstrap_observations, replace = sample_with_replacement),])
 }
 
 n_bags <- 100
 ```
 
-## Gathering the Model's Capacity to Learn
+I will also need a way to aggregate/average the metrics
 
-In order to evaluate this capacity, we will gather metrics on the algorithm's performance on the training set.
+```{r}
+average_metrics <- function(metrics, algo){
+  avg_metrics <- metrics %>%
+  select(-Algo) %>%
+  colMeans(na.rm = TRUE) %>%
+  t() %>%
+  data.frame("Algo" = c(algo), .)
+  return(avg_metrics)
+}
+```
+
+## Baseline Models
+
+First I will train the models following what was previously done in HW1 and collect the metrics on both the training and test data sets
 
 ### Logistic Regression
 
@@ -162,13 +175,27 @@ In order to evaluate this capacity, we will gather metrics on the algorithm's pe
 lr_model <- glm(label ~ ., data = training_df, family = "binomial")
 summary(lr_model)
 ```
-*The sample data are too small (`r nrow(training_df)`) to have any confidence in the Logistic Regression model, so I will be throwing this one out.  Bagging and LOOCV will not resolve this issue.*
+#### Capacity to Learn
+
+**The sample data are too small (`r nrow(training_df)`) to have any confidence in the Logistic Regression model, so I will be throwing this one out.  Bagging and LOOCV will not resolve this issue.**
 
 ```{r}
-#training_lr_yhat <- get_lr_yhat(lr_model, training_df, "label") This does not make sense to use
 capacity_to_learn <- data.frame("Algo" = c("LR", "LR with Bagging", "LR with LOOCV"), AUC=c(NA), ACCURACY=c(NA), TPR=c(NA), FPR=c(NA), TNR=c(NA), FNR=c(NA))
 ```
+
+#### Capacity to Generalize
+
+**Again the sample data are too small to use to make meaningful inferences using Logistic Regression.  Bagging and LOOCV will not help and will be excluded from the metrics.**
+
+```{r}
+capacity_to_generalize <- data.frame("Algo" = c("LR", "LR with Bagging", "LR with LOOCV"), AUC=c(NA), ACCURACY=c(NA), TPR=c(NA), FPR=c(NA), TNR=c(NA), FNR=c(NA))
+```
+
 ### Naive Bayes
+
+I will repeat the same process for Naive Bayes.
+
+#### Capacity to Learn
 
 ```{r}
 nb_model <- naiveBayes(label ~ ., data = training_df)
@@ -176,55 +203,18 @@ training_nb_yhat <- predict(nb_model, training_df_without_label)
 capacity_to_learn <- rbind(capacity_to_learn, evaluate_algo(training_df_label, training_nb_yhat, "NB"))
 ```
 
-#### With Bagging
-
-Now to try bagging the Naive Bayes model.  I will save all the models to a list so that they can be used to evaluate how well it would generalize latter in the document.
+#### Capacity to Generalize
 
 ```{r}
-nb_bag <- list()
-for (i in 1:n_bags){
-  bag_df <- get_bootstrap_sample(training_df)
-  bag_df_without_label <- bag_df %>% select(-label)
-  bag_df_label <- bag_df$label
-  bag_nb_model <- naiveBayes(label ~ ., data = bag_df)
-  training_bag_nb_yhat <- predict(bag_nb_model, bag_df_without_label)
-  bag_capacity_to_learn <- evaluate_algo(bag_df_label, training_bag_nb_yhat, paste("NB Bag", i))
-  nb_bag[[i]] <- list(model = bag_nb_model, yhat=training_bag_nb_yhat, capacity_to_learn = bag_capacity_to_learn)
-  if(exists("nb_bag_capacity_to_learn")){
-    nb_bag_capacity_to_learn <- rbind(nb_bag_capacity_to_learn, bag_capacity_to_learn)
-  } else {
-    nb_bag_capacity_to_learn <- bag_capacity_to_learn
-  }
-}
-```
-
-Now to average the capacity to learn metrics:
-
-```{r}
-nb_bag_capacity_to_learn <- nb_bag_capacity_to_learn %>%
-  select(-Algo) %>%
-  colMeans(na.rm=TRUE) %>%
-  t() %>%
-  data.frame("Algo"=c("NB with Bagging"), .)
-capacity_to_learn <- rbind(capacity_to_learn, nb_bag_capacity_to_learn)
-```
-
-#### LOOCV
-
-Now Naive Bayes with LOOCV
-
-```{r}
-for (i in 1:nrow(training_df)){
-  loocv_test <- training_df[i,]
-  loocv_test_without_label <- loocv_test %>% select(-label)
-  loocv_training_df <- training_df[-c(i),]
-  loocv_nb_model <- naiveBayes(label ~ ., data = loocv_training_df)
-  training_loocv_nb_yhat <- predict(loocv_nb_model, loocv_test_without_label)
-  loocv_capacity_to_learn <- evaluate_algo(loocv_nb_model, training_loocv_nb_yhat, paste("NB LOOCV", i))
-}
+nb_yhat <- predict(nb_model, test_df_without_label)
+capacity_to_generalize <- rbind(capacity_to_generalize, evaluate_algo(test_df_label, nb_yhat, "NB"))
 ```
 
 ### KNN
+
+Finally I will repeat the process for KNN where k=3 and k=5
+
+#### Capacity to Learn
 
 ```{r}
 training_knn3_yhat <- knn(training_df_without_label, training_df_without_label, training_df_label, k = 3)
@@ -234,24 +224,7 @@ training_knn5_yhat <- knn(training_df_without_label, training_df_without_label, 
 capacity_to_learn <- rbind(capacity_to_learn, evaluate_algo(training_df_label, training_knn5_yhat, "KNN5"))
 ```
 
-## Gathering the Model's Capacity to Generalize
-
-### Logistic Regression
-
-```{r}
-lr_yhat <- get_lr_yhat(lr_model, test_df, "label")
-test_lr_cm <- confusionMatrix(table(test_df_label, lr_yhat))
-capacity_to_generalize <- evaluate_algo(test_df_label, lr_yhat, "LR")
-```
-
-### Naive Bayes
-
-```{r}
-nb_yhat <- predict(nb_model, test_df_without_label)
-capacity_to_generalize <- rbind(capacity_to_generalize, evaluate_algo(test_df_label, nb_yhat, "NB"))
-```
-
-### KNN
+#### Capacity to Generalize
 
 ```{r}
 knn3_yhat <- knn(training_df_without_label, test_df_without_label, training_df_label, k = 3)
@@ -261,11 +234,194 @@ knn5_yhat <- knn(training_df_without_label, test_df_without_label, training_df_l
 capacity_to_generalize <- rbind(capacity_to_generalize, evaluate_algo(test_df_label, knn5_yhat, "KNN5"))
 ```
 
+## Models With Bagging
+
+Now to try bagging the Naive Bayes, and KNN models.  I will use the models trained on the bootstrap samples to predict the test data and collect metrics on the capacity to learn and generalize, which will be aggregated.
+
+```{r}
+nb_bag <- list()
+for (i in 1:n_bags){
+  bag_df <- get_bootstrap_sample(training_df)
+  bag_df_without_label <- bag_df %>% select(-label)
+  bag_df_label <- bag_df$label
+  
+  # Train the Naive Bayes Model
+  bag_nb_model <- naiveBayes(label ~ ., data = bag_df)
+  training_bag_nb_yhat <- predict(bag_nb_model, bag_df_without_label)
+  ## Evaluate the capacity to learn
+  bag_capacity_to_learn <- evaluate_algo(bag_df_label, training_bag_nb_yhat, paste("NB Bag", i))
+  if(exists("nb_bag_capacity_to_learn")){
+    nb_bag_capacity_to_learn <- rbind(nb_bag_capacity_to_learn, bag_capacity_to_learn)
+  } else {
+    nb_bag_capacity_to_learn <- bag_capacity_to_learn
+  }
+  ## Evaluate the capacity to generalize
+  bag_nb_test_yhat <- predict(bag_nb_model, test_df_without_label)
+  bag_capacity_to_generalize <- evaluate_algo(test_df_label, bag_nb_test_yhat, paste("NB Bag", i))
+  if(exists("nb_bag_capacity_to_generalize")){
+    nb_bag_capacity_to_generalize <- rbind(nb_bag_capacity_to_generalize, bag_capacity_to_generalize)
+  } else {
+    nb_bag_capacity_to_generalize <- bag_capacity_to_generalize
+  }
+  
+  # Train the KNN3 Model
+  ## Evaluate the capacity to learn
+  training_bag_knn3_yhat <- knn(bag_df_without_label, bag_df_without_label, bag_df_label, k = 3)
+  bag_capacity_to_learn <- evaluate_algo(bag_df_label, training_bag_knn3_yhat, paste("KNN3 Bag", i))
+  if(exists("knn3_bag_capacity_to_learn")){
+    knn3_bag_capacity_to_learn <- rbind(knn3_bag_capacity_to_learn, bag_capacity_to_learn)
+  } else {
+    knn3_bag_capacity_to_learn <- bag_capacity_to_learn
+  }
+  ## Evaluate the capacity to generalize
+  bag_knn3_test_yhat <- knn(bag_df_without_label, test_df_without_label, bag_df_label, k = 3)
+  bag_capacity_to_generalize <- evaluate_algo(test_df_label, bag_knn3_test_yhat, paste("KNN3 with Bagging", i))
+  if(exists("knn3_bag_capacity_to_generalize")){
+    knn3_bag_capacity_to_generalize <- rbind(knn3_bag_capacity_to_generalize, bag_capacity_to_generalize)
+  } else {
+    knn3_bag_capacity_to_generalize <- bag_capacity_to_generalize
+  }
+  
+  # Train the KNN5 Model
+  ## Evaluate the capacity to learn
+  training_bag_knn5_yhat <- knn(bag_df_without_label, bag_df_without_label, bag_df_label, k = 5)
+  bag_capacity_to_learn <- evaluate_algo(bag_df_label, training_bag_knn5_yhat, paste("KNN5 with Bagging", i))
+  if(exists("knn5_bag_capacity_to_learn")){
+    knn5_bag_capacity_to_learn <- rbind(knn5_bag_capacity_to_learn, bag_capacity_to_learn)
+  } else {
+    knn5_bag_capacity_to_learn <- bag_capacity_to_learn
+  }
+  ## Evaluate the capacity to generalize
+  bag_knn5_test_yhat <- knn(bag_df_without_label, test_df_without_label, bag_df_label, k = 5)
+  bag_capacity_to_generalize <- evaluate_algo(test_df_label, bag_knn5_test_yhat, paste("KNN5 with Bagging", i))
+  if(exists("knn5_bag_capacity_to_generalize")){
+    knn5_bag_capacity_to_generalize <- rbind(knn5_bag_capacity_to_generalize, bag_capacity_to_generalize)
+  } else {
+    knn5_bag_capacity_to_generalize <- bag_capacity_to_generalize
+  }
+  
+}
+```
+
+Now to average the metrics:
+
+```{r}
+# Naive Bayes
+capacity_to_learn <- rbind(capacity_to_learn, average_metrics(nb_bag_capacity_to_learn, "NB with Bagging"))
+capacity_to_generalize <- rbind(capacity_to_generalize, average_metrics(nb_bag_capacity_to_generalize, "NB with Bagging"))
+
+# KNN3
+capacity_to_learn <- rbind(capacity_to_learn, average_metrics(knn3_bag_capacity_to_learn, "KNN3 with Bagging"))
+capacity_to_generalize <- rbind(capacity_to_generalize, average_metrics(knn3_bag_capacity_to_generalize, "KNN3 with Bagging"))
+
+# KNN5
+capacity_to_learn <- rbind(capacity_to_learn, average_metrics(knn5_bag_capacity_to_learn, "KNN5 with Bagging"))
+capacity_to_generalize <- rbind(capacity_to_generalize, average_metrics(knn5_bag_capacity_to_generalize, "KNN5 with Bagging"))
+```
+
+## Models With LOOCV
+
+Now to examine how the models preform using LOOCV
+
+```{r}
+training_loocv_nb_yhat <- c()
+training_loocv_knn3_yhat <- c()
+training_loocv_knn5_yhat <- c()
+loocv_test_label <- c()
+
+for (i in 1:nrow(training_df)){
+  # Leave One Out
+  loocv_test <- training_df[i,]
+  loocv_test_without_label <- loocv_test %>% select(-label)
+  loocv_test_label <- c(loocv_test_label, loocv_test$label)
+  loocv_training_df <- training_df[-c(i),]
+  loocv_training_df_without_label <- loocv_training_df %>% select(-label)
+  loocv_training_df_label <- loocv_training_df$label
+  
+  # Train the Naive Bayes Model
+  loocv_nb_model <- naiveBayes(label ~ ., data = loocv_training_df)
+  ## Evaluate the capacity to learn
+  ### Note: This will be done once we have gone over the whole training data set
+  training_loocv_nb_yhat <- c(training_loocv_nb_yhat, predict(loocv_nb_model, loocv_test_without_label))
+  ## Evaluate the capacity to generalize
+  loocv_nb_test_yhat <- predict(loocv_nb_model, test_df_without_label)
+  loocv_capacity_to_generalize <- evaluate_algo(test_df_label, loocv_nb_test_yhat, paste("NB with LOOCV", i))
+  if(exists("nb_loocv_capacity_to_generalize")){
+    nb_loocv_capacity_to_generalize <- rbind(nb_loocv_capacity_to_generalize, loocv_capacity_to_generalize)
+  } else {
+    nb_loocv_capacity_to_generalize <- loocv_capacity_to_generalize
+  }
+  
+  # Train the KNN3 Model
+  ## Evaluate the capacity to learn
+  ### Note: This will be done once we have gone over the whole training data set
+  training_loocv_knn3_yhat <- c(training_loocv_knn3_yhat, knn(loocv_training_df_without_label, loocv_test_without_label, loocv_training_df_label, k = 3))
+  ## Evaluate the capacity to generalize
+  loocv_knn3_test_yhat <- knn(loocv_training_df_without_label, test_df_without_label, loocv_training_df_label, k = 3)
+  loocv_capacity_to_generalize <- evaluate_algo(test_df_label, loocv_knn3_test_yhat, paste("KNN3 with LOOCV", i))
+  if(exists("knn3_loocv_capacity_to_generalize")){
+    knn3_loocv_capacity_to_generalize <- rbind(knn3_loocv_capacity_to_generalize, loocv_capacity_to_generalize)
+  } else {
+    knn3_loocv_capacity_to_generalize <- loocv_capacity_to_generalize
+  }
+  
+  # Train the KNN5 Model
+  ## Evaluate the capacity to learn
+  ### Note: This will be done once we have gone over the whole training data set
+  training_loocv_knn5_yhat <- c(training_loocv_knn5_yhat, knn(loocv_training_df_without_label, loocv_test_without_label, loocv_training_df_label, k = 5))
+  ## Evaluate the capacity to generalize
+  loocv_knn5_test_yhat <- knn(loocv_training_df_without_label, test_df_without_label, loocv_training_df_label, k = 5)
+  loocv_capacity_to_generalize <- evaluate_algo(test_df_label, loocv_knn5_test_yhat, paste("KNN5 with LOOCV", i))
+  if(exists("knn5_loocv_capacity_to_generalize")){
+    knn5_loocv_capacity_to_generalize <- rbind(knn5_loocv_capacity_to_generalize, loocv_capacity_to_generalize)
+  } else {
+    knn5_loocv_capacity_to_generalize <- loocv_capacity_to_generalize
+  }
+
+}
+```
+
+Now to average the metrics:
+
+```{r}
+# Naive Bayes
+capacity_to_learn <- rbind(capacity_to_learn, evaluate_algo(loocv_test_label, training_loocv_nb_yhat, "NB with LOOCV"))
+capacity_to_generalize <- rbind(capacity_to_generalize, average_metrics(nb_loocv_capacity_to_generalize, "NB with LOOCV"))
+
+# KNN3
+capacity_to_learn <- rbind(capacity_to_learn, evaluate_algo(loocv_test_label, training_loocv_knn3_yhat, "KNN3 with LOOCV"))
+capacity_to_generalize <- rbind(capacity_to_generalize, average_metrics(knn3_loocv_capacity_to_generalize, "KNN3 with LOOCV"))
+
+# KNN5
+capacity_to_learn <- rbind(capacity_to_learn, evaluate_algo(loocv_test_label, training_loocv_knn5_yhat, "KNN5 with LOOCV"))
+capacity_to_generalize <- rbind(capacity_to_generalize, average_metrics(knn5_loocv_capacity_to_generalize, "KNN5 with LOOCV"))
+```
+
+
 ## Summary and Analysis
 
-We have evaluated `r nrow(capacity_to_learn)` algorithm's capacity to learn and generalize.  The following tables summarize their performace: 
+We have evaluated `r nrow(capacity_to_learn)` algorithm's capacity to learn and generalize.  The following tables summarize their performance: 
 
 **Table 1. Capacity to Learn**
 ```{r, echo=FALSE}
-capacity_to_learn %>%  kable() %>%  kable_styling()
+capacity_to_learn %>% arrange(Algo) %>% kable() %>%  kable_styling()
+```
+
+**Table 2. Capacity to Generalize**
+```{r, echo=FALSE}
+capacity_to_generalize %>% arrange(Algo) %>% kable() %>% kable_styling()
+```
+
+### Discussion
+
+```{r}
+ggplot() + geom_density(aes(x=ACCURACY, color="Bagging"), data=nb_bag_capacity_to_generalize) + geom_density(aes(x=ACCURACY, color="LOOCV"), data=nb_loocv_capacity_to_generalize) + geom_vline(xintercept = 1/3) + ggtitle("Naive Bayes Capacity to Generalize") + scale_color_brewer(palette = "Set1")
+```
+
+```{r}
+ggplot() + geom_density(aes(x=ACCURACY), data=knn3_bag_capacity_to_generalize) + geom_vline(xintercept = 1/2)
+```
+
+```{r}
+ggplot() + geom_density(aes(x=ACCURACY), data=knn5_bag_capacity_to_generalize) + geom_vline(xintercept = 2/3)
 ```
