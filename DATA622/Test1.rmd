@@ -5,51 +5,14 @@ date: "`r Sys.Date()`"
 output: html_document
 ---
 
+**Available Online at: [https://github.com/mikeasilva/CUNY-SPS/blob/master/DATA622/Test1.rmd](https://github.com/mikeasilva/CUNY-SPS/blob/master/DATA622/Test1.rmd)**
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-# Use the dataset you used for HW-1 (Blue/Black)
-# 
-# (A) Run Bagging (ipred package)   
-# 
-#   -- sample with replacement
-# 
-#   -- estimate metrics for a model
-# 
-#   -- repeat as many times as specied and report the average
-# 
-# (B) Run LOOCV (jacknife) for the same dataset
-# 
-# --- iterate over all points
-# 
-#      -- keep one observation as test
-# 
-#     -- train using the rest of the observations
-# 
-#     -- determine test metrics
-# 
-#     -- aggregate the test metrics
-# 
-# end of loop
-# 
-# find the average of the test metric(s)
-# 
-# Compare (A), (B) above with the results you obtained in HW-1  and write 3 sentences explaining the
-# 
-# observed difference.
-# 
-# You can implement it in java/spark, python or R.
-# 
-# Submit RMD or PDF and the python/R scripts.
-# 
-# --
-# 
-# i would recommend that you implement it from scratch but you may use any package. It is not a requirement.
-# 
-# bagging is available in ipred package in R.
-```
-This test is an extension of the work done in Homework 1.  I will be extending it with bagging and leave one out cross-validation (LOOCV), and adding in the results into the evaluation of the algorithms.
 
+```
 ## Preliminaries
+This test is an extension of the work done in Homework 1.  I will be extending it with bagging and leave one out cross-validation (LOOCV), and adding in the results into the evaluation of the algorithms.
 
 ### Load Packages
 
