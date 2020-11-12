@@ -1,1 +1,0 @@
-train: data/images/trainingval: data/images/testnc: 4names: ['Poison Ivy', 'Virginia Creeper', 'Bramble', 'Box Elder']
