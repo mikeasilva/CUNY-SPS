@@ -1,0 +1,54 @@
+---
+title: "08 - Report Viz"
+author: "Mike Silva"
+date: "Fall 2020"
+output: html_document
+---
+
+```{r, message=FALSE}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
+yolov3_results <- read.csv("report/yolov3_results.csv") %>%
+  rowwise() %>%
+  mutate(Epoch = as.numeric(strsplit(Epoch, "/")[[1]][1])+1)
+
+yolov5_results <- read.csv("report/yolov5_results.csv") %>%
+  rowwise() %>%
+  mutate(Epoch = as.numeric(strsplit(Epoch, "/")[[1]][1])+1)
+
+```
+
+```{r}
+yolo_results <- pivot_longer(yolov3_results, GIoU:Val.classification, names_to = "Measure")
+yolo_results <- pivot_longer(yolov5_results, GIoU:Val.classification, names_to = "Measure") %>%
+  rbind(yolo_results)
+```
+
+```{r}
+viz_data <- yolov3_results %>%
+  mutate(Model = as.factor(paste0(model,": ", n_images, " images")))
+ggplot(viz_data, aes(x=Epoch, y=mAP.0.5, color=Model, group=Model)) + geom_line() + scale_color_brewer(palette = "Set1")
+```
+
+```{r}
+viz_data <- yolov5_results %>%
+  mutate(Model = as.factor(paste0(model,": ", n_images, " images")))
+ggplot(viz_data, aes(x=Epoch, y=mAP.0.5, color=Model, group=Model)) + geom_line() + scale_color_brewer(palette = "Set1")
+```
+
+```{r}
+for(m in unique(yolo_results$Measure)){
+  viz_data <- yolo_results %>%
+    filter(Measure == m) %>%
+    mutate(Model = as.factor(paste0(model,": ", n_images, " images")))
+    p <- ggplot(viz_data, aes(x=Epoch, y=value, color=Model, group=Model)) + 
+      geom_line() +
+      theme(axis.title.y = element_blank()) +
+      ggtitle(m)
+    print(p)
+}
+```
