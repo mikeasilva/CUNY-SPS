@@ -1,0 +1,280 @@
+---
+title: "M12-RandomForest"
+author: "Raman Kannan"
+date: "8/24/2020"
+output:
+  html_document:
+    toc: true
+    toc_float: yes
+    theme: united
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Random Forest#
+
+Recall a classification exercise is characterized by the algorithm we used, the dataset, characterized by (**p** the number of features) and (**N** number of observations).
+
+We can vary these seeking to improve performance.
+When we did **BAGGING** we varied the set of observations but we kept all the features. Because it is done with replacement, some observations had more weights and others had no representation. Observations without representation never made it to the training set. Observations with more weight were included in the training set more than once.
+
+**Cross Validation**, on the other hand includes all features but by splitting the data into disjoint subsets and by iterating through all the subsets, ensures every observation is included in testing and training. Process of CV ensures when an observation is included in the training phase it is not also included in the training phase. 
+
+Now we want to vary the features and aggregate the results.
+Aggregation for Classification is not average but some form of voting.
+
+A **Random Forest** is a forest of trees. Each tree is distinct in that it uses a random bootstrap of the training set and varies the features randomly at every split. Recall that a tree uses information theoretic principles to determine which feature to split on. A tree splits on the feature that results in the highest information (GINI) gain. Key distinction it considers the entire feature set to make that determination. 
+
+In Random Forest, not all the features are considered. Only a subset is considered, and at every split. 
+
+First to understand the impact of varying features, let us run two individual trees considering different features.
+
+Then, we will run a standard implementation of RandomForest.
+
+
+```{r utility_functions}
+file<-'c://Users/rk215/Data/heart.csv'
+heart<-read.csv(file,head=T,sep=',',stringsAsFactors=F)
+
+
+unlist(lapply(names(heart),FUN=function(x,data=heart){c(cname=x,uvalfreq=length(unique(data[[x]])))}))
+
+nvpairsdf3<-do.call('rbind',lapply(names(heart),FUN=function(x,data=heart){c(cname=x,uvalfreq=length(unique(data[[x]])))}))
+
+categoricalFeatures<-function(dset,ncol=7)
+{
+  df4<-as.data.frame(do.call('rbind',lapply(names(dset),FUN=function(x,data=dset){c(cname=x,uvalfreq=length(unique(data[[x]])))})))
+  df4$uvalfreq=as.numeric(df4$uvalfreq)
+  dset[,df4$uvalfreq<=ncol]
+}
+
+X<-categoricalFeatures(heart)
+
+table(heart$target)
+dim(X)
+class_col<-which(names(X)=='target')
+
+fvcnt<-ncol(X[,-c(class_col)])
+
+#set.seed if you want to repeatability
+#RF implementations consider sqrt(p) features
+# to avoid too many common features
+# here we are seeking to establish that it matters
+# we are concerned about features being present in both
+exp_fset1<-sample(1:fvcnt,fvcnt-1,replace=F)
+exp_fset2<-sample(1:fvcnt,fvcnt-1,replace=F)
+table(sort(exp_fset1)==sort(exp_fset2))
+
+exp_fset1
+exp_fset2
+
+```
+
+
+```{r, echo=FALSE}
+library(rpart)
+library(rpart.plot)
+library(ROCR)
+
+isModelReliable<-function(cfmx)
+{	cfmx$overall[['AccuracyPValue']]<0.05;
+ }
+
+isUnderfitting<-function(cfmx)
+{	cfmx$overall[['Accuracy']]<0.60;
+ }
+
+isOverfitting<-function(tr,tst)
+{	tst$overall[['Accuracy']]/tr$overall[['Accuracy']]<0.75;
+ }
+
+getSensitivity<-function(cfmx) cfmx$byClass[['Sensitivity']]
+
+getAccuracy<-function(cfmx) cfmx$overall[['Accuracy']]
+
+getSpecificity<-function(cfmx) cfmx$byClass[['Specificity']]
+
+getMetrics<-function(actual_class,predicted_response)
+{
+X=list()
+if ( require(ROCR) ) {
+auc_1=prediction(predicted_response,actual_class)
+prf=performance(auc_1, measure="tpr",x.measure="fpr")
+slot_fp=slot(auc_1,"fp")
+slot_tp=slot(auc_1,"tp")
+
+fpr=unlist(slot_fp)/unlist(slot(auc_1,"n.neg"))
+tpr=unlist(slot_tp)/unlist(slot(auc_1,"n.pos"))
+
+auc<-performance(auc_1,"auc")
+AUC<-auc@y.values[[1]]
+X=list(prf=prf,fpr=fpr,tpr=tpr,auc=AUC)
+}
+X
+}
+X$target=as.factor(X$target)
+
+#par(mfrow=c(3,1))
+rpart.model<-rpart(target~.,data=X,minsplit=3)
+rpart.plot(rpart.model)
+
+#predict
+
+rcpALL<-predict(rpart.model,
+                                  X[,-c(which(names(X)=="target"))],type="class")
+
+(rpart_mtabAll<-table(rcpALL,X$target))
+
+LALL<-getMetrics(X$target,as.numeric(rcpALL))
+LALL$auc
+LALL$fpr
+LALL$tpr
+
+```
+
+```{r exp1}
+X1<-X[,c(exp_fset1,9)]
+
+rpart.model1<-rpart(target~.,data=X1,minsplit=3)
+rpart.plot(rpart.model1)
+
+rcp1<-predict(rpart.model1,
+                                  X1[,-c(which(names(X1)=="target"))],type="class")
+
+(rpart_mtab1<-table(rcp1,X$target))
+
+L1<-getMetrics(X1$target,as.numeric(rcp1))
+L1$auc
+L1$fpr
+L1$tpr
+
+```
+
+```{r exp2}
+
+X2<-X[,c(exp_fset2,9)]
+
+rpart.model2<-rpart(target~.,data=X2,minsplit=3)
+rpart.plot(rpart.model2)
+
+rcp2<-predict(rpart.model2,
+                                  X2[,-c(which(names(X2)=="target"))],type="class")
+
+(rpart_mtab2<-table(rcp2,X2$target))
+
+L2<-getMetrics(X2$target,as.numeric(rcp2))
+L2$auc
+L2$fpr
+L2$tpr
+
+```
+```{r exp3}
+exp_fset3<-sample(1:fvcnt,fvcnt-1,replace=F)
+X3<-X[,c(exp_fset3,9)]
+
+rpart.model3<-rpart(target~.,data=X3,minsplit=3)
+rpart.plot(rpart.model2)
+
+rcp3<-predict(rpart.model3,
+                                  X3[,-c(which(names(X3)=="target"))],type="class")
+
+(rpart_mtab3<-table(rcp3,X3$target))
+
+L3<-getMetrics(X3$target,as.numeric(rcp3))
+L3$auc
+L3$fpr
+L3$tpr
+```
+
+We ran three different combinatons of feature vectors and
+we got three different performance matrices.
+
+```{r reivew_pred}
+dfpred<-data.frame(actual=X$target,rcpALL,rcp1,rcp2,rcp3)
+
+head(dfpred)
+table(X$target,rcpALL)
+
+table(X$target,rcp1)
+table(X$target,rcp2)
+table(X$target,rcp3)
+```
+So as swap one feature for another, performance of the tree varies ever so lightly.
+Now what if we vary a 1000 times and not at the root level but
+at every level where we split...
+That is RandomForest...
+```{r rforest} 
+
+if(!require(randomForest))require(randomForest)
+
+rf_model<-randomForest(target~.,data=X)
+rf_pred<-predict(rf_model,X[,-c(which(names(X)=="target"))])
+rf_mtab<-table(X$target,rf_pred)
+rf_cmx<-caret::confusionMatrix(rf_mtab)
+rf_mtab
+(rf_accuracy<-sum(diag(rf_mtab))/sum(rf_mtab))
+rf_cmx$overall
+rf_cmx$byClass
+
+
+
+```
+
+```{r rFOptions}
+
+rf1k_model<-randomForest(target~.,data=X,ntree=1000)
+rf1k_pred<-predict(rf1k_model,X[,-c(which(names(X)=="target"))])
+rf1k_mtab<-table(X$target,rf1k_pred)
+rf1k_cmx<-caret::confusionMatrix(rf1k_mtab)
+rf1k_mtab
+(rf1k_accuracy<-sum(diag(rf1k_mtab))/sum(rf1k_mtab))
+rf1k_cmx$overall
+rf1k_cmx$byClass
+
+rf100_model<-randomForest(target~.,data=X,ntree=100)
+rf100_pred<-predict(rf100_model,X[,-c(which(names(X)=="target"))])
+rf100_mtab<-table(X$target,rf100_pred)
+rf100_cmx<-caret::confusionMatrix(rf100_mtab)
+rf100_mtab
+(rf100_accuracy<-sum(diag(rf100_mtab))/sum(rf100_mtab))
+rf100_cmx$overall
+rf100_cmx$byClass
+
+rf50_model<-randomForest(target~.,data=X,ntree=50)
+rf50_pred<-predict(rf50_model,X[,-c(which(names(X)=="target"))])
+rf50_mtab<-table(X$target,rf50_pred)
+rf50_cmx<-caret::confusionMatrix(rf50_mtab)
+rf50_mtab
+(rf1k_accuracy<-sum(diag(rf50_mtab))/sum(rf50_mtab))
+rf1k_cmx$overall
+rf1k_cmx$byClass
+
+rfgrow<-grow(rf50_model,50)
+
+rfgrow_pred<-predict(rfgrow,X[,-c(which(names(X)=="target"))])
+rfgrow_mtab<-table(X$target,rfgrow_pred)
+rfgrow_cmx<-caret::confusionMatrix(rfgrow_mtab)
+rfgrow_mtab
+(rfgrow_accuracy<-sum(diag(rfgrow_mtab))/sum(rfgrow_mtab))
+rfgrow_cmx$overall
+rfgrow_cmx$byClass
+
+```
+The randomForest achieves 0.92% accuracy better than any of the other individual trees.
+
+Running with ntree=100 or growing 50 at a time yields almost
+identical accuracy. Given the random features at every split
+this is somewhat circumspect.
+
+Please note that I am repeating this experiment with the entire set, and therefore these are training error estimates. 
+
+I encourage you to evaluate the generalization error using test-set. 
+
+Notice also that randomForest can be parallelized. I could have run the three experiments in parallel. If the goal is to be big data proficient, then focus on distribution, parallelization.
+
+We have few more options to improve performance. And that will be the topic of next two weeks.
+
+
+
