@@ -35,7 +35,7 @@ Then, we will run a standard implementation of RandomForest.
 
 
 ```{r utility_functions}
-file<-'c://Users/rk215/Data/heart.csv'
+file<-'heart.csv'
 heart<-read.csv(file,head=T,sep=',',stringsAsFactors=F)
 
 
