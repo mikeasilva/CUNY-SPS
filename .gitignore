@@ -69,3 +69,5 @@ DATA698/iNaturalist/images/Virginia Creeper/*png
 DATA698/dataset/*
 DATA698/weights/*.weights
 DATA698/Articles/*
+DATA698/results/YOLOv3 Field Tests Results.ipynb
+DATA698/results/YOLOv5 Field Tests Results.ipynb
