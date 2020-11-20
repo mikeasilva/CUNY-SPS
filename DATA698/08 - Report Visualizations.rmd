@@ -52,3 +52,7 @@ for(m in unique(yolo_results$Measure)){
     print(p)
 }
 ```
+
+```{r}
+ggplot(yolov3_results, aes(R, P, color=as.factor(paste(model, n_images)))) + geom_point()
+```
