@@ -1,0 +1,248 @@
+---
+title: "GradientBoostedTrees"
+author: "Raman Kannan"
+date: "10/5/2020"
+output:
+  html_document:
+    toc: true
+    toc_float: yes
+    theme: united
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning = FALSE, message = FALSE)
+
+```
+# Boosting
+
+In Boosting is an iterative method, similar to penalization, and in each iteration, we increase the weights of observations, for which the classifier fails to label correctly.
+
+
+## Available boosting methods
+
+* AdaBoost
+* Extreme gradient boosting (XGBoost)
+* gradient based boosting
+* CatBoost
+* LightGBM
+
+  
+# Boosting Trials 
+
+```{r running_gbm}
+require(gbm)
+require(ROCR)
+require(pROC)
+
+file<-'heart.csv'
+heart<-read.csv(file,head=T,sep=',',stringsAsFactors=F)
+
+tridx<-sample(1:nrow(heart),0.7*nrow(heart),replace=F)
+tstdata<-heart[-tridx,]
+trdata<-heart[tridx,]
+names(trdata)[[14]]
+gbm_heart_3<-gbm(target~.,data=trdata,
+                 distribution="bernoulli",
+                 n.trees=500,
+                 shrinkage=0.01,
+                 interaction.depth=3,
+                 n.minobsinnode=10,
+                 verbose=T, 
+                 keep.data=F)
+
+#Gradient tree boosting implementations often also #use regularization by limiting the minimum number #of observations in trees' terminal nodes. It is #used in the tree building process by ignoring any #splits that lead to nodes containing fewer than #this number of training set instances.
+
+#Imposing this limit helps to reduce variance in #predictions at leaves. 
+
+gbm_predict<-predict(gbm_heart_3,
+                     tstdata[,-c(14)],
+                    type="response",
+                    gbm_heart_3$n.trees)
+
+
+gbm_predicted<-round(gbm_predict)
+
+gbm_prediction<-prediction(gbm_predicted,
+                           tstdata$target)
+
+(gbm_tbl<-table(tstdata$target,gbm_predicted))
+(gbm_cfm<-caret::confusionMatrix(gbm_tbl))
+gbm_perf<-performance(gbm_prediction,
+                      measure="tpr",
+                      x.measure="fpr")
+(gbm_auc<-performance(gbm_prediction,
+                     measure="auc"))@y.values[[1]]
+
+plot(gbm_perf,main="ROC GBM n.tree=500")
+text(0.5,0.5,paste("AUC=",format(gbm_auc@y.values[[1]],digits=5, scientific=FALSE)))
+```
+## Business of plotting ROC
+The above ROC Curve plot is not sufficient as it has
+three probabilities, including, {0,1}. We can use pROC package which is far easier to work with, as shown below.
+```{r ROC}
+par(pty="s")
+gbm_roc<-roc(tstdata$target~gbm_predict,
+             plot=TRUE,
+             print.auc=TRUE,
+             col='blue',
+             lwd=3,
+             legacy.axes=TRUE,
+             main='ROC Curves(GBM)')
+
+gbm_auc<-auc(gbm_roc)
+
+```
+Now let us run xgboost
+
+```{r xgboost}
+require(xgboost)
+require(Matrix)
+
+trdatamx<-sparse.model.matrix(target~.-1,data=trdata)
+
+tstdatamx<-sparse.model.matrix(target~.-1,data=tstdata)
+
+xgb_model<-xgboost(data=trdatamx,
+                   label=trdata$target,
+                   max_depth = 2,
+  eta = 1, 
+  nrounds = 2,
+  nthread = 2, 
+  #objective = "multi:softmax",# to get classes
+  objective = "multi:softprob",# to get probs
+  num_class=2)
+#xgb_pred <- predict(xgb_model,tstdatamx,type='response')
+
+xgb_pred <- predict(xgb_model,tstdatamx)
+xgb_pred_df<-data.frame(actual=tstdata$target,
+prob.1=xgb_pred[seq(0,length(xgb_pred),by=2)],    prob.0=xgb_pred[seq(1,length(xgb_pred),by=2)])
+xgb_pred_class<-ifelse(xgb_pred_df$prob.0>xgb_pred_df$prob.1,0,1)
+TN<-xgb_pred[(xgb_pred_class==1)&(xgb_pred==tstdata$target)]
+TP<-xgb_pred[(xgb_pred_class==0)&(xgb_pred==tstdata$target)]
+(xgb_tbl<-table(tstdata$target,xgb_pred_class))
+(xgb_cfm<-caret::confusionMatrix(xgb_tbl))
+
+#str(xgb_pred)
+
+xgb_roc<-roc(tstdata$target~xgb_pred[seq(0,length(xgb_pred),by=2)],
+             plot=TRUE,
+             print.auc=TRUE,
+             col='red',
+             lwd=3,
+             legacy.axes=TRUE,
+             main='ROC Curves(XGBoost)')
+
+xgb_auc<-auc(xgb_roc)
+```
+## Comparison with GLM
+How different are these estimates?
+let us run glm and get the estimates...
+```{r glm_comparison}
+glm.model<-glm(target~.,data=trdata,family='binomial')
+
+glm.pred<-predict(glm.model,
+                  tstdata[,-c(14)],
+                  type='response')
+glm.class<-ifelse(glm.pred<0.50,0,1)
+glm_tbl<-table(tstdata$target,glm.class)
+glm_cfm<-caret::confusionMatrix(glm_tbl)
+
+
+
+glm_roc<-roc(tstdata$target~glm.pred,
+             plot=TRUE,
+             print.auc=TRUE,
+             col='black',
+             lwd=3,
+             legacy.axes=TRUE,
+             main='ROC Curves(GLM-Logistic)')
+
+glm_auc<-auc(glm_roc)
+
+
+                           
+
+
+```
+## Comparative Analysis
+
+Let us review the performance (standard metrics) for GLM,GBM and XGBoost.
+```{r Performance Analysis}
+accuracy<-function(xt)sum(diag(xt))/sum(xt)
+
+gbm_tbl
+
+gbm_cfm
+
+glm_tbl
+
+glm_cfm
+
+xgb_tbl
+
+xgb_cfm
+gbm_acc<-accuracy(gbm_tbl)
+glm_acc<-accuracy(glm_tbl)
+xgb_acc<-accuracy(xgb_tbl)
+print(paste("gbm:",gbm_acc,sep=""))
+print(paste("glm:",glm_acc,sep=""))
+print(paste("xgb:",xgb_acc,sep=""))
+
+perfdf<-data.frame(algo=c("glm","gbm","xgb"),
+                   acc=c(glm_acc,gbm_acc,xgb_acc),
+                   auc=c(glm_auc,gbm_auc,xgb_auc))
+```
+
+## Stacking
+For stacking we can run another meta learner
+where the dependent variable is actual and the independent variables are the predictions from
+the different classifiers.
+```{r stacking_setup}
+stackeddf<-data.frame(actual=tstdata$target,
+                      glmpred=glm.class,
+                      gbmpred=gbm_predicted,
+                      xgbpred=xgb_pred_class)
+
+head(stackeddf)
+tail(stackeddf)
+```
+Or we can take the majority vote as follows
+```{r stacking_by_vote}
+stacked_mean<-unlist(apply(stackeddf[,2:4],1,mean))
+#round()
+stacked_label<-ifelse(stacked_mean<0.5,0,1)
+stackeddf<-cbind(stackeddf,stacked=stacked_label)
+(stbl<-table(stackeddf$actual,stacked_label))
+(scfm<-caret::confusionMatrix(stbl))
+stk_acc<-sum(diag(stbl))/sum(stbl)
+
+stk_pred_prob<-(xgb_pred[seq(0,length(xgb_pred),by=2)]+
+                           glm.pred+gbm_predict)/3
+
+stk_roc<-roc(tstdata$target~glm.pred,
+             plot=TRUE,
+             print.auc=TRUE,
+             col='black',
+             lwd=3,
+             legacy.axes=TRUE,
+             main='ROC Curves(Stacked(GLM,GBM,XGB))')
+
+stk_auc<-auc(stk_roc)
+
+perfdf<-rbind(perfdf,c("STK",stk_acc,stk_auc))
+
+perfdf
+
+```
+The improvement is anemic. Giving all three learners equal weight is not useful and so we might entertain giving them weights. And, thus, there are many interesting experiments we can undertake.
+
+For now, we have finally, reached the end of our ML trail. We have introduced numerous ideas from Machine Learning and we have see computational techniques, if only you can focus on the moon and not on the pointer.
+
+
+# Conclusion
+
+From a Big Data perspective, notice that boosting is iterative and parallelizing boosting is either non-trivial or impossible. 
+In the next lecture, we will review Big Data and Machine Learning and reserve the rest for student feed back.
+
+During  the course I have used absolute numbers and they are NOT rules. You can change them working with your stake-holders. That is what I use and I make that part of ALL my SOW.
+
