@@ -19,28 +19,116 @@ yolov3_results <- read.csv("report/yolov3_results.csv") %>%
 yolov5_results <- read.csv("report/yolov5_results.csv") %>%
   rowwise() %>%
   mutate(Epoch = as.numeric(strsplit(Epoch, "/")[[1]][1])+1)
-
 ```
+
+## Images by Month Chart
+
+```{r}
+months_df <- read.csv("report/all_month_counts.csv") %>%
+  mutate(Images = ifelse(Images == 0, NA, Images)) %>%
+  mutate(Plant = ifelse(Plant.Type == "Poison Ivy", "A", "ERROR")) %>%
+  mutate(Plant = ifelse(Plant.Type == "Box Elder", "B", Plant)) %>%
+  mutate(Plant = ifelse(Plant.Type == "Bramble", "C", Plant)) %>%
+  mutate(Plant = ifelse(Plant.Type == "Virginia Creeper", "D", Plant)) %>%
+  mutate(Plant = as.factor(Plant)) %>%
+  mutate(Plant = recode(Plant, A = "Poison Ivy", B = "Box Elder", C = "Bramble", D = "Virginia Creeper")) %>%
+  select(-Plant.Type)
+
+ggplot(months_df, aes(x=Month, y=Images, color=Plant, fill=Plant)) +
+  geom_col() +
+  scale_color_brewer(palette = "Set1") +
+  scale_fill_brewer(palette = "Set1") + 
+  facet_wrap(~Plant) +
+  theme(legend.position = "none") +
+  #xlim(1, 12)
+  scale_x_discrete(name ="Month",  limits=c("1","2","3", "4", "5", "6", "7", "8", "9", "10", "11", "12"))
+```
+
+## Model Performance Charts
+
+```{r}
+viz_data <- yolov3_results %>% select(model, n_images, Epoch, mAP.0.5)
+viz_data <- yolov5_results %>% select(model, n_images, Epoch, mAP.0.5) %>% rbind(viz_data) 
+viz_data$model <- as.factor(viz_data$model)
+viz_data$n_images <- as.factor(viz_data$n_images)
+
+ggplot(viz_data) + 
+  geom_line(aes(x=Epoch, y=mAP.0.5, color=n_images, group=n_images)) + 
+  facet_wrap(~model) + 
+  scale_color_brewer(palette = "Set1") +
+  labs(color = "Number of Images") +
+  ylab("mAP@0.5") +
+  theme(legend.position = "bottom")
+```
+
+## YOLOv3
+
+```{r}
+viz_data <- yolov3_results %>% select(n_images, Epoch, obj) %>% mutate(set = "Training") %>% rename(measure = obj)
+viz_data <- yolov3_results %>% select(n_images, Epoch, Val.objectness) %>% mutate(set = "Test") %>% rename(measure = Val.objectness) %>% rbind(viz_data) 
+viz_data$n_images <- as.factor(viz_data$n_images)
+
+ggplot(viz_data) + 
+  geom_line(aes(x=Epoch, y=measure, color=set, group=set)) + 
+  facet_wrap(~n_images) + 
+  scale_color_brewer(palette = "Set1") +
+  labs(color = "Data Set") +
+  theme(legend.position = "bottom") +
+  ylab("Object Detection Error")
+```
+
+
+```{r}
+viz_data <- yolov3_results %>% select(n_images, Epoch, cls) %>% mutate(set = "Training") %>% rename(measure = cls)
+viz_data <- yolov3_results %>% select(n_images, Epoch, Val.classification) %>% mutate(set = "Test") %>% rename(measure = Val.classification) %>% rbind(viz_data) 
+viz_data$n_images <- as.factor(viz_data$n_images)
+
+ggplot(viz_data) + 
+  geom_line(aes(x=Epoch, y=measure, color=set, group=set)) + 
+  facet_wrap(~n_images) + 
+  scale_color_brewer(palette = "Set1") +
+  labs(color = "Data Set") +
+  theme(legend.position = "bottom") +
+  ylab("Classification Error")
+```
+
+## YOLOv5
+
+```{r}
+viz_data <- yolov5_results %>% select(n_images, Epoch, obj) %>% mutate(set = "Training") %>% rename(measure = obj)
+viz_data <- yolov5_results %>% select(n_images, Epoch, Val.objectness) %>% mutate(set = "Test") %>% rename(measure = Val.objectness) %>% rbind(viz_data) 
+viz_data$n_images <- as.factor(viz_data$n_images)
+
+ggplot(viz_data) + 
+  geom_line(aes(x=Epoch, y=measure, color=set, group=set)) + 
+  facet_wrap(~n_images) + 
+  scale_color_brewer(palette = "Set1") +
+  labs(color = "Data Set") +
+  theme(legend.position = "bottom") +
+  ylab("Object Detection Error")
+```
+
+
+```{r}
+viz_data <- yolov5_results %>% select(n_images, Epoch, cls) %>% mutate(set = "Training") %>% rename(measure = cls)
+viz_data <- yolov5_results %>% select(n_images, Epoch, Val.classification) %>% mutate(set = "Test") %>% rename(measure = Val.classification) %>% rbind(viz_data) 
+viz_data$n_images <- as.factor(viz_data$n_images)
+
+ggplot(viz_data) + 
+  geom_line(aes(x=Epoch, y=measure, color=set, group=set)) + 
+  facet_wrap(~n_images) + 
+  scale_color_brewer(palette = "Set1") +
+  labs(color = "Data Set") +
+  theme(legend.position = "bottom") +
+  ylab("Classification Error")
+```
+
 
 ```{r}
 yolo_results <- pivot_longer(yolov3_results, GIoU:Val.classification, names_to = "Measure")
 yolo_results <- pivot_longer(yolov5_results, GIoU:Val.classification, names_to = "Measure") %>%
   rbind(yolo_results)
-```
 
-```{r}
-viz_data <- yolov3_results %>%
-  mutate(Model = as.factor(paste0(model,": ", n_images, " images")))
-ggplot(viz_data, aes(x=Epoch, y=mAP.0.5, color=Model, group=Model)) + geom_line() + scale_color_brewer(palette = "Set1")
-```
-
-```{r}
-viz_data <- yolov5_results %>%
-  mutate(Model = as.factor(paste0(model,": ", n_images, " images")))
-ggplot(viz_data, aes(x=Epoch, y=mAP.0.5, color=Model, group=Model)) + geom_line() + scale_color_brewer(palette = "Set1")
-```
-
-```{r}
 for(m in unique(yolo_results$Measure)){
   viz_data <- yolo_results %>%
     filter(Measure == m) %>%
