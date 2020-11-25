@@ -13,7 +13,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-#Random Forest#
+# Random Forest
 
 Recall a classification exercise is characterized by the algorithm we used, the dataset, characterized by (**p** the number of features) and (**N** number of observations).
 
