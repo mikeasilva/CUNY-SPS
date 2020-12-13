@@ -4,8 +4,8 @@ Mike Silva's Masters in Data Science Course Work
 
 | Semester    | Course Name | Key Projects |
 | ----------- | ----------- | ------------ |
-| Fall 2020 | [DATA 698 - Master's Capstone](https://github.com/mikeasilva/CUNY-SPS/tree/master/DATA698) |  |
-| Fall 2020 | [DATA 622 - Machine Learning and Big Data](https://github.com/mikeasilva/CUNY-SPS/tree/master/DATA622) |  |
+| Fall 2020 | [DATA 698 - Master's Capstone](https://github.com/mikeasilva/CUNY-SPS/tree/master/DATA698) | Using ML to Identify Poison Ivy from Look-alikes - [paper](https://github.com/mikeasilva/CUNY-SPS/blob/master/DATA698/Using%20ML%20to%20Identify%20Poison%20Ivy%20from%20Look-alikes.pdf), [video](https://www.youtube.com/watch?v=QFFNxpZYyGI) |
+| Fall 2020 | [DATA 622 - Machine Learning and Big Data](https://github.com/mikeasilva/CUNY-SPS/tree/master/DATA622) |  Not Applicable |
 | Spring 2020 | [DATA 612 - Recommender Systems](https://github.com/mikeasilva/CUNY-SPS/tree/master/DATA612) |  [Web Based Board Game Recommender System](http://red-dice.azurewebsites.net/)|
 | Spring 2020 | [DATA 624 - Predictive Analytics](https://github.com/mikeasilva/CUNY-SPS/tree/master/DATA624) |  [Random Forest Model Predicting PH of Beverage](https://github.com/mikeasilva/CUNY-SPS/blob/master/DATA624/Project%202%20Group%20Work.Rmd)|
 | Fall 2019   | [DATA 608 - Knowledge and Visual Analytics](https://github.com/mikeasilva/CUNY-SPS/tree/master/DATA608) | [NYS's Shrinking Middle Class](http://nys-shrinking-middle-class.herokuapp.com/); [NYC Trees](http://nyc-trees-app.herokuapp.com/)|
