@@ -1,0 +1,446 @@
+---
+title: "HW2"
+author: "Mike Silva"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r, message=FALSE, warning=FALSE}
+library(caret)
+library(tictoc)
+library(dplyr)
+library(tidyr)
+library(ROCR)
+library(e1071)
+library(kableExtra)
+library(randomForest)
+```
+
+For this homework I will use Logistic Regression and SVM on the heart data set.  Instructions for the homework are in *italics*
+
+```{r}
+path <- "heart.csv"
+df <- read.csv(path, stringsAsFactors = FALSE)
+# Clean up the first column
+names(df)[[1]] <- "age"
+```
+
+## PART-A
+
+### Base Metrics
+
+*Do a 80/20 split and determine the Accuracy, AUC and as many metrics as returned by the Caret
+package (confusionMatrix) Call this the base_metric. Note down as best as you can development
+(engineering) cost as well as computing cost(elapsed time).*
+
+```{r}
+set.seed(43)
+in_train <- createDataPartition(df$target, p = 0.8, list = FALSE, times = 1)
+train <- df[in_train, ]
+test <- df[-in_train, ]
+```
+
+These are some general purpose utility functions to get the evaluations metrics
+
+```{r}
+get_cm_metrics <- function(pred, truth){
+  cm <- confusionMatrix(table(pred, truth))
+  metrics <- c(cm$overall["Accuracy"], cm$byClass)
+  return(data.frame(as.list(metrics)))
+}
+
+get_auc <- function(pred, truth){
+  temp <- prediction(pred, truth)
+  prf <- performance(temp, "auc")
+  return(prf@y.values[[1]])
+}
+
+get_elapsed <- function(tictoc){
+  return(tictoc$toc - tictoc$tic)
+}
+```
+
+#### Logistic Regression Classifier
+
+It took me 20 minutes to develop this logistic regression pipeline with the evaluation metrics.  I also developed this logistic regression version of predict that will return the classes instead of the probabilities.
+
+```{r}
+lr_predict <- function(lr_model, df){
+  lr_probs <- predict(lr_model, df, type="response")
+  lr_yhat <- ifelse(lr_probs < 0.5, 0, 1)
+  return(lr_yhat)
+}
+
+lr_engineering_cost <- 20
+```
+
+Now to train the baseline logistics regression classifier.
+
+```{r}
+tic("Logistic Regression Training")
+glm_model <- glm(target~., data = df, family = "binomial")
+summary_glm_model <- summary(glm_model)
+coef_summary_glm_model <- coef(summary_glm_model)
+# I only want statistically significant variables
+lr_formula <- paste("target~", paste(row.names(coef_summary_glm_model[coef_summary_glm_model[, 4] < 0.05, ]), collapse = "+"), sep = "")
+lr_model <- glm(lr_formula, data = df, family = "binomial")
+lr_time <- toc()
+lr_time <- get_elapsed(lr_time)
+lr_yhat <- lr_predict(lr_model, test)
+lr_auc <- get_auc(lr_yhat, test$target)
+base_metric <- get_cm_metrics(lr_yhat, test$target) %>%
+  mutate(AUC = lr_auc,
+         model = "LR",
+         engineering_cost = lr_engineering_cost,
+         computing_cost = lr_time)
+```
+
+#### SVM Classifier
+
+The SVM  classifier did not take as much engineering time since most of it was developed for the LR model.  Here's the SVM's helper functions
+
+```{r}
+svm_predict <- function(svm_model, df){
+  svm_probs <- predict(svm_model, df)
+  svm_yhat <- ifelse(svm_probs < 0.5, 0, 1)
+  return(svm_yhat)
+}
+
+svm_engineering_cost <- 5
+```
+
+And now we train...
+
+```{r}
+tic("SVM Training")
+svm_model <- svm(target~., data = df, probability = TRUE)
+svm_time <- toc()
+svm_time <- get_elapsed(svm_time)
+svm_yhat <- svm_predict(svm_model, test)
+svm_auc <- get_auc(svm_yhat, test$target)
+base_metric <- get_cm_metrics(svm_yhat, test$target) %>%
+  mutate(AUC = svm_auc,
+         model = "SVM",
+         engineering_cost = svm_engineering_cost,
+         computing_cost = svm_time) %>%
+  bind_rows(base_metric)
+```
+
+### K-Fold Cross Validated Metrics
+
+*Start with the original dataset and set a seed (43). Then run a cross validation of 5 and 10 of the model
+on the training set. Determine the same set of metrics and compare the cv_metrics with the
+base_metric. Note down as best as you can development (engineering) cost as well as computing
+cost(elapsed time).*
+
+#### Logistic Regression
+
+I have built this out to run both cross validations.  It took about 20 minutes to build which cost I split between the models.
+
+```{r}
+n <- nrow(df)
+ks <- c(5, 10)
+cv_lr_engineering_cost <- 20 / length(ks)
+
+for (k in ks){
+  set.seed(43)
+  folds <- split(1:n, cut(1:n, quantile(1:n, probs = seq(0, 1, by = 1 / k))))
+  ridx <- sample(1:nrow(df), nrow(df), replace = FALSE)
+  
+  tic(paste(k, "Fold CV LR Training"))
+
+  k_fold_metrics <- do.call("rbind", lapply(folds, FUN = function(idx, data = df[ridx, ]) {
+    cv_train <- data[-idx, ]
+    cv_test <- data[idx, ]
+    lr_model <- glm(lr_formula, data = cv_train, family = "binomial")
+    lr_yhat <- lr_predict(lr_model, cv_test)
+    lr_auc <- get_auc(lr_yhat, cv_test$target)
+    temp <- get_cm_metrics(lr_yhat, cv_test$target) %>%
+      mutate(AUC = lr_auc) 
+    return(temp)
+  }))
+  
+  cv_lr_time <- toc()
+  cv_lr_time <- get_elapsed(cv_lr_time)
+  
+  k_fold_metrics <- k_fold_metrics %>%
+    summarise_all(list(mean)) %>%
+    mutate(model = paste(k, "Fold LR"),
+           engineering_cost = cv_lr_engineering_cost,
+           computing_cost = cv_lr_time)
+  if(exists("cv_metrics")){
+    cv_metrics <- bind_rows(cv_metrics, k_fold_metrics)
+  } else {
+    cv_metrics <- k_fold_metrics
+  }
+}
+```
+#### SVM
+
+Again the SVM benefited from the development of the workflow for the LR model.  I once again split the developmental costs between the models.
+
+```{r}
+cv_svm_engineering_cost <- 5 / length(ks)
+
+for (k in ks){
+  set.seed(43)
+  folds <- split(1:n, cut(1:n, quantile(1:n, probs = seq(0, 1, by = 1 / k))))
+  ridx <- sample(1:nrow(df), nrow(df), replace = FALSE)
+  
+  tic(paste(k, "Fold CV SVM Training"))
+
+  k_fold_metrics <- do.call("rbind", lapply(folds, FUN = function(idx, data = df[ridx, ]) {
+    cv_train <- data[-idx, ]
+    cv_test <- data[idx, ]
+    svm_model <- svm(target~., data = df, probability = TRUE)
+    svm_yhat <- svm_predict(svm_model, cv_test)
+    svm_auc <- get_auc(svm_yhat, cv_test$target)
+    temp <- get_cm_metrics(svm_yhat, cv_test$target) %>%
+      mutate(AUC = svm_auc) 
+    return(temp)
+  }))
+  
+  cv_svm_time <- toc()
+  cv_svm_time <- get_elapsed(cv_svm_time)
+  
+  cv_metrics <- k_fold_metrics %>%
+    summarise_all(list(mean)) %>%
+    mutate(model = paste(k, "Fold SVM"),
+           engineering_cost = cv_svm_engineering_cost,
+           computing_cost = cv_svm_time) %>%
+    bind_rows(cv_metrics)
+}
+```
+
+#### Comparison
+
+The performance of the model increases with the number of folds.  This is said by looking at the AUC which is a good summary measure of the models performance.  The Base LR model has an AUC of about 0.81.  The K-5 CV LR model's AUC increases to 0.83 and K-10 CV LR increases to 0.84.  The same could be said with SVM where the AUC increases from a base of 0.88 to 0.913 and 0.914 for K-5 and 10 respectively.  Cross validation improves the model performance.  There is some computational cost.  The computational time on the SVM increased by a factor of 3 for K-5 CV and a factor of 6 (roughly) for K-10 CV.  I don't find the performance gain from the K-5 SMV to K-10 to be "worth it".  There is a bit of an uptick for logistic regression for a K-10 model in computational cost.  The performance metrics are summarized in the two tables below:
+
+**Table 1. Base Metrics**
+
+```{r, echo=FALSE}
+base_metric %>% 
+  kable() %>%
+  kable_styling()
+```
+
+**Table 2. CV Metrics**
+
+```{r, echo=FALSE}
+cv_metrics %>% 
+  kable() %>%
+  kable_styling()
+```
+
+### Bootstrapped Metrics
+
+*Start with the original dataset and set a seed (43) Then run a bootstrap of 200 resamples and compute
+the same set of metrics and for each of the two classifiers build a three column table for each
+experiment (base, bootstrap, cross-validated). Note down as best as you can development (engineering)
+cost as well as computing cost(elapsed time).*
+
+#### Bootstrapped Logistics Regression
+
+First I will develop the bootstrap workflow for LR.  This is not the most efficient way of doing it but it works.
+
+```{r}
+set.seed(43)
+n_runs <- 200
+bs_lr_engineering_cost <- 10
+
+tic("Bootstrap LR Training")
+
+for(i in 1:n_runs){
+  in_train <- sample(1:nrow(df), nrow(df), replace=T)
+  train <- df[in_train, ]
+  lr_model <- glm(lr_formula, data = train, family = "binomial")
+  lr_yhat <- lr_predict(lr_model, df)
+  lr_auc <- get_auc(lr_yhat, df$target)
+  temp <- get_cm_metrics(lr_yhat, df$target) %>%
+    mutate(AUC = lr_auc)
+  if(exists("bs_lr_metrics")){
+    bs_lr_metrics <- bind_rows(bs_lr_metrics, temp)
+  } else {
+    bs_lr_metrics <- temp
+  }
+}
+
+bs_lr_time <- toc()
+bs_lr_time <- get_elapsed(bs_lr_time)
+
+bs_lr_metrics <- bs_lr_metrics %>%
+    summarise_all(list(mean)) %>%
+    mutate(model = "Bootstrapped LR",
+           engineering_cost = bs_lr_engineering_cost,
+           computing_cost = bs_lr_time)
+```
+
+#### Bootstraped SVM
+
+And here's the SVM which is basically the LR with some minor tweaks...
+
+```{r}
+set.seed(43)
+bs_svm_engineering_cost <- 5
+
+tic("Bootstrap SVM Training")
+
+for(i in 1:n_runs){
+  in_train <- sample(1:nrow(df), nrow(df), replace=T)
+  train <- df[in_train, ]
+  svm_model <- svm(target~., data = train, probability = TRUE)
+  svm_yhat <- svm_predict(svm_model, df)
+  svm_auc <- get_auc(svm_yhat, df$target)
+  temp <- get_cm_metrics(svm_yhat, df$target) %>%
+    mutate(AUC = svm_auc)
+  if(exists("bs_svm_metrics")){
+    bs_svm_metrics <- bind_rows(bs_svm_metrics, temp)
+  } else {
+    bs_svm_metrics <- temp
+  }
+}
+
+bs_svm_time <- toc()
+bs_svm_time <- get_elapsed(bs_svm_time)
+
+bs_svm_metrics <- bs_svm_metrics %>%
+    summarise_all(list(mean)) %>%
+    mutate(model = "Bootstrapped SVM",
+           engineering_cost = bs_svm_engineering_cost,
+           computing_cost = bs_svm_time)
+
+bs_metrics <- bind_rows(bs_lr_metrics, bs_svm_metrics)
+```
+
+Here's how the bootstrapped models preformed:
+
+**Table 3. Bootstrapped Metrics**
+
+```{r, echo=FALSE}
+bs_metrics %>% 
+  kable() %>%
+  kable_styling()
+```
+
+### Comparison of Experiments
+
+Now to compare the base, CV and bootstrap results.  I will only be looking at the AUC.
+
+**Table 4. Experiment Results**
+
+```{r, echo=FALSE}
+experiment_results <- base_metric %>% 
+  select(model, AUC) %>%
+  mutate(experiment = "Base")
+
+experiment_results <- cv_metrics %>% 
+  filter(model %in% c("10 Fold LR", "10 Fold SVM")) %>% 
+  mutate(model = ifelse(model == "10 Fold LR", "LR", "SVM")) %>%
+  select(model, AUC) %>%
+  mutate(experiment = "10-Fold CV") %>%
+  bind_rows(experiment_results)
+
+experiment_results <- bs_metrics %>%
+  mutate(model = ifelse(model == "Bootstrapped LR", "LR", "SVM")) %>%
+  select(model, AUC) %>%
+  mutate(experiment = "Bootstrapped") %>%
+  bind_rows(experiment_results)
+
+experiment_results %>%
+  pivot_wider(id_cols = model, names_from = experiment, values_from = AUC) %>%
+  select(model, Base, `10-Fold CV`, Bootstrapped) %>%
+  kable() %>%
+  kable_styling()
+```
+
+The Highest AUC is found in the cross validated models.  The bootstrapped models preformed a little better than the base models but that improvement came at a considerable cost:
+
+**Table 5. Computational Cost**
+
+```{r, echo=FALSE}
+experiment_results <- base_metric %>% 
+  select(model, computing_cost) %>%
+  mutate(experiment = "Base")
+
+experiment_results <- cv_metrics %>% 
+  filter(model %in% c("10 Fold LR", "10 Fold SVM")) %>% 
+  mutate(model = ifelse(model == "10 Fold LR", "LR", "SVM")) %>%
+  select(model, computing_cost) %>%
+  mutate(experiment = "10-Fold CV") %>%
+  bind_rows(experiment_results)
+
+experiment_results <- bs_metrics %>%
+  mutate(model = ifelse(model == "Bootstrapped LR", "LR", "SVM")) %>%
+  select(model, computing_cost) %>%
+  mutate(experiment = "Bootstrapped") %>%
+  bind_rows(experiment_results)
+
+experiment_results %>%
+  pivot_wider(id_cols = model, names_from = experiment, values_from = computing_cost) %>%
+  select(model, Base, `10-Fold CV`, Bootstrapped) %>%
+  kable() %>%
+  kable_styling()
+```
+
+These results are not parallelized so there could be some decrease in the computational costs, but CV gives a lot of bang for the buck.
+
+## PART-B
+
+*For the same dataset, set seed (43) split 80/20.
+
+Using randomForest grow three different forests varying the number of trees at least three times. Start
+with seeding and fresh split for each forest. Note down as best as you can development (engineering)
+cost as well as computing cost(elapsed time) for each run. And compare these results with the
+experiment in Part A.*
+
+```{r}
+set.seed(43)
+in_train <- createDataPartition(df$target, p = 0.8, list = FALSE, times = 1)
+train <- df[in_train, ]
+test <- df[-in_train, ]
+train$target <- as.factor(train$target)
+test$target <- as.factor(test$target)
+
+rf_engineering_cost <- 15 / 3
+
+for (n in c(100, 250, 1000)) {
+  set.seed(43)
+  tic(paste("Training RF ", n))
+  rf_1000_model <- randomForest(target~., data = train, ntree = n)
+  rf_time <- toc()
+  rf_time <- get_elapsed(rf_time)
+  rf_yhat <- predict(rf_1000_model, test)
+  rf_auc <- get_auc(as.numeric(as.character(rf_yhat)), as.numeric(as.character(test$target)))
+  temp <- get_cm_metrics(rf_yhat, test$target) %>%
+    mutate(AUC = rf_auc,
+         model = paste("RF", n),
+         engineering_cost = rf_engineering_cost,
+         computing_cost = rf_time)
+  if(exists(("rf_metrics"))){
+    rf_metrics <- bind_rows(rf_metrics, temp)
+  } else {
+    rf_metrics <- temp
+  }
+}
+```
+
+How did the random forests preform?  Table 6 below summarizes them.  The performance is not particularly strong.  The base SVM did a better job than the largest random forest.  Both bootstrapped models out preformed the random forests, and the 10 fold CV models did a lot better.
+
+**Table 6. Random Forest Metrics**
+
+```{r, echo=FALSE}
+rf_metrics %>% 
+  kable() %>%
+  kable_styling()
+```
+
+## PART-C
+
+*Include a summary of your findings. Which of the two methods bootstrap vs cv do you recommend to
+your customer? And why? Be elaborate. Including computing costs, engineering costs and model
+performance. Did you incorporate Pareto's maxim or the Razor and how did these two heuristics
+influence your decision?*
+
+In this exercise I developed two classifiers. One was a logistic regression model and the other a SVM.  I ran some experiments with these models to see if I could improve the model's performance.  The two experiments were to use cross validation and bootstrapping.  In looking at the accuracy of the model as measured using AUC, and if I had to recommend only one model I would recommend the 5-fold cross-validated SVM model.  It showed considerable improvement from the base model.  While the 10-fold SVM did a little better, the computational costs don't justify it.  I also examined 3 random forests as possible solutions but the cross validated SVMs  preformed better than the random forests.
+
+This analysis applies Akum's razor by focusing on AUC instead of all the other metrics.  I could have just as easily focused on positive predictive value if that was more important to the client but I assumed the overall accuracy was the most important.  I applied sort of a Pareto analysis in recommending the K-5 SVM.  Yes the K-10 did better but in terms of computational costs it cost a lot more to squeeze out a little more performance.  It had hit the point of diminishing returns and so it was easier for me to recommend something that got the most bang for the buck.
